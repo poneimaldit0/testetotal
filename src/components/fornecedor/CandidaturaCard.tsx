@@ -83,6 +83,11 @@ function PainelOperacional({ candidatura }: { candidatura: CandidaturaOrcamento 
   const isVisitaRealizada = s === 'visita_realizada';
   const isReuniaoAgendada  = s === 'reuniao_agendada';
   const isReuniaoRealizada = s === 'reuniao_realizada';
+
+  const horasParaAtendimento = candidatura.horarioVisitaAgendado
+    ? Math.round((new Date(candidatura.horarioVisitaAgendado).getTime() - Date.now()) / 3600000)
+    : null;
+  const dentroJanela24h = horasParaAtendimento !== null && horasParaAtendimento > 0 && horasParaAtendimento <= 24;
   const isNegocioPerdido  = s === 'negocio_perdido';
   const isNegocioFechado  = s === 'negocio_fechado';
   const isPropostaEnviada = s === 'orcamento_enviado';
@@ -136,9 +141,17 @@ function PainelOperacional({ candidatura }: { candidatura: CandidaturaOrcamento 
           </div>
 
           {candidatura.horarioVisitaAgendado && (
-            <p className="text-sm text-gray-700 ml-6">
-              {format(new Date(candidatura.horarioVisitaAgendado), "EEEE, dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-            </p>
+            <div className="ml-6 flex items-center gap-2 flex-wrap">
+              <p className="text-sm text-gray-700">
+                {format(new Date(candidatura.horarioVisitaAgendado), "EEEE, dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </p>
+              {dentroJanela24h && (
+                <span className="text-xs font-semibold text-amber-700 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  ⏱ em {horasParaAtendimento}h
+                </span>
+              )}
+            </div>
           )}
 
           {isVisitaRealizada && candidatura.visitaConfirmadaEm && (
@@ -185,9 +198,17 @@ function PainelOperacional({ candidatura }: { candidatura: CandidaturaOrcamento 
           </div>
 
           {candidatura.horarioVisitaAgendado && (
-            <p className="text-sm text-gray-700 ml-6">
-              {format(new Date(candidatura.horarioVisitaAgendado), "EEEE, dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-            </p>
+            <div className="ml-6 flex items-center gap-2 flex-wrap">
+              <p className="text-sm text-gray-700">
+                {format(new Date(candidatura.horarioVisitaAgendado), "EEEE, dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </p>
+              {dentroJanela24h && (
+                <span className="text-xs font-semibold text-violet-700 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  ⏱ em {horasParaAtendimento}h
+                </span>
+              )}
+            </div>
           )}
 
           {isReuniaoRealizada ? (

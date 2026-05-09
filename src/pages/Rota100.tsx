@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { QRCodeSVG } from 'qrcode.react';
 import { MOCK_ROTA100 } from '@/data/mockRota100';
 import { hasCompatRequest, saveCompatRequest, saveEmpresaDispensa, getDispensadas, getCompatRequests } from '@/lib/rota100Storage';
@@ -1149,11 +1150,12 @@ function MarketplaceTab() {
 }
 
 // ── AVALIAÇÕES ────────────────────────────────────────────────────────────────
-function AvaliacoesTab({ empresas: empresasReais }: { empresas: Rota100Empresa[] }) {
+function AvaliacoesTab({ empresas: empresasReais, token, orcamentoId }: { empresas: Rota100Empresa[], token: string, orcamentoId: string }) {
   const { ranking } = MOCK_ROTA100.avaliacoes;
   const empresas = empresasReais.length > 0
-    ? empresasReais.map(e => ({ id: e.id, initials: e.initials, bgColor: e.bgColor, nome: e.nome, valor: e.valor, highlight: false, comentarioMock: '' }))
+    ? empresasReais.map(e => ({ id: e.id, initials: e.initials, bgColor: e.bgColor, nome: e.nome, valor: e.valor, highlight: false }))
     : MOCK_ROTA100.avaliacoes.empresas;
+
   type RatingsMap = Record<string, Record<string, number>>;
   const [ratings, setRatings] = useState<RatingsMap>(() => {
     const init: RatingsMap = {};
@@ -1165,9 +1167,33 @@ function AvaliacoesTab({ empresas: empresasReais }: { empresas: Rota100Empresa[]
     empresas.forEach(e => { init[e.id] = ''; });
     return init;
   });
+  const [enviado, setEnviado] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
-  const setRating = (id: string, cat: string, val: number) =>
+  useEffect(() => {
+    if (!token) return;
+    (supabase as any)
+      .from('avaliacoes_fornecedor')
+      .select('candidatura_id, nota_geral, notas, comentario')
+      .eq('rota100_token', token)
+      .then(({ data }: { data: any[] | null }) => {
+        if (!data || data.length === 0) return;
+        const newRatings: RatingsMap = {};
+        const newComentarios: Record<string, string> = {};
+        data.forEach(row => {
+          newRatings[row.candidatura_id] = { ...(row.notas ?? {}), geral: row.nota_geral ?? 0 };
+          newComentarios[row.candidatura_id] = row.comentario ?? '';
+        });
+        setRatings(prev => ({ ...prev, ...newRatings }));
+        setComentarios(prev => ({ ...prev, ...newComentarios }));
+        setEnviado(true);
+      });
+  }, [token]);
+
+  const setRating = (id: string, cat: string, val: number) => {
+    if (enviado) return;
     setRatings(prev => ({ ...prev, [id]: { ...prev[id], [cat]: val } }));
+  };
 
   const cats: [string, string][] = [
     ['com','Comunicação'],['prop','Transparência da proposta'],
@@ -1176,6 +1202,30 @@ function AvaliacoesTab({ empresas: empresasReais }: { empresas: Rota100Empresa[]
 
   const rankRing = ['#C4780A','#888','#C0392B',C.bd];
 
+  const enviarAvaliacoes = async () => {
+    if (salvando || enviado) return;
+    setSalvando(true);
+    try {
+      const rows = empresas.map(e => ({
+        orcamento_id:   orcamentoId,
+        candidatura_id: e.id,
+        rota100_token:  token,
+        nota_geral:     ratings[e.id]?.geral || null,
+        notas:          { com: ratings[e.id]?.com ?? 0, prop: ratings[e.id]?.prop ?? 0, prazo: ratings[e.id]?.prazo ?? 0 },
+        comentario:     comentarios[e.id] || null,
+      }));
+      await (supabase as any)
+        .from('avaliacoes_fornecedor')
+        .upsert(rows, { onConflict: 'candidatura_id,rota100_token' });
+      setEnviado(true);
+      toast.success('Avaliações enviadas! Obrigado pelo feedback.');
+    } catch {
+      toast.error('Não foi possível salvar as avaliações. Tente novamente.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   return (
     <>
       <div className="r100-card" style={{ background: C.am2, borderColor: 'rgba(196,120,10,.2)' }}>
@@ -1183,7 +1233,7 @@ function AvaliacoesTab({ empresas: empresasReais }: { empresas: Rota100Empresa[]
         <p style={{ fontSize: 12, color: C.cz, marginBottom: 18, lineHeight: 1.65 }}>Sua avaliação ajuda a Reforma100 a recomendar os melhores profissionais. Leva menos de 1 minuto.</p>
 
         {empresas.map(e => (
-          <div key={e.id} style={{ padding: '18px', border: `${e.highlight ? '1.5px' : '1px'} solid ${e.highlight ? C.lj : 'rgba(196,120,10,.2)'}`, borderRadius: 14, background: '#fff', marginBottom: 12, boxShadow: e.highlight ? `0 0 0 3px rgba(232,81,10,.07)` : 'none' }}>
+          <div key={e.id} style={{ padding: '18px', border: `${e.highlight ? '1.5px' : '1px'} solid ${e.highlight ? C.lj : 'rgba(196,120,10,.2)'}`, borderRadius: 14, background: '#fff', marginBottom: 12, boxShadow: e.highlight ? `0 0 0 3px rgba(232,81,10,.07)` : 'none', opacity: enviado ? 0.85 : 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <Avatar initials={e.initials} bg={e.bgColor} size={36} />
               <div style={{ flex: 1 }}>
@@ -1192,7 +1242,7 @@ function AvaliacoesTab({ empresas: empresasReais }: { empresas: Rota100Empresa[]
               </div>
               <span style={bdg(C.vd2, C.vd)}>Orçamento enviado</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 12, pointerEvents: enviado ? 'none' : 'auto' }}>
               {cats.map(([key, label]) => (
                 <div key={key}>
                   <div style={{ fontSize: 9, color: C.cz, marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em' }}>{label}</div>
@@ -1201,15 +1251,23 @@ function AvaliacoesTab({ empresas: empresasReais }: { empresas: Rota100Empresa[]
               ))}
             </div>
             <textarea className="r100-textarea" value={comentarios[e.id]}
-              onChange={ev => setComentarios(prev => ({ ...prev, [e.id]: ev.target.value }))}
-              placeholder={`Comentário sobre a ${e.nome} (opcional)`} />
+              onChange={ev => !enviado && setComentarios(prev => ({ ...prev, [e.id]: ev.target.value }))}
+              placeholder={`Comentário sobre a ${e.nome} (opcional)`}
+              readOnly={enviado} />
           </div>
         ))}
 
-        <button className="r100-btn r100-btn-primary r100-btn-lg r100-btn-full" style={{ marginTop: 6 }}
-          onClick={() => toast.success('Avaliações enviadas! Obrigado pelo feedback.')}>
-          Enviar avaliações →
-        </button>
+        {enviado ? (
+          <div style={{ padding: '14px 16px', background: C.vd2, border: `1px solid ${C.vd}`, borderRadius: 12, textAlign: 'center', fontSize: 13, color: C.vd, fontWeight: 600 }}>
+            ✅ Avaliações enviadas. Obrigado pelo feedback!
+          </div>
+        ) : (
+          <button className="r100-btn r100-btn-primary r100-btn-lg r100-btn-full" style={{ marginTop: 6 }}
+            disabled={salvando}
+            onClick={enviarAvaliacoes}>
+            {salvando ? 'Salvando…' : 'Enviar avaliações →'}
+          </button>
+        )}
       </div>
 
       {/* Ranking */}
@@ -1507,7 +1565,7 @@ export default function Rota100() {
           {activeTab === 'empresas'         && <EmpresasTab empresas={data?.empresas ?? MOCK_ROTA100.empresas as any} token={token} tipoAtendimento={data?.tipoAtendimento ?? null} onCompatIndividual={handleCompatIndividual} onCompatCompleta={handleCompatCompleta} onDispensa={handleDispensa} />}
           {activeTab === 'compatibilizacao' && <CompatibilizacaoTab requested={compatRequested} onRequest={handleCompatRequest} onGoToEmpresas={() => setActiveTab('empresas')} />}
           {activeTab === 'marketplace'      && <MarketplaceTab />}
-          {activeTab === 'avaliacoes'       && <AvaliacoesTab empresas={data?.empresas ?? []} />}
+          {activeTab === 'avaliacoes'       && <AvaliacoesTab empresas={data?.empresas ?? []} token={token} orcamentoId={data?.orcamentoId ?? ''} />}
         </div>
 
       </div>

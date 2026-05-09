@@ -35,6 +35,9 @@ export interface CandidaturaOrcamento {
   linkReuniao?: string | null;
   visitaConfirmadaEm?: string | null;
   preConfirmadoEm?: string | null;
+  notif24hEm?: string | null;
+  notif12hEm?: string | null;
+  notif6hEm?: string | null;
   // Adicionar campos de arquivos
   arquivos?: Array<{
     id: string;
@@ -97,6 +100,9 @@ export const useMeusCandidaturas = (userId?: string) => {
           link_reuniao,
           visita_confirmada_em,
           pre_confirmado_em,
+          notif_24h_em,
+          notif_12h_em,
+          notif_6h_em,
           orcamentos (
             id,
             necessidade,
@@ -332,6 +338,9 @@ export const useMeusCandidaturas = (userId?: string) => {
             linkReuniao: (candidatura as any).link_reuniao || null,
             visitaConfirmadaEm: (candidatura as any).visita_confirmada_em || null,
             preConfirmadoEm: (candidatura as any).pre_confirmado_em || null,
+            notif24hEm: (candidatura as any).notif_24h_em || null,
+            notif12hEm: (candidatura as any).notif_12h_em || null,
+            notif6hEm:  (candidatura as any).notif_6h_em  || null,
             arquivos: documentos,
             fotos: fotos
           };
