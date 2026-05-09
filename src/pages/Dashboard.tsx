@@ -44,6 +44,7 @@ import { CorrigirContaCliente } from '@/components/admin/CorrigirContaCliente';
 import { MuralAvisos } from '@/components/MuralAvisos';
 import { GestaoAvisos } from '@/components/admin/GestaoAvisos';
 import { CalculadoraFinanciamento } from '@/components/fornecedor/CalculadoraFinanciamento';
+import { CentralOperacionalFornecedor } from '@/components/fornecedor/CentralOperacionalFornecedor';
 import { CRMKanbanOrcamentos } from '@/components/admin/CRMKanbanOrcamentos';
 import { CRMKanbanMarcenaria } from '@/components/admin/CRMKanbanMarcenaria';
 import { CustomerSuccessDashboard } from '@/components/admin/CustomerSuccessDashboard';
@@ -312,6 +313,8 @@ const DashboardContent = () => {
         return <PainelSaudeEmpresa />;
       
       // Views para Fornecedor
+      case 'central':
+        return <CentralOperacionalFornecedor />;
       case 'disponiveis':
         return <OrcamentosDisponiveis />;
       case 'meus':

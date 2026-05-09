@@ -3,7 +3,7 @@
  */
 
 export type UserRole = 'master' | 'admin' | 'gestor_conta' | 'fornecedor' | 'cliente' | 'sdr' | 'customer_success' | 'gestor_marcenaria' | 'consultor_marcenaria' | 'closer' | 'pre_vendas';
-export type ViewType = 'lista' | 'cadastro' | 'aprovacoes' | 'usuarios' | 'relatorios' | 'propostas' | 'comparador' | 'reputacao' | 'controle' | 'financeiro' | 'disponiveis' | 'meus' | 'suporte' | 'revisoes' | 'perfil' | 'integridade' | 'recuperacao' | 'contratos' | 'diario' | 'medicoes' | 'cronograma' | 'materiais' | 'avisos' | 'calculadora-financiamento' | 'crm-orcamentos' | 'crm-marcenaria' | 'crm-motivos-perda' | 'crm-checklist-config' | 'cs-dashboard' | 'produtividade-checklist' | 'saude-empresa' | 'cs-pipeline' | 'produtos-segmentacao' | 'funil-vendas' | 'funil-vendas-admin' | 'dashboard-operacional' | 'sdr-atendimento' | 'gestao-fontes' | 'sdr-inteligencia';
+export type ViewType = 'lista' | 'cadastro' | 'aprovacoes' | 'usuarios' | 'relatorios' | 'propostas' | 'comparador' | 'reputacao' | 'controle' | 'financeiro' | 'disponiveis' | 'meus' | 'suporte' | 'revisoes' | 'perfil' | 'integridade' | 'recuperacao' | 'contratos' | 'diario' | 'medicoes' | 'cronograma' | 'materiais' | 'avisos' | 'calculadora-financiamento' | 'crm-orcamentos' | 'crm-marcenaria' | 'crm-motivos-perda' | 'crm-checklist-config' | 'cs-dashboard' | 'produtividade-checklist' | 'saude-empresa' | 'cs-pipeline' | 'produtos-segmentacao' | 'funil-vendas' | 'funil-vendas-admin' | 'dashboard-operacional' | 'sdr-atendimento' | 'gestao-fontes' | 'sdr-inteligencia' | 'central';
 
 // Define which views each user role can access
 const roleViewAccess: Record<UserRole, ViewType[]> = {
@@ -16,7 +16,7 @@ const roleViewAccess: Record<UserRole, ViewType[]> = {
   customer_success: ['cs-dashboard', 'lista', 'cadastro', 'relatorios', 'reputacao', 'suporte', 'usuarios', 'aprovacoes', 'crm-marcenaria', 'crm-orcamentos', 'cs-pipeline'], // CS - foco em fornecedores e marcenaria + CRM Kanban
   gestor_marcenaria: ['crm-marcenaria', 'calculadora-financiamento'], // Gestor Marcenaria - CRM Marcenaria + Calculadora
   consultor_marcenaria: ['crm-marcenaria', 'calculadora-financiamento'], // Consultor Marcenaria - seus leads + Calculadora
-  fornecedor: ['disponiveis', 'meus', 'suporte', 'revisoes', 'perfil', 'contratos', 'diario', 'medicoes', 'cronograma', 'materiais', 'calculadora-financiamento'],
+  fornecedor: ['central', 'disponiveis', 'meus', 'suporte', 'revisoes', 'perfil', 'contratos', 'diario', 'medicoes', 'cronograma', 'materiais', 'calculadora-financiamento'],
   cliente: [] // Clientes não têm acesso ao dashboard principal
 };
 
@@ -31,7 +31,7 @@ const roleDefaultView: Record<UserRole, ViewType> = {
   consultor_marcenaria: 'crm-marcenaria', // Consultor Marcenaria começa no CRM Marcenaria
   closer: 'funil-vendas', // Closer começa no funil de vendas
   pre_vendas: 'funil-vendas', // Pré-Vendas começa no funil
-  fornecedor: 'disponiveis',
+  fornecedor: 'central',
   cliente: 'disponiveis' // Valor padrão, mas clientes serão redirecionados
 };
 
