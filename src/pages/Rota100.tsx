@@ -1121,6 +1121,71 @@ function CompatRankingCard({ emp, isRec, idx }: { emp: EmpresaRanking; isRec: bo
   );
 }
 
+// ── Tipos para resultado de compatibilização ─────────────────────────────────
+interface CompatAnaliseRanking {
+  nome:                 string;
+  posicao:              number;
+  score_composto:       number;
+  justificativa_posicao: string;
+  valor_proposta?:      number;
+  diferenca_mercado?:   number;
+}
+interface CompatAnaliseResult {
+  ranking: CompatAnaliseRanking[];
+  status:  string;
+}
+
+function ResultadoCompatibilizacao({ resultado }: { resultado: CompatAnaliseResult }) {
+  const cores = ['#2D3395', '#F7A226', '#1B7A4A', '#534AB7', '#E08B00', '#C0392B'];
+  const fmtMoeda = (v: number) =>
+    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {resultado.ranking.map((emp, idx) => {
+        const cor = cores[idx] ?? '#9e9e9e';
+        const score = Math.round(emp.score_composto ?? 0);
+        const diff  = emp.diferenca_mercado ?? null;
+        return (
+          <div key={emp.nome} style={{ background: '#fff', borderRadius: 10, borderTop: `4px solid ${cor}`, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+              <span style={{ width: 24, height: 24, borderRadius: '50%', background: cor, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                {emp.posicao}
+              </span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: C.nv, flex: 1 }}>{emp.nome}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: `${cor}18`, color: cor }}>
+                {score} pts
+              </span>
+            </div>
+            {emp.justificativa_posicao && (
+              <p style={{ fontSize: 12, color: C.cz, lineHeight: 1.65, marginBottom: emp.valor_proposta ? 8 : 0 }}>
+                {emp.justificativa_posicao}
+              </p>
+            )}
+            {emp.valor_proposta ? (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.nv }}>{fmtMoeda(emp.valor_proposta)}</span>
+                {diff !== null && (
+                  <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 12, fontWeight: 600,
+                    background: diff > 10 ? '#fde8e8' : diff < -10 ? '#e0f5ec' : '#fff8e1',
+                    color:      diff > 10 ? '#C0392B'  : diff < -10 ? '#1B7A4A' : '#856404' }}>
+                    {diff > 0 ? '+' : ''}{diff.toFixed(1)}% vs mercado
+                  </span>
+                )}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+      <div style={{ borderRadius: 8, background: '#eef0ff', borderLeft: '4px solid #2D3395', padding: '12px 16px', marginTop: 4 }}>
+        <p style={{ fontSize: 12, color: '#1a2070', lineHeight: 1.75, margin: 0 }}>
+          Esta análise foi preparada pelo seu consultor Reforma100. Fale com ele para discutir o resultado antes de decidir.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function CompatibilizacaoTab({
   onGoToEmpresas, empresas, orcamentoId, token, clienteNome,
 }: {
@@ -1134,6 +1199,38 @@ function CompatibilizacaoTab({
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [enviando,     setEnviando]     = useState(false);
   const [enviado,      setEnviado]      = useState(false);
+  const [analise,      setAnalise]      = useState<CompatAnaliseResult | null>(null);
+  const [loadingAnalise, setLoadingAnalise] = useState(true);
+
+  // Busca resultado de compatibilização aprovado/enviado
+  useEffect(() => {
+    if (!orcamentoId) { setLoadingAnalise(false); return; }
+    (supabase as any)
+      .from('compatibilizacoes_analises_ia')
+      .select('analise_completa, ranking_ajustado, status')
+      .eq('orcamento_id', orcamentoId)
+      .in('status', ['aprovado', 'enviado'])
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .then(({ data }: { data: any[] | null }) => {
+        if (data && data.length > 0) {
+          const row = data[0];
+          const ranking: CompatAnaliseRanking[] =
+            (row.ranking_ajustado ?? row.analise_completa?.ranking ?? [])
+              .map((r: any) => ({
+                nome:                  r.nome ?? r.empresa ?? '',
+                posicao:               r.posicao ?? 0,
+                score_composto:        r.score_composto ?? 0,
+                justificativa_posicao: r.justificativa_posicao ?? '',
+                valor_proposta:        r.valor_proposta ?? null,
+                diferenca_mercado:     r.diferenca_mercado ?? null,
+              }))
+              .sort((a: CompatAnaliseRanking, b: CompatAnaliseRanking) => a.posicao - b.posicao);
+          if (ranking.length > 0) setAnalise({ ranking, status: row.status });
+        }
+        setLoadingAnalise(false);
+      });
+  }, [orcamentoId]);
 
   useEffect(() => {
     if (!token) return;
@@ -1179,6 +1276,33 @@ function CompatibilizacaoTab({
     }
   };
 
+  if (loadingAnalise) {
+    return (
+      <div style={{ padding: '40px 0', textAlign: 'center', color: C.cz, fontSize: 13 }}>
+        Carregando análise…
+      </div>
+    );
+  }
+
+  // ── Modo resultado: análise aprovada/enviada já existe ────────────────────
+  if (analise) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ borderRadius: 14, background: 'linear-gradient(150deg,#2D3395 0%,#3d4ab5 100%)', padding: '22px 24px', color: '#fff' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65, marginBottom: 8 }}>Análise de propostas</div>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, fontWeight: 400, lineHeight: 1.35, marginBottom: 6 }}>
+            Seu consultor preparou a análise das propostas.
+          </div>
+          <p style={{ fontSize: 12, lineHeight: 1.8, opacity: .8, margin: 0 }}>
+            Confira o resultado abaixo e fale com seu consultor para escolher com segurança.
+          </p>
+        </div>
+        <ResultadoCompatibilizacao resultado={analise} />
+      </div>
+    );
+  }
+
+  // ── Modo seleção: ainda sem análise aprovada ──────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 

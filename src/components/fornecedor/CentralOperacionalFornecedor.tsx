@@ -256,13 +256,17 @@ function KpiCard({
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, { label: string; bg: string; fg: string }> = {
-  '1_contato_realizado':         { label: 'Aguardando agendamento', bg: I.azul3,  fg: I.azul  },
-  '2_contato_realizado':         { label: 'Aguardando agendamento', bg: I.azul3,  fg: I.azul  },
-  '3_contato_realizado':         { label: 'Aguardando agendamento', bg: I.azul3,  fg: I.azul  },
-  '4_contato_realizado':         { label: 'Aguardando agendamento', bg: I.azul3,  fg: I.azul  },
-  '5_contato_realizado':         { label: 'Aguardando agendamento', bg: I.azul3,  fg: I.azul  },
-  cliente_respondeu_nao_agendou: { label: 'Aguardando agendamento', bg: I.azul3,  fg: I.azul  },
-  nao_respondeu_mensagens:       { label: 'Aguardando agendamento', bg: I.azul3,  fg: I.azul  },
+  // ── valores SDR (PaginaSDR) ──────────────────────────────────────────────────
+  sem_contato:                   { label: 'Aguardando primeiro contato', bg: I.azul3,  fg: I.azul  },
+  em_contato:                    { label: 'Em contato com a Reforma100', bg: '#FFF5DC', fg: '#9A6200' },
+  // ── valores detalhados (hooks fornecedor) ────────────────────────────────────
+  '1_contato_realizado':         { label: 'Em contato com a Reforma100', bg: '#FFF5DC', fg: '#9A6200' },
+  '2_contato_realizado':         { label: 'Em contato com a Reforma100', bg: '#FFF5DC', fg: '#9A6200' },
+  '3_contato_realizado':         { label: 'Em contato com a Reforma100', bg: '#FFF5DC', fg: '#9A6200' },
+  '4_contato_realizado':         { label: 'Em contato com a Reforma100', bg: '#FFF5DC', fg: '#9A6200' },
+  '5_contato_realizado':         { label: 'Em contato com a Reforma100', bg: '#FFF5DC', fg: '#9A6200' },
+  cliente_respondeu_nao_agendou: { label: 'Aguardando agendamento',      bg: I.azul3,  fg: I.azul  },
+  nao_respondeu_mensagens:       { label: 'Aguardando agendamento',      bg: I.azul3,  fg: I.azul  },
   visita_agendada:               { label: 'Visita agendada',        bg: I.lj2,    fg: I.am    },
   visita_realizada:              { label: 'Visita realizada',       bg: I.vd2,    fg: I.vd    },
   reuniao_agendada:              { label: 'Reunião agendada',       bg: I.rx2,    fg: I.rx    },
@@ -358,16 +362,16 @@ function AtendimentoBlock({
 
       {!feito && isRA && (
         <div>
-          {candidatura.linkReuniao ? (
-            <a
-              href={`/entrar-reuniao/${candidatura.candidaturaId}/${candidatura.tokenVisita}`}
+          {candidatura.linkReuniao && candidatura.tokenVisita ? (
+            <button
               className="cop-btn cop-btn-primary"
               style={{ fontSize: 12, marginTop: 2 }}
+              onClick={() => navigate(`/entrar-reuniao/${candidatura.candidaturaId}/${candidatura.tokenVisita}`)}
             >
               🔗 Entrar na reunião
-            </a>
+            </button>
           ) : (
-            <div style={{ fontSize: 11, color: I.rx, background: I.rx2, borderRadius: 8, padding: '7px 12px' }}>
+            <div style={{ fontSize: 11, color: I.rx, background: I.rx2, borderRadius: 8, padding: '7px 12px', lineHeight: 1.5 }}>
               🔗 Link de acesso será enviado pela Reforma100 antes da reunião.
             </div>
           )}
@@ -622,6 +626,20 @@ export function CentralOperacionalFornecedor() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { candidaturas, loading } = useMeusCandidaturas(profile?.id);
+  const [repKpi, setRepKpi] = useState<{ media: number; total: number } | null>(null);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    supabase
+      .from('avaliacoes_fornecedores' as any)
+      .select('nota_geral')
+      .eq('fornecedor_id', profile.id)
+      .then(({ data }: { data: Array<{ nota_geral: number }> | null }) => {
+        if (!data || data.length === 0) return;
+        const media = data.reduce((s, r) => s + (Number(r.nota_geral) || 0), 0) / data.length;
+        setRepKpi({ media: Math.round(media * 10) / 10, total: data.length });
+      });
+  }, [profile?.id]);
 
   // Grupos
   const urgentes  = candidaturas.filter(c => deriveGroup(c.statusAcompanhamento) === 'urgent');
@@ -680,12 +698,11 @@ export function CentralOperacionalFornecedor() {
             sub="Aguardando análise"
           />
           <KpiCard
-            borderColor={I.rx}
-            icon="🏆"
-            value={fechadas.length}
-            label="Negócios fechados"
-            sub="Histórico total"
-            onClick={fechadas.length > 0 ? () => {} : undefined}
+            borderColor={repKpi ? I.lj : I.cz}
+            icon="⭐"
+            value={repKpi ? repKpi.media.toFixed(1) : '—'}
+            label="Reputação"
+            sub={repKpi ? `${repKpi.total} avaliação${repKpi.total !== 1 ? 'ões' : ''}` : 'Sem avaliações ainda'}
           />
         </div>
 
