@@ -15,19 +15,44 @@ import { ptBR } from 'date-fns/locale';
 import { consultarCep, type CepResultado } from '@/utils/cepIntelligencia';
 
 const C = {
-  NV:  '#0D1B2A',
-  NV2: '#1A2E42',
-  LJ:  '#E8510A',
-  FD:  '#F5F3EF',
-  BD:  '#E0DDD7',
-  CZ:  '#6B6760',
+  NV:  '#2D3395',       // Isabella blue – primary brand
+  NV2: '#1E2882',       // Isabella blue darker
+  LJ:  '#F7A226',       // Isabella orange/amber
+  FD:  '#F7F6F3',       // off-white background
+  BD:  '#E0DDD7',       // border
+  CZ:  '#6B7280',       // grey text
   text: '#1A1A1A',
   white: '#FFFFFF',
-  green: '#1A7A4A',
+  green: '#1B7A4A',     // Isabella green
   greenBg: '#E8F5EE',
-  orangeBg: '#FFF0E8',
-  blueBg: '#EEF0FF',
+  orangeBg: '#FFF5E6',
+  blueBg:   '#EEF0FF',
 };
+
+function useSDRStyles() {
+  useEffect(() => {
+    const id = 'sdr-isabella-styles';
+    if (document.getElementById(id)) return;
+    const s = document.createElement('style');
+    s.id = id;
+    s.textContent = `
+      .sdr-filter-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+      @media (max-width: 640px) {
+        .sdr-filter-grid { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+        .sdr-filter-card { min-width: 0 !important; padding: 10px 8px !important; flex-direction: column !important; align-items: flex-start !important; gap: 4px !important; }
+        .sdr-filter-num  { font-size: 18px !important; }
+        .sdr-filter-lbl  { font-size: 10px !important; }
+        .sdr-filter-badge { top: -5px !important; right: -5px !important; }
+        .sdr-header-row  { flex-direction: column !important; gap: 12px !important; }
+        .sdr-header-btns { width: 100% !important; }
+        .sdr-header-btns button { flex: 1 !important; justify-content: center !important; }
+        .sdr-search-row  { flex-direction: column !important; gap: 8px !important; }
+        .sdr-sort-btns   { flex-wrap: wrap !important; }
+      }
+    `;
+    document.head.appendChild(s);
+  }, []);
+}
 
 type SortMode = 'prioridade' | 'cronologico';
 
@@ -364,13 +389,14 @@ function LeadCardSimples({ lead }: { lead: LeadSimples }) {
     <div style={{
       background: C.white,
       border: `1px solid ${C.BD}`,
-      borderLeft: isGanho ? '4px solid #1A7A4A' : '4px solid #6B6760',
-      borderRadius: 10,
+      borderTop: isGanho ? '4px solid #1B7A4A' : '4px solid #6B7280',
+      borderRadius: 12,
       padding: '12px 16px',
       display: 'flex',
       alignItems: 'center',
       gap: 12,
       flexWrap: 'wrap',
+      boxShadow: '0 1px 6px rgba(0,0,0,.05)',
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
@@ -931,18 +957,20 @@ function CandidaturaRow({
   const isReuniao = st === 'reuniao_agendada' || st === 'reuniao_realizada';
   const mostrarAgendamento = st === 'visita_agendada' || st === 'reuniao_agendada';
 
-  const cardBg     = isCritico ? '#FEE2E2' : isPendente ? '#FEF08A' : isAguardando ? '#F8F9FF' : C.FD;
-  const cardBorder = isCritico ? '1.5px solid #DC2626' : isPendente ? '1.5px solid #F59E0B' : isAguardando ? '1px solid #C5C2F0' : `1px solid ${C.BD}`;
+  const cardTopColor = isCritico ? '#DC2626' : isPendente ? '#F59E0B' : isAguardando ? '#818CF8' : C.BD;
+  const cardBg = isCritico ? '#FFF5F5' : isPendente ? '#FFFBEB' : isAguardando ? '#F8F9FF' : C.white;
 
   return (
     <div style={{
       background: cardBg,
-      borderRadius: 8,
+      borderRadius: 10,
       padding: '10px 14px',
-      border: cardBorder,
+      border: `1px solid ${C.BD}`,
+      borderTop: `3px solid ${cardTopColor}`,
       display: 'flex',
       flexDirection: 'column',
       gap: 8,
+      boxShadow: '0 1px 4px rgba(0,0,0,.04)',
     }}>
       {/* Cabeçalho: empresa + status + status operacional */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
@@ -1813,18 +1841,18 @@ function LeadCard({
     .sort((a, b) => new Date(b.horario!.data_hora).getTime() - new Date(a.horario!.data_hora).getTime())[0] ?? null;
   const agendamentoResumo = agendamentoMaisRecente ? formatAgendamentoResumo(agendamentoMaisRecente) : null;
 
-  const accentLeft =
-    leadAlerta === 'critico'    ? '4px solid #DC2626' :
-    leadAlerta === 'pendente'   ? '4px solid #F59E0B' :
-    leadAlerta === 'aguardando' ? '3px solid #818CF8' : `1px solid ${C.BD}`;
+  const accentTopColor =
+    leadAlerta === 'critico'    ? '#DC2626' :
+    leadAlerta === 'pendente'   ? '#F59E0B' :
+    leadAlerta === 'aguardando' ? '#818CF8' : C.NV;
 
   return (
     <div style={{
       background: C.white,
-      borderRadius: 10,
-      border: `1px solid ${leadAlerta === 'critico' ? '#DC2626' : leadAlerta === 'pendente' ? '#F59E0B' : C.BD}`,
-      borderLeft: accentLeft,
-      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+      borderRadius: 14,
+      border: `1px solid ${C.BD}`,
+      borderTop: `4px solid ${accentTopColor}`,
+      boxShadow: '0 1px 6px rgba(0,0,0,.07)',
       overflow: 'hidden',
     }}>
       {/* Header */}
@@ -2472,6 +2500,7 @@ interface PaginaSDRProps {
 }
 
 export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
+  useSDRStyles();
   const { profile } = useAuth();
   const { adicionarOrcamento } = useOrcamento();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -2756,25 +2785,36 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
 
   return (
     <div style={{ fontFamily: '"DM Sans", sans-serif', color: C.text }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
+      {/* Header — Isabella gradient banner */}
+      <div className="sdr-header-row" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        gap: 12,
+        flexWrap: 'wrap',
+        background: 'linear-gradient(135deg, #2D3395 0%, #534AB7 100%)',
+        borderRadius: 14,
+        padding: '18px 24px',
+        boxShadow: '0 2px 12px rgba(45,51,149,0.22)',
+      }}>
         <div>
-          <h1 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 22, color: C.NV, margin: 0, letterSpacing: '-0.3px' }}>
+          <h1 style={{ fontFamily: '"DM Serif Display", serif', fontWeight: 700, fontSize: 24, color: '#fff', margin: 0, letterSpacing: '-0.3px' }}>
             Atendimento SDR
           </h1>
-          <p style={{ fontSize: 13, color: C.CZ, marginTop: 4 }}>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.72)', margin: '4px 0 0' }}>
             Leads em pré-atendimento — agende visitas e reuniões
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="sdr-header-btns" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button
             onClick={handleRefresh}
             disabled={refreshing || loading}
             title="Atualizar lista de leads"
             style={{
-              background: C.white,
-              color: C.NV,
-              border: `1px solid ${C.BD}`,
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.3)',
               borderRadius: 8,
               padding: '9px 14px',
               fontSize: 13,
@@ -2783,6 +2823,7 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
               fontFamily: '"DM Sans", sans-serif',
               opacity: refreshing || loading ? 0.6 : 1,
               whiteSpace: 'nowrap',
+              backdropFilter: 'blur(4px)',
             }}
           >
             {refreshing ? '⏳ Atualizando...' : '↻ Atualizar fila'}
@@ -2791,7 +2832,7 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
             onClick={() => setShowNovoLeadModal(true)}
             style={{
               background: C.LJ,
-              color: C.white,
+              color: '#1A1A1A',
               border: 'none',
               borderRadius: 8,
               padding: '9px 18px',
@@ -2800,7 +2841,7 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
               cursor: 'pointer',
               fontFamily: '"Syne", sans-serif',
               letterSpacing: '-0.2px',
-              boxShadow: '0 2px 10px rgba(232,81,10,0.25)',
+              boxShadow: '0 2px 10px rgba(247,162,38,0.35)',
             }}
           >
             + Novo Lead
@@ -2955,7 +2996,7 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
       })()}
 
       {/* Busca + ordenação */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="sdr-search-row" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <input
           type="text"
           value={busca}
@@ -2974,7 +3015,7 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
             boxSizing: 'border-box',
           }}
         />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="sdr-sort-btns" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {(['prioridade', 'cronologico'] as SortMode[]).map(m => (
             <button
               key={m}
@@ -3075,32 +3116,36 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
         ];
 
         return (
-          <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', paddingTop: 8, overflow: 'visible' }}>
+          <div className="sdr-filter-grid" style={{ marginBottom: 20, paddingTop: 4, overflow: 'visible' }}>
             {cards.map(f => {
               const ativo = filtroTempo === f.key;
               return (
                 <button
                   key={f.key}
                   onClick={() => setFiltroTempo(f.key)}
+                  className="sdr-filter-card"
                   style={{
-                    background: f.bg,
-                    border: `${ativo ? 2 : 1}px solid ${ativo ? f.bdrAct : C.BD}`,
-                    borderRadius: 8,
-                    padding: '8px 14px',
+                    background: C.white,
+                    border: `1px solid ${ativo ? f.bdrAct : C.BD}`,
+                    borderTop: `4px solid ${f.bdrAct}`,
+                    borderRadius: 12,
+                    padding: '10px 14px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
                     cursor: 'pointer',
                     outline: 'none',
                     position: 'relative',
-                    boxShadow: ativo ? `0 0 0 2px ${f.bdrAct}22` : 'none',
-                    transition: 'box-shadow 0.15s',
+                    boxShadow: ativo ? `0 2px 8px ${f.bdrAct}30` : '0 1px 4px rgba(0,0,0,.06)',
+                    transition: 'box-shadow 0.15s, transform 0.1s',
+                    transform: ativo ? 'translateY(-1px)' : 'none',
                   }}
                 >
-                  <span style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 20, color: f.clr }}>{f.count}</span>
-                  <span style={{ fontSize: 12, color: ativo ? f.clr : C.CZ, fontWeight: ativo ? 700 : 400 }}>{f.label}</span>
+                  <span className="sdr-filter-num" style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 20, color: f.clr, lineHeight: 1 }}>{f.count}</span>
+                  <span className="sdr-filter-lbl" style={{ fontSize: 12, color: ativo ? f.clr : C.CZ, fontWeight: ativo ? 700 : 500, whiteSpace: 'nowrap' }}>{f.label}</span>
                   {f.alerta > 0 && (
                     <span
+                      className="sdr-filter-badge"
                       title={`${f.alerta} lead(s) com pendência`}
                       style={{
                         position: 'absolute',
