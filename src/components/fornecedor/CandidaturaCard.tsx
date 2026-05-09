@@ -323,7 +323,7 @@ export const CandidaturaCard: React.FC<CandidaturaCardProps> = ({
         <div className="space-y-4">
           <p className="text-sm text-gray-700">{candidatura.necessidade}</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
             <div>
               <span className="font-medium text-gray-600">Local:</span>
               <span className="ml-1 text-gray-800">{candidatura.local}</span>

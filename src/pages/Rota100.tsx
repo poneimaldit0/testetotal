@@ -318,6 +318,9 @@ function useRota100Styles() {
         .r100-step-lbl { font-size: 8px !important; }
         .r100-tab { font-size: 10px; padding: 8px 10px 10px; }
         .r100-card { padding: 20px !important; }
+        .r100-fc { padding: 14px !important; }
+        .r100-fc-actions { flex-direction: column !important; }
+        .r100-fc-actions > * { width: 100% !important; justify-content: center !important; }
       }
       @media (max-width: 400px) {
         .r100-grid-3 { grid-template-columns: 1fr !important; }
@@ -369,21 +372,63 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-// ── Mini step bar ─────────────────────────────────────────────────────────────
-function MiniSteps({ statuses, labels }: { statuses: readonly string[]; labels: string[] }) {
+// ── Timeline operacional por empresa ──────────────────────────────────────────
+const TIMELINE_LABELS = ['Inscr.', 'Contato', 'Visita', 'Pré-conf', 'Conf.SDR', 'Proposta', 'Fech.'] as const;
+
+function getTimelineStage(emp: Rota100Empresa): number {
+  const s: string = emp.statusAcompanhamento ?? 'inscrito';
+  if (s === 'negocio_perdido') return -1;
+  if (s === 'negocio_fechado') return 7;
+  if (s === 'orcamento_enviado' || s === 'em_orcamento') return 6;
+  if (s === 'visita_realizada' || s === 'reuniao_realizada') return 5;
+  if ((s === 'visita_agendada' || s === 'reuniao_agendada') && emp.preConfirmadoEm) return 4;
+  if (s === 'visita_agendada' || s === 'reuniao_agendada') return 3;
+  if (s.includes('contato') || s === 'cliente_respondeu_nao_agendou' || s === 'nao_respondeu_mensagens') return 2;
+  return 1;
+}
+
+function OperacionalTimeline({ emp }: { emp: Rota100Empresa }) {
+  const stage     = getTimelineStage(emp);
+  const dispensada = stage === -1;
+  const total     = TIMELINE_LABELS.length;
+
   return (
-    <>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-        {statuses.map((s, i) => (
-          <div key={i} style={{ flex: 1, height: 4, borderRadius: 3, background: s === 'done' ? C.vd : s === 'cur' ? C.lj : C.bd, transition: 'background .2s' }} />
-        ))}
+    <div style={{ marginBottom: 14, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 280 }}>
+        {TIMELINE_LABELS.map((label, i) => {
+          const n      = i + 1;
+          const isDone = !dispensada && stage > n;
+          const isCur  = !dispensada && stage === n;
+          const isLast = i === total - 1;
+          const dotClr = dispensada ? C.cz : isDone ? C.vd : isCur ? C.lj : C.bd;
+          const txtClr = dispensada ? C.cz : isDone ? C.vd : isCur ? C.lj : C.cz;
+          return (
+            <Fragment key={i}>
+              <div style={{ textAlign: 'center', flexShrink: 0, minWidth: 38 }}>
+                <div style={{
+                  width: 22, height: 22, borderRadius: '50%', margin: '0 auto 5px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9, fontWeight: 700,
+                  border: `2px solid ${dotClr}`,
+                  background: (isDone || isCur) && !dispensada ? dotClr : '#fff',
+                  color: (isDone || isCur) && !dispensada ? '#fff' : dotClr,
+                  transition: 'all .2s',
+                  boxShadow: isCur ? `0 0 0 3px rgba(232,81,10,.14)` : 'none',
+                }}>
+                  {dispensada ? '✕' : isDone ? '✓' : n}
+                </div>
+                <div style={{ fontSize: 8, color: txtClr, fontWeight: isCur ? 700 : isDone ? 600 : 400, lineHeight: 1.3, letterSpacing: '.01em', whiteSpace: 'nowrap' }}>
+                  {label}
+                </div>
+              </div>
+              {!isLast && (
+                <div style={{ flex: 1, height: 2, background: isDone && !dispensada ? C.vd : C.bd, marginTop: 10, minWidth: 6, transition: 'background .3s', borderRadius: 2 }} />
+              )}
+            </Fragment>
+          );
+        })}
       </div>
-      <div style={{ display: 'flex', marginBottom: 10 }}>
-        {labels.map((l, i) => (
-          <span key={i} style={{ fontSize: 9, flex: 1, textAlign: 'center', color: statuses[i] === 'done' ? C.vd : statuses[i] === 'cur' ? C.lj : C.cz, fontWeight: statuses[i] === 'cur' ? 700 : statuses[i] === 'done' ? 600 : 400 }}>{l}</span>
-        ))}
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -906,7 +951,7 @@ function EmpresasTab({
                 <span>Prazo: {emp.prazo}</span>
               </div>
 
-              <MiniSteps statuses={emp.stepStatuses} labels={emp.stepLabels} />
+              <OperacionalTimeline emp={emp} />
 
               {/* Aguardando agendamento — empresa sem visita/reunião marcada */}
               {!foiDispensada && (!emp.statusAcompanhamento || emp.statusAcompanhamento === 'sem_contato' || emp.statusAcompanhamento === 'em_contato') && (
@@ -936,7 +981,7 @@ function EmpresasTab({
 
               {/* Ações — sempre visíveis para não-dispensadas */}
               {!foiDispensada && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="r100-fc-actions" style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   {/* Compat individual — botão ou texto, nunca some */}
                   {jaSolicitado ? (
                     <span style={bdg(C.vd2, C.vd)}>✓ Compatibilização individual solicitada</span>
