@@ -1,0 +1,16 @@
+project_id = "reudtzcjzrzuzvjhotby"
+
+[functions.rota100-dados]
+verify_jwt = false
+
+[functions.criar-cliente-conta]
+verify_jwt = false
+
+[functions.processar-orcamentos-especificos-marcenaria]
+verify_jwt = false
+
+[functions.apropriar-subcategorias-automatico]
+verify_jwt = false
+
+[functions.analisar-proposta]
+verify_jwt = false

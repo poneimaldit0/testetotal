@@ -1,0 +1,7141 @@
+{
+  "meta": {
+    "versao": "2.0-nacional",
+    "geradoEm": "2026-04-02",
+    "fonte": "IBGE PIB Municípios 2021 + População Estimada 2021 + kelvins/municipios-brasileiros",
+    "totalMunicipiosMapeados": 791,
+    "totalBrasil": 5570,
+    "metodologia": "PIB per capita ajustado por fator industrial + overrides manuais para capitais",
+    "criteriosSegmentacao": {
+      "prime": "Grandes cidades (>200k hab) com alto PIB per capita (>70k R$/hab) + capitais com PC>50k + overrides manuais",
+      "alta": "Cidades médias-grandes com PC>40k ou capitais com PC>30k",
+      "mediaA": "Cidades com PC>25k e pop>100k ou capitais com PC>20k",
+      "mediaB": "Cidades grandes (>500k) com PC moderado ou capitais com PC<20k",
+      "opp": "Cidades médias (150k-300k) sem destaque econômico",
+      "litoral": "Municípios costeiros classificados por população e proximidade ao mar"
+    }
+  },
+  "municipioTierMap": {
+    "1100122": "media-a",
+    "1100205": "media-b",
+    "1200401": "media-b",
+    "1302603": "alta",
+    "1400100": "media-b",
+    "1500107": "opp",
+    "1500800": "media-b",
+    "1501303": "alta",
+    "1501402": "media-a",
+    "1501501": "media-a",
+    "1502400": "media-b",
+    "1504208": "alta",
+    "1505536": "alta",
+    "1506807": "media-a",
+    "1508100": "alta",
+    "1600303": "media-b",
+    "1702109": "opp",
+    "1721000": "media-b",
+    "2103000": "opp",
+    "2105302": "media-a",
+    "2111201": "opp",
+    "2111300": "media-a",
+    "2112209": "opp",
+    "2207702": "opp",
+    "2211001": "media-b",
+    "2300200": "litoral-b",
+    "2300309": "litoral-b",
+    "2300754": "litoral-b",
+    "2301000": "litoral-b",
+    "2301109": "litoral-b",
+    "2301901": "litoral-b",
+    "2302107": "litoral-b",
+    "2302206": "litoral-b",
+    "2302305": "litoral-b",
+    "2302404": "litoral-b",
+    "2302503": "litoral-b",
+    "2302602": "litoral-b",
+    "2302800": "litoral-b",
+    "2303501": "litoral-b",
+    "2303709": "litoral-alta",
+    "2304103": "litoral-b",
+    "2304202": "litoral-b",
+    "2304285": "litoral-b",
+    "2304400": "alta",
+    "2304707": "litoral-b",
+    "2305001": "litoral-b",
+    "2305233": "litoral-b",
+    "2305407": "litoral-b",
+    "2305506": "litoral-b",
+    "2305803": "litoral-b",
+    "2305902": "litoral-b",
+    "2306256": "litoral-b",
+    "2306306": "litoral-b",
+    "2306405": "litoral-b",
+    "2306553": "litoral-b",
+    "2306900": "litoral-b",
+    "2307007": "litoral-b",
+    "2307304": "litoral-alta",
+    "2307502": "litoral-b",
+    "2307601": "litoral-b",
+    "2307650": "litoral-alta",
+    "2307700": "litoral-b",
+    "2308005": "litoral-b",
+    "2308104": "litoral-b",
+    "2308401": "litoral-b",
+    "2308500": "litoral-b",
+    "2308708": "litoral-b",
+    "2309300": "litoral-b",
+    "2309607": "litoral-b",
+    "2309706": "litoral-b",
+    "2310209": "litoral-b",
+    "2310258": "litoral-b",
+    "2310308": "litoral-b",
+    "2310506": "litoral-b",
+    "2310704": "litoral-b",
+    "2311306": "litoral-b",
+    "2311405": "litoral-b",
+    "2311801": "litoral-b",
+    "2312007": "litoral-b",
+    "2312205": "litoral-b",
+    "2312304": "litoral-b",
+    "2312403": "litoral-b",
+    "2312908": "litoral-alta",
+    "2313104": "litoral-b",
+    "2313302": "litoral-b",
+    "2313401": "litoral-b",
+    "2313500": "litoral-b",
+    "2313609": "litoral-b",
+    "2314003": "litoral-b",
+    "2314102": "litoral-b",
+    "2400208": "litoral-b",
+    "2401008": "litoral-b",
+    "2402006": "litoral-b",
+    "2402204": "litoral-b",
+    "2402600": "litoral-b",
+    "2403103": "litoral-b",
+    "2403251": "litoral-alta",
+    "2405801": "litoral-b",
+    "2407104": "litoral-b",
+    "2407203": "litoral-b",
+    "2408003": "litoral-alta",
+    "2408102": "media-a",
+    "2408300": "litoral-b",
+    "2409407": "litoral-b",
+    "2411205": "litoral-b",
+    "2412005": "litoral-b",
+    "2412203": "litoral-b",
+    "2414407": "litoral-b",
+    "2501807": "litoral-b",
+    "2503209": "litoral-b",
+    "2503704": "litoral-b",
+    "2504009": "litoral-alta",
+    "2504306": "litoral-b",
+    "2506004": "litoral-b",
+    "2506301": "litoral-b",
+    "2507507": "media-a",
+    "2508901": "litoral-b",
+    "2509701": "litoral-b",
+    "2510808": "litoral-b",
+    "2512101": "litoral-b",
+    "2512507": "litoral-b",
+    "2513703": "litoral-b",
+    "2513901": "litoral-b",
+    "2515302": "litoral-b",
+    "2516201": "litoral-b",
+    "2600054": "litoral-b",
+    "2600104": "litoral-b",
+    "2600401": "litoral-b",
+    "2600500": "litoral-b",
+    "2600708": "litoral-b",
+    "2601102": "litoral-b",
+    "2601201": "litoral-b",
+    "2601409": "litoral-b",
+    "2601706": "litoral-b",
+    "2601904": "litoral-b",
+    "2602001": "litoral-b",
+    "2602100": "litoral-b",
+    "2602209": "litoral-b",
+    "2602308": "litoral-b",
+    "2602605": "litoral-b",
+    "2602803": "litoral-b",
+    "2602902": "litoral-alta",
+    "2603009": "litoral-b",
+    "2603454": "litoral-b",
+    "2604007": "litoral-b",
+    "2604106": "litoral-alta",
+    "2604205": "litoral-b",
+    "2605103": "litoral-b",
+    "2605202": "litoral-b",
+    "2605301": "litoral-b",
+    "2605707": "litoral-b",
+    "2605905": "litoral-b",
+    "2606002": "litoral-b",
+    "2606101": "litoral-b",
+    "2606200": "litoral-b",
+    "2606408": "litoral-b",
+    "2606804": "litoral-b",
+    "2607208": "litoral-b",
+    "2607307": "litoral-b",
+    "2607653": "litoral-b",
+    "2607901": "litoral-alta",
+    "2608107": "litoral-b",
+    "2608800": "litoral-b",
+    "2608909": "litoral-b",
+    "2609402": "litoral-b",
+    "2609501": "litoral-b",
+    "2609600": "litoral-alta",
+    "2609907": "litoral-b",
+    "2610004": "litoral-b",
+    "2610608": "litoral-b",
+    "2610707": "litoral-alta",
+    "2610905": "litoral-b",
+    "2611002": "litoral-b",
+    "2611101": "litoral-alta",
+    "2611606": "alta",
+    "2611804": "litoral-b",
+    "2612208": "litoral-b",
+    "2612505": "litoral-b",
+    "2612604": "litoral-b",
+    "2613008": "litoral-b",
+    "2613107": "litoral-b",
+    "2613503": "litoral-b",
+    "2613602": "litoral-b",
+    "2613701": "litoral-b",
+    "2613909": "litoral-b",
+    "2614105": "litoral-b",
+    "2614204": "litoral-b",
+    "2614501": "litoral-b",
+    "2615300": "litoral-b",
+    "2615409": "litoral-b",
+    "2615607": "litoral-b",
+    "2616308": "litoral-b",
+    "2616407": "litoral-b",
+    "2700300": "litoral-alta",
+    "2700409": "litoral-b",
+    "2701407": "litoral-b",
+    "2702306": "litoral-b",
+    "2702405": "litoral-b",
+    "2702900": "litoral-b",
+    "2704302": "media-a",
+    "2704500": "litoral-b",
+    "2704708": "litoral-b",
+    "2706307": "litoral-b",
+    "2706703": "litoral-b",
+    "2706901": "litoral-b",
+    "2707701": "litoral-b",
+    "2708006": "litoral-b",
+    "2708402": "litoral-b",
+    "2708501": "litoral-b",
+    "2708600": "litoral-b",
+    "2708808": "litoral-b",
+    "2709152": "litoral-b",
+    "2709301": "litoral-b",
+    "2800308": "media-a",
+    "2800605": "litoral-b",
+    "2801207": "litoral-b",
+    "2801306": "litoral-b",
+    "2802106": "litoral-b",
+    "2802908": "litoral-b",
+    "2803005": "litoral-b",
+    "2803203": "litoral-b",
+    "2803500": "litoral-b",
+    "2803609": "litoral-b",
+    "2804508": "litoral-b",
+    "2804805": "litoral-b",
+    "2805406": "litoral-b",
+    "2806701": "litoral-b",
+    "2807105": "litoral-b",
+    "2807402": "litoral-b",
+    "2900702": "litoral-b",
+    "2901007": "litoral-b",
+    "2902104": "litoral-b",
+    "2902708": "litoral-b",
+    "2903201": "litoral-b",
+    "2903904": "litoral-b",
+    "2904902": "litoral-b",
+    "2905701": "litoral-alta",
+    "2905800": "litoral-b",
+    "2906006": "litoral-b",
+    "2906501": "litoral-b",
+    "2906808": "litoral-b",
+    "2906873": "litoral-b",
+    "2907202": "litoral-b",
+    "2907509": "litoral-b",
+    "2907806": "litoral-b",
+    "2908408": "litoral-b",
+    "2908507": "litoral-b",
+    "2909307": "litoral-b",
+    "2909802": "litoral-b",
+    "2909901": "litoral-b",
+    "2910057": "litoral-b",
+    "2910503": "litoral-b",
+    "2910602": "litoral-b",
+    "2910701": "litoral-b",
+    "2910800": "litoral-alta",
+    "2911204": "litoral-b",
+    "2913606": "opp",
+    "2913705": "litoral-b",
+    "2914000": "litoral-b",
+    "2914604": "litoral-b",
+    "2914703": "litoral-b",
+    "2914802": "media-b",
+    "2916500": "litoral-b",
+    "2917003": "litoral-b",
+    "2917508": "litoral-b",
+    "2917607": "litoral-b",
+    "2917706": "litoral-b",
+    "2918001": "litoral-b",
+    "2918100": "litoral-b",
+    "2918407": "litoral-alta",
+    "2919207": "litoral-alta",
+    "2919504": "litoral-b",
+    "2919553": "litoral-b",
+    "2919801": "litoral-b",
+    "2920601": "litoral-b",
+    "2921005": "litoral-b",
+    "2921500": "litoral-b",
+    "2921708": "litoral-b",
+    "2923704": "litoral-b",
+    "2924009": "litoral-b",
+    "2924405": "litoral-b",
+    "2925204": "litoral-b",
+    "2925303": "opp",
+    "2926004": "litoral-b",
+    "2926301": "litoral-b",
+    "2926400": "litoral-b",
+    "2926608": "litoral-b",
+    "2927002": "litoral-b",
+    "2927200": "litoral-b",
+    "2927408": "alta",
+    "2928000": "litoral-b",
+    "2928109": "litoral-b",
+    "2928604": "litoral-b",
+    "2928703": "litoral-b",
+    "2928802": "litoral-b",
+    "2928901": "litoral-b",
+    "2929206": "litoral-b",
+    "2929305": "litoral-b",
+    "2929503": "litoral-b",
+    "2929909": "litoral-b",
+    "2930105": "litoral-b",
+    "2930154": "litoral-b",
+    "2930204": "litoral-b",
+    "2930501": "litoral-b",
+    "2930709": "litoral-b",
+    "2931350": "opp",
+    "2931905": "litoral-b",
+    "2932903": "litoral-b",
+    "2933208": "litoral-b",
+    "2933307": "media-a",
+    "2933604": "litoral-b",
+    "3101409": "media-a",
+    "3103504": "alta",
+    "3104007": "alta",
+    "3106200": "prime",
+    "3106705": "prime",
+    "3118601": "alta",
+    "3122306": "media-a",
+    "3127701": "media-a",
+    "3129806": "opp",
+    "3131307": "alta",
+    "3131703": "media-a",
+    "3136702": "alta",
+    "3143302": "media-a",
+    "3148004": "opp",
+    "3149309": "media-a",
+    "3151800": "alta",
+    "3152501": "alta",
+    "3154606": "media-b",
+    "3157807": "media-b",
+    "3167202": "alta",
+    "3170107": "prime",
+    "3170206": "prime",
+    "3170701": "alta",
+    "3200136": "litoral-b",
+    "3200169": "litoral-b",
+    "3200300": "litoral-b",
+    "3200409": "litoral-b",
+    "3200607": "litoral-alta",
+    "3200904": "litoral-b",
+    "3201001": "litoral-b",
+    "3201209": "media-a",
+    "3201308": "litoral-alta",
+    "3201506": "litoral-alta",
+    "3201605": "litoral-b",
+    "3201902": "litoral-b",
+    "3202108": "litoral-b",
+    "3202207": "litoral-b",
+    "3202256": "litoral-b",
+    "3202405": "litoral-alta",
+    "3202504": "litoral-b",
+    "3202603": "litoral-b",
+    "3202702": "litoral-b",
+    "3202900": "litoral-b",
+    "3203056": "litoral-b",
+    "3203130": "litoral-b",
+    "3203205": "litoral-alta",
+    "3203346": "litoral-b",
+    "3203353": "litoral-b",
+    "3203502": "litoral-b",
+    "3203601": "litoral-b",
+    "3203908": "litoral-b",
+    "3204005": "litoral-b",
+    "3204054": "litoral-b",
+    "3204104": "litoral-b",
+    "3204203": "litoral-b",
+    "3204252": "litoral-b",
+    "3204351": "litoral-b",
+    "3204401": "litoral-b",
+    "3204500": "litoral-b",
+    "3204559": "litoral-b",
+    "3204609": "litoral-b",
+    "3204658": "litoral-b",
+    "3204708": "litoral-b",
+    "3204906": "litoral-alta",
+    "3204955": "litoral-b",
+    "3205002": "litoral-alta",
+    "3205010": "litoral-b",
+    "3205101": "litoral-b",
+    "3205150": "litoral-b",
+    "3205176": "litoral-b",
+    "3205200": "litoral-alta",
+    "3205309": "prime",
+    "3300100": "litoral-alta",
+    "3300159": "litoral-b",
+    "3300209": "litoral-alta",
+    "3300225": "litoral-b",
+    "3300233": "litoral-b",
+    "3300258": "litoral-b",
+    "3300308": "litoral-alta",
+    "3300407": "litoral-alta",
+    "3300456": "litoral-prime",
+    "3300506": "litoral-b",
+    "3300704": "litoral-alta",
+    "3300803": "litoral-alta",
+    "3300902": "litoral-b",
+    "3300936": "litoral-b",
+    "3300951": "litoral-b",
+    "3301009": "litoral-prime",
+    "3301108": "litoral-b",
+    "3301207": "litoral-b",
+    "3301306": "litoral-b",
+    "3301405": "litoral-b",
+    "3301504": "litoral-b",
+    "3301603": "litoral-b",
+    "3301702": "litoral-prime",
+    "3301801": "litoral-b",
+    "3301850": "litoral-alta",
+    "3301876": "litoral-b",
+    "3301900": "litoral-alta",
+    "3302007": "litoral-alta",
+    "3302106": "litoral-b",
+    "3302254": "litoral-b",
+    "3302270": "litoral-alta",
+    "3302403": "litoral-alta",
+    "3302452": "litoral-b",
+    "3302502": "litoral-alta",
+    "3302601": "litoral-b",
+    "3302700": "litoral-alta",
+    "3302809": "litoral-b",
+    "3302858": "litoral-alta",
+    "3302908": "litoral-b",
+    "3303203": "litoral-alta",
+    "3303302": "litoral-prime",
+    "3303401": "litoral-alta",
+    "3303500": "litoral-prime",
+    "3303609": "litoral-alta",
+    "3303708": "litoral-b",
+    "3303807": "litoral-b",
+    "3303856": "litoral-b",
+    "3303906": "litoral-prime",
+    "3303955": "litoral-b",
+    "3304003": "litoral-b",
+    "3304110": "litoral-b",
+    "3304128": "litoral-b",
+    "3304144": "litoral-alta",
+    "3304151": "litoral-b",
+    "3304201": "litoral-alta",
+    "3304300": "litoral-alta",
+    "3304409": "litoral-b",
+    "3304508": "litoral-b",
+    "3304524": "litoral-alta",
+    "3304557": "prime",
+    "3304607": "litoral-b",
+    "3304706": "litoral-b",
+    "3304805": "litoral-b",
+    "3304904": "litoral-prime",
+    "3305000": "litoral-b",
+    "3305109": "litoral-prime",
+    "3305158": "litoral-b",
+    "3305208": "litoral-alta",
+    "3305307": "litoral-b",
+    "3305406": "litoral-b",
+    "3305505": "litoral-alta",
+    "3305554": "litoral-alta",
+    "3305604": "litoral-b",
+    "3305703": "litoral-b",
+    "3305752": "litoral-b",
+    "3305802": "litoral-alta",
+    "3305901": "litoral-b",
+    "3306008": "litoral-alta",
+    "3306107": "litoral-alta",
+    "3306206": "litoral-b",
+    "3306305": "litoral-alta",
+    "3500303": "litoral-alta",
+    "3500501": "litoral-b",
+    "3500600": "litoral-b",
+    "3500758": "litoral-b",
+    "3501152": "litoral-b",
+    "3501608": "litoral-prime",
+    "3501905": "litoral-prime",
+    "3502002": "litoral-b",
+    "3502200": "litoral-b",
+    "3502309": "litoral-b",
+    "3502507": "litoral-alta",
+    "3502754": "litoral-b",
+    "3502804": "alta",
+    "3502903": "litoral-alta",
+    "3503158": "litoral-b",
+    "3503208": "alta",
+    "3503307": "litoral-prime",
+    "3503505": "litoral-b",
+    "3503802": "litoral-prime",
+    "3503901": "litoral-prime",
+    "3504107": "litoral-prime",
+    "3504909": "litoral-b",
+    "3505500": "alta",
+    "3505708": "litoral-prime",
+    "3506003": "alta",
+    "3506359": "litoral-prime",
+    "3506607": "litoral-alta",
+    "3506904": "litoral-b",
+    "3507001": "litoral-prime",
+    "3507100": "litoral-b",
+    "3507506": "litoral-prime",
+    "3507605": "litoral-prime",
+    "3507902": "litoral-b",
+    "3508405": "litoral-prime",
+    "3508504": "litoral-prime",
+    "3508603": "litoral-alta",
+    "3509007": "litoral-prime",
+    "3509205": "litoral-prime",
+    "3509254": "litoral-b",
+    "3509452": "litoral-b",
+    "3509502": "prime",
+    "3509601": "litoral-alta",
+    "3509700": "litoral-alta",
+    "3509908": "litoral-b",
+    "3509957": "litoral-b",
+    "3510203": "litoral-alta",
+    "3510302": "litoral-b",
+    "3510401": "litoral-prime",
+    "3510500": "litoral-prime",
+    "3510609": "litoral-prime",
+    "3511508": "litoral-prime",
+    "3511607": "litoral-b",
+    "3511706": "litoral-b",
+    "3512209": "litoral-b",
+    "3512308": "litoral-b",
+    "3512407": "litoral-b",
+    "3512704": "litoral-b",
+    "3512803": "litoral-alta",
+    "3513009": "litoral-prime",
+    "3513405": "litoral-prime",
+    "3513504": "litoral-prime",
+    "3513603": "litoral-b",
+    "3513801": "litoral-prime",
+    "3514106": "litoral-b",
+    "3514304": "litoral-b",
+    "3514809": "litoral-b",
+    "3514908": "litoral-b",
+    "3515004": "litoral-prime",
+    "3515103": "litoral-alta",
+    "3515152": "litoral-b",
+    "3515186": "litoral-alta",
+    "3515707": "litoral-alta",
+    "3516200": "media-a",
+    "3516309": "litoral-alta",
+    "3516408": "litoral-alta",
+    "3518305": "litoral-alta",
+    "3518404": "litoral-prime",
+    "3518503": "litoral-b",
+    "3518701": "litoral-prime",
+    "3518800": "litoral-prime",
+    "3519055": "litoral-b",
+    "3519071": "litoral-prime",
+    "3519709": "litoral-alta",
+    "3520202": "litoral-b",
+    "3520301": "litoral-alta",
+    "3520400": "litoral-alta",
+    "3520426": "litoral-b",
+    "3520509": "litoral-prime",
+    "3521002": "litoral-alta",
+    "3521101": "litoral-b",
+    "3521408": "litoral-b",
+    "3522109": "litoral-alta",
+    "3522208": "litoral-alta",
+    "3522307": "litoral-prime",
+    "3522505": "litoral-prime",
+    "3522604": "litoral-prime",
+    "3523107": "litoral-prime",
+    "3523305": "litoral-b",
+    "3523404": "litoral-prime",
+    "3523602": "litoral-b",
+    "3523909": "litoral-prime",
+    "3524006": "litoral-prime",
+    "3524402": "litoral-prime",
+    "3524600": "litoral-b",
+    "3524709": "litoral-prime",
+    "3524907": "litoral-b",
+    "3525003": "litoral-prime",
+    "3525201": "litoral-alta",
+    "3525300": "opp",
+    "3525508": "litoral-b",
+    "3525854": "litoral-b",
+    "3525904": "litoral-prime",
+    "3526100": "litoral-b",
+    "3526209": "litoral-alta",
+    "3526308": "litoral-b",
+    "3526407": "litoral-b",
+    "3526605": "litoral-b",
+    "3526704": "litoral-prime",
+    "3526902": "litoral-prime",
+    "3527009": "litoral-b",
+    "3527207": "litoral-prime",
+    "3527306": "litoral-prime",
+    "3528403": "litoral-alta",
+    "3528502": "litoral-alta",
+    "3529005": "alta",
+    "3529401": "litoral-prime",
+    "3529807": "litoral-b",
+    "3529906": "litoral-b",
+    "3530607": "litoral-prime",
+    "3530706": "litoral-prime",
+    "3530805": "litoral-prime",
+    "3530904": "litoral-b",
+    "3531100": "litoral-alta",
+    "3531209": "litoral-b",
+    "3531704": "litoral-b",
+    "3531803": "litoral-prime",
+    "3532009": "litoral-b",
+    "3532306": "litoral-b",
+    "3532405": "litoral-b",
+    "3533403": "litoral-prime",
+    "3534401": "litoral-prime",
+    "3535606": "litoral-b",
+    "3536109": "litoral-b",
+    "3536208": "litoral-b",
+    "3536505": "media-a",
+    "3536802": "litoral-b",
+    "3537107": "litoral-alta",
+    "3537206": "litoral-b",
+    "3537503": "litoral-b",
+    "3537602": "litoral-alta",
+    "3537800": "litoral-alta",
+    "3537909": "litoral-b",
+    "3538006": "litoral-prime",
+    "3538204": "litoral-b",
+    "3538501": "litoral-b",
+    "3538600": "litoral-b",
+    "3538709": "litoral-prime",
+    "3539103": "litoral-b",
+    "3539806": "litoral-prime",
+    "3540507": "litoral-b",
+    "3540606": "litoral-prime",
+    "3540754": "litoral-b",
+    "3541000": "litoral-prime",
+    "3541406": "alta",
+    "3541653": "litoral-b",
+    "3541901": "litoral-b",
+    "3542107": "litoral-b",
+    "3542305": "litoral-b",
+    "3542602": "litoral-prime",
+    "3542909": "litoral-b",
+    "3543253": "litoral-b",
+    "3543303": "litoral-prime",
+    "3543402": "prime",
+    "3543907": "litoral-prime",
+    "3544004": "litoral-alta",
+    "3544103": "litoral-alta",
+    "3544301": "litoral-b",
+    "3545001": "litoral-b",
+    "3545159": "litoral-b",
+    "3545209": "litoral-prime",
+    "3545308": "litoral-alta",
+    "3545803": "litoral-prime",
+    "3546009": "litoral-b",
+    "3546207": "litoral-b",
+    "3546702": "litoral-b",
+    "3546801": "litoral-alta",
+    "3547007": "litoral-b",
+    "3547304": "litoral-prime",
+    "3547809": "litoral-prime",
+    "3548005": "litoral-b",
+    "3548104": "litoral-b",
+    "3548203": "litoral-b",
+    "3548500": "prime",
+    "3548609": "litoral-b",
+    "3548708": "litoral-prime",
+    "3548807": "litoral-prime",
+    "3548906": "litoral-prime",
+    "3549607": "litoral-b",
+    "3549805": "alta",
+    "3549904": "litoral-prime",
+    "3549953": "litoral-b",
+    "3550001": "litoral-b",
+    "3550209": "litoral-alta",
+    "3550308": "prime",
+    "3550407": "litoral-alta",
+    "3550605": "litoral-prime",
+    "3550704": "litoral-prime",
+    "3551009": "litoral-prime",
+    "3551108": "litoral-b",
+    "3551603": "media-a",
+    "3551702": "alta",
+    "3551801": "litoral-b",
+    "3552007": "litoral-b",
+    "3552106": "litoral-alta",
+    "3552205": "litoral-prime",
+    "3552403": "litoral-prime",
+    "3552502": "litoral-prime",
+    "3552809": "litoral-prime",
+    "3553500": "litoral-b",
+    "3554003": "litoral-prime",
+    "3554102": "litoral-prime",
+    "3554508": "litoral-alta",
+    "3554656": "litoral-b",
+    "3554706": "litoral-b",
+    "3554755": "litoral-b",
+    "3554805": "litoral-alta",
+    "3554953": "litoral-b",
+    "3555406": "litoral-alta",
+    "3556206": "litoral-prime",
+    "3556354": "litoral-b",
+    "3556453": "litoral-prime",
+    "3556503": "litoral-prime",
+    "3556701": "litoral-prime",
+    "3557006": "litoral-prime",
+    "3557303": "litoral-b",
+    "4100400": "litoral-b",
+    "4101804": "litoral-alta",
+    "4103701": "alta",
+    "4104006": "litoral-b",
+    "4104253": "litoral-b",
+    "4104808": "alta",
+    "4105805": "litoral-b",
+    "4106902": "prime",
+    "4107652": "litoral-b",
+    "4108304": "prime",
+    "4109401": "alta",
+    "4109609": "litoral-b",
+    "4113700": "alta",
+    "4115200": "prime",
+    "4115705": "litoral-b",
+    "4118204": "litoral-alta",
+    "4119152": "litoral-alta",
+    "4119509": "litoral-b",
+    "4119905": "alta",
+    "4122206": "litoral-b",
+    "4125506": "litoral-alta",
+    "4127700": "alta",
+    "4201307": "litoral-b",
+    "4201406": "litoral-b",
+    "4202008": "litoral-alta",
+    "4202107": "litoral-b",
+    "4202305": "litoral-b",
+    "4202404": "litoral-alta",
+    "4202800": "litoral-b",
+    "4202909": "litoral-alta",
+    "4203204": "litoral-b",
+    "4204202": "alta",
+    "4204608": "litoral-alta",
+    "4205407": "alta",
+    "4205902": "litoral-b",
+    "4206504": "litoral-b",
+    "4207007": "litoral-b",
+    "4207304": "litoral-b",
+    "4207502": "litoral-b",
+    "4208203": "litoral-alta",
+    "4208302": "litoral-b",
+    "4208906": "litoral-alta",
+    "4209102": "prime",
+    "4209300": "opp",
+    "4209409": "litoral-b",
+    "4211306": "litoral-b",
+    "4211900": "litoral-alta",
+    "4212502": "litoral-b",
+    "4213203": "litoral-b",
+    "4215802": "litoral-b",
+    "4216206": "litoral-b",
+    "4216305": "litoral-b",
+    "4216602": "litoral-alta",
+    "4218004": "litoral-b",
+    "4218202": "litoral-b",
+    "4218707": "litoral-alta",
+    "4300604": "media-b",
+    "4302105": "alta",
+    "4303103": "alta",
+    "4304606": "prime",
+    "4305108": "prime",
+    "4307005": "alta",
+    "4309209": "alta",
+    "4313409": "alta",
+    "4314100": "alta",
+    "4314407": "media-a",
+    "4314902": "prime",
+    "4315602": "alta",
+    "4316808": "alta",
+    "4316907": "media-a",
+    "4318705": "alta",
+    "4323002": "media-b",
+    "5002704": "alta",
+    "5003702": "alta",
+    "5008305": "alta",
+    "5103403": "alta",
+    "5107602": "prime",
+    "5107909": "alta",
+    "5107958": "alta",
+    "5108402": "media-a",
+    "5200258": "opp",
+    "5201108": "alta",
+    "5201405": "media-a",
+    "5204904": "media-a",
+    "5205109": "alta",
+    "5208707": "prime",
+    "5211503": "alta",
+    "5211909": "alta",
+    "5212501": "media-a",
+    "5218805": "alta",
+    "5221858": "opp",
+    "5300108": "prime"
+  },
+  "zonas": [
+    {
+      "name": "São Paulo",
+      "city": "São Paulo",
+      "state": "SP",
+      "tier": "prime",
+      "lat": -23.5329,
+      "lon": -46.6395
+    },
+    {
+      "name": "Rio de Janeiro",
+      "city": "Rio de Janeiro",
+      "state": "RJ",
+      "tier": "prime",
+      "lat": -22.9129,
+      "lon": -43.2003
+    },
+    {
+      "name": "Brasília",
+      "city": "Brasília",
+      "state": "DF",
+      "tier": "prime",
+      "lat": -15.7795,
+      "lon": -47.9297
+    },
+    {
+      "name": "Belo Horizonte",
+      "city": "Belo Horizonte",
+      "state": "MG",
+      "tier": "prime",
+      "lat": -19.9102,
+      "lon": -43.9266
+    },
+    {
+      "name": "Manaus",
+      "city": "Manaus",
+      "state": "AM",
+      "tier": "alta",
+      "lat": -3.11866,
+      "lon": -60.0212
+    },
+    {
+      "name": "Curitiba",
+      "city": "Curitiba",
+      "state": "PR",
+      "tier": "prime",
+      "lat": -25.4195,
+      "lon": -49.2646
+    },
+    {
+      "name": "Osasco",
+      "city": "Osasco",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5324,
+      "lon": -46.7916
+    },
+    {
+      "name": "Maricá",
+      "city": "Maricá",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.9354,
+      "lon": -42.8246
+    },
+    {
+      "name": "Porto Alegre",
+      "city": "Porto Alegre",
+      "state": "RS",
+      "tier": "prime",
+      "lat": -30.0318,
+      "lon": -51.2065
+    },
+    {
+      "name": "Guarulhos",
+      "city": "Guarulhos",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.4538,
+      "lon": -46.5333
+    },
+    {
+      "name": "Fortaleza",
+      "city": "Fortaleza",
+      "state": "CE",
+      "tier": "alta",
+      "lat": -3.71664,
+      "lon": -38.5423
+    },
+    {
+      "name": "Campinas",
+      "city": "Campinas",
+      "state": "SP",
+      "tier": "prime",
+      "lat": -22.9053,
+      "lon": -47.0659
+    },
+    {
+      "name": "Niterói",
+      "city": "Niterói",
+      "state": "RJ",
+      "tier": "litoral-prime",
+      "lat": -22.8832,
+      "lon": -43.1034
+    },
+    {
+      "name": "Salvador",
+      "city": "Salvador",
+      "state": "BA",
+      "tier": "alta",
+      "lat": -12.9718,
+      "lon": -38.5011
+    },
+    {
+      "name": "Goiânia",
+      "city": "Goiânia",
+      "state": "GO",
+      "tier": "prime",
+      "lat": -16.6864,
+      "lon": -49.2643
+    },
+    {
+      "name": "São Bernardo do Campo",
+      "city": "São Bernardo do Campo",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6914,
+      "lon": -46.5646
+    },
+    {
+      "name": "Barueri",
+      "city": "Barueri",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5057,
+      "lon": -46.879
+    },
+    {
+      "name": "Jundiaí",
+      "city": "Jundiaí",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.1852,
+      "lon": -46.8974
+    },
+    {
+      "name": "Recife",
+      "city": "Recife",
+      "state": "PE",
+      "tier": "alta",
+      "lat": -8.04666,
+      "lon": -34.8771
+    },
+    {
+      "name": "Duque de Caxias",
+      "city": "Duque de Caxias",
+      "state": "RJ",
+      "tier": "litoral-prime",
+      "lat": -22.7858,
+      "lon": -43.3049
+    },
+    {
+      "name": "Paulínia",
+      "city": "Paulínia",
+      "state": "SP",
+      "tier": "media-a",
+      "lat": -22.7542,
+      "lon": -47.1488
+    },
+    {
+      "name": "Parauapebas",
+      "city": "Parauapebas",
+      "state": "PA",
+      "tier": "alta",
+      "lat": -6.06781,
+      "lon": -49.9037
+    },
+    {
+      "name": "Itajaí",
+      "city": "Itajaí",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -26.9101,
+      "lon": -48.6705
+    },
+    {
+      "name": "São José dos Campos",
+      "city": "São José dos Campos",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.1896,
+      "lon": -45.8841
+    },
+    {
+      "name": "Joinville",
+      "city": "Joinville",
+      "state": "SC",
+      "tier": "prime",
+      "lat": -26.3045,
+      "lon": -48.8487
+    },
+    {
+      "name": "Sorocaba",
+      "city": "Sorocaba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.4969,
+      "lon": -47.4451
+    },
+    {
+      "name": "Uberlândia",
+      "city": "Uberlândia",
+      "state": "MG",
+      "tier": "prime",
+      "lat": -18.9141,
+      "lon": -48.2749
+    },
+    {
+      "name": "Saquarema",
+      "city": "Saquarema",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.9292,
+      "lon": -42.5099
+    },
+    {
+      "name": "Ribeirão Preto",
+      "city": "Ribeirão Preto",
+      "state": "SP",
+      "tier": "prime",
+      "lat": -21.1699,
+      "lon": -47.8099
+    },
+    {
+      "name": "Serra",
+      "city": "Serra",
+      "state": "ES",
+      "tier": "litoral-alta",
+      "lat": -20.121,
+      "lon": -40.3074
+    },
+    {
+      "name": "Campos dos Goytacazes",
+      "city": "Campos dos Goytacazes",
+      "state": "RJ",
+      "tier": "litoral-prime",
+      "lat": -21.7622,
+      "lon": -41.3181
+    },
+    {
+      "name": "São Luís",
+      "city": "São Luís",
+      "state": "MA",
+      "tier": "media-a",
+      "lat": -2.53874,
+      "lon": -44.2825
+    },
+    {
+      "name": "Contagem",
+      "city": "Contagem",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -19.9321,
+      "lon": -44.0539
+    },
+    {
+      "name": "Campo Grande",
+      "city": "Campo Grande",
+      "state": "MS",
+      "tier": "alta",
+      "lat": -20.4486,
+      "lon": -54.6295
+    },
+    {
+      "name": "Piracicaba",
+      "city": "Piracicaba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.7338,
+      "lon": -47.6476
+    },
+    {
+      "name": "Camaçari",
+      "city": "Camaçari",
+      "state": "BA",
+      "tier": "litoral-alta",
+      "lat": -12.6996,
+      "lon": -38.3263
+    },
+    {
+      "name": "Belém",
+      "city": "Belém",
+      "state": "PA",
+      "tier": "media-a",
+      "lat": -1.4554,
+      "lon": -48.4898
+    },
+    {
+      "name": "Betim",
+      "city": "Betim",
+      "state": "MG",
+      "tier": "prime",
+      "lat": -19.9668,
+      "lon": -44.2008
+    },
+    {
+      "name": "Santo André",
+      "city": "Santo André",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6737,
+      "lon": -46.5432
+    },
+    {
+      "name": "Caxias do Sul",
+      "city": "Caxias do Sul",
+      "state": "RS",
+      "tier": "prime",
+      "lat": -29.1629,
+      "lon": -51.1792
+    },
+    {
+      "name": "Vitória",
+      "city": "Vitória",
+      "state": "ES",
+      "tier": "prime",
+      "lat": -20.3155,
+      "lon": -40.3128
+    },
+    {
+      "name": "Cuiabá",
+      "city": "Cuiabá",
+      "state": "MT",
+      "tier": "alta",
+      "lat": -15.601,
+      "lon": -56.0974
+    },
+    {
+      "name": "Maceió",
+      "city": "Maceió",
+      "state": "AL",
+      "tier": "media-a",
+      "lat": -9.66599,
+      "lon": -35.735
+    },
+    {
+      "name": "São José dos Pinhais",
+      "city": "São José dos Pinhais",
+      "state": "PR",
+      "tier": "litoral-alta",
+      "lat": -25.5313,
+      "lon": -49.2031
+    },
+    {
+      "name": "Araucária",
+      "city": "Araucária",
+      "state": "PR",
+      "tier": "litoral-alta",
+      "lat": -25.5859,
+      "lon": -49.4047
+    },
+    {
+      "name": "Natal",
+      "city": "Natal",
+      "state": "RN",
+      "tier": "media-a",
+      "lat": -5.79357,
+      "lon": -35.1986
+    },
+    {
+      "name": "Santos",
+      "city": "Santos",
+      "state": "SP",
+      "tier": "prime",
+      "lat": -23.9535,
+      "lon": -46.335
+    },
+    {
+      "name": "Teresina",
+      "city": "Teresina",
+      "state": "PI",
+      "tier": "media-b",
+      "lat": -5.09194,
+      "lon": -42.8034
+    },
+    {
+      "name": "Londrina",
+      "city": "Londrina",
+      "state": "PR",
+      "tier": "alta",
+      "lat": -23.304,
+      "lon": -51.1691
+    },
+    {
+      "name": "Florianópolis",
+      "city": "Florianópolis",
+      "state": "SC",
+      "tier": "alta",
+      "lat": -27.5945,
+      "lon": -48.5477
+    },
+    {
+      "name": "Indaiatuba",
+      "city": "Indaiatuba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.0816,
+      "lon": -47.2101
+    },
+    {
+      "name": "Cajamar",
+      "city": "Cajamar",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.355,
+      "lon": -46.8781
+    },
+    {
+      "name": "Maringá",
+      "city": "Maringá",
+      "state": "PR",
+      "tier": "prime",
+      "lat": -23.4205,
+      "lon": -51.9333
+    },
+    {
+      "name": "Canoas",
+      "city": "Canoas",
+      "state": "RS",
+      "tier": "prime",
+      "lat": -29.9128,
+      "lon": -51.1857
+    },
+    {
+      "name": "Cubatão",
+      "city": "Cubatão",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.8911,
+      "lon": -46.424
+    },
+    {
+      "name": "João Pessoa",
+      "city": "João Pessoa",
+      "state": "PB",
+      "tier": "media-a",
+      "lat": -7.11509,
+      "lon": -34.8641
+    },
+    {
+      "name": "São José do Rio Preto",
+      "city": "São José do Rio Preto",
+      "state": "SP",
+      "tier": "alta",
+      "lat": -20.8113,
+      "lon": -49.3758
+    },
+    {
+      "name": "Mauá",
+      "city": "Mauá",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6677,
+      "lon": -46.4613
+    },
+    {
+      "name": "Blumenau",
+      "city": "Blumenau",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -26.9155,
+      "lon": -49.0709
+    },
+    {
+      "name": "Uberaba",
+      "city": "Uberaba",
+      "state": "MG",
+      "tier": "prime",
+      "lat": -19.7472,
+      "lon": -47.9381
+    },
+    {
+      "name": "São Gonçalo",
+      "city": "São Gonçalo",
+      "state": "RJ",
+      "tier": "litoral-prime",
+      "lat": -22.8268,
+      "lon": -43.0634
+    },
+    {
+      "name": "Juiz de Fora",
+      "city": "Juiz de Fora",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -21.7595,
+      "lon": -43.3398
+    },
+    {
+      "name": "Porto Velho",
+      "city": "Porto Velho",
+      "state": "RO",
+      "tier": "media-b",
+      "lat": -8.76077,
+      "lon": -63.8999
+    },
+    {
+      "name": "Louveira",
+      "city": "Louveira",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.0856,
+      "lon": -46.9484
+    },
+    {
+      "name": "Volta Redonda",
+      "city": "Volta Redonda",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.5202,
+      "lon": -44.0996
+    },
+    {
+      "name": "Mogi das Cruzes",
+      "city": "Mogi das Cruzes",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5208,
+      "lon": -46.1854
+    },
+    {
+      "name": "Ponta Grossa",
+      "city": "Ponta Grossa",
+      "state": "PR",
+      "tier": "alta",
+      "lat": -25.0916,
+      "lon": -50.1668
+    },
+    {
+      "name": "Foz do Iguaçu",
+      "city": "Foz do Iguaçu",
+      "state": "PR",
+      "tier": "prime",
+      "lat": -25.5427,
+      "lon": -54.5827
+    },
+    {
+      "name": "Diadema",
+      "city": "Diadema",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6813,
+      "lon": -46.6205
+    },
+    {
+      "name": "Aracaju",
+      "city": "Aracaju",
+      "state": "SE",
+      "tier": "media-a",
+      "lat": -10.9091,
+      "lon": -37.0677
+    },
+    {
+      "name": "Hortolândia",
+      "city": "Hortolândia",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.8529,
+      "lon": -47.2143
+    },
+    {
+      "name": "Nova Iguaçu",
+      "city": "Nova Iguaçu",
+      "state": "RJ",
+      "tier": "litoral-prime",
+      "lat": -22.7556,
+      "lon": -43.4603
+    },
+    {
+      "name": "Anápolis",
+      "city": "Anápolis",
+      "state": "GO",
+      "tier": "alta",
+      "lat": -16.3281,
+      "lon": -48.953
+    },
+    {
+      "name": "Macaé",
+      "city": "Macaé",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.3768,
+      "lon": -41.7848
+    },
+    {
+      "name": "Ipatinga",
+      "city": "Ipatinga",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -19.4703,
+      "lon": -42.5476
+    },
+    {
+      "name": "Rondonópolis",
+      "city": "Rondonópolis",
+      "state": "MT",
+      "tier": "prime",
+      "lat": -16.4673,
+      "lon": -54.6372
+    },
+    {
+      "name": "Feira de Santana",
+      "city": "Feira de Santana",
+      "state": "BA",
+      "tier": "litoral-alta",
+      "lat": -12.2664,
+      "lon": -38.9663
+    },
+    {
+      "name": "Aparecida de Goiânia",
+      "city": "Aparecida de Goiânia",
+      "state": "GO",
+      "tier": "media-a",
+      "lat": -16.8198,
+      "lon": -49.2469
+    },
+    {
+      "name": "Bauru",
+      "city": "Bauru",
+      "state": "SP",
+      "tier": "alta",
+      "lat": -22.3246,
+      "lon": -49.0871
+    },
+    {
+      "name": "Rio Verde",
+      "city": "Rio Verde",
+      "state": "GO",
+      "tier": "alta",
+      "lat": -17.7923,
+      "lon": -50.9192
+    },
+    {
+      "name": "Vila Velha",
+      "city": "Vila Velha",
+      "state": "ES",
+      "tier": "litoral-alta",
+      "lat": -20.3417,
+      "lon": -40.2875
+    },
+    {
+      "name": "Taubaté",
+      "city": "Taubaté",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.0104,
+      "lon": -45.5593
+    },
+    {
+      "name": "Sumaré",
+      "city": "Sumaré",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.8204,
+      "lon": -47.2728
+    },
+    {
+      "name": "Jaboatão dos Guararapes",
+      "city": "Jaboatão dos Guararapes",
+      "state": "PE",
+      "tier": "litoral-alta",
+      "lat": -8.11298,
+      "lon": -35.015
+    },
+    {
+      "name": "Cotia",
+      "city": "Cotia",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6022,
+      "lon": -46.919
+    },
+    {
+      "name": "Jacareí",
+      "city": "Jacareí",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.2983,
+      "lon": -45.9658
+    },
+    {
+      "name": "Limeira",
+      "city": "Limeira",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.566,
+      "lon": -47.397
+    },
+    {
+      "name": "São Sebastião",
+      "city": "São Sebastião",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.7951,
+      "lon": -45.4143
+    },
+    {
+      "name": "Cascavel",
+      "city": "Cascavel",
+      "state": "PR",
+      "tier": "alta",
+      "lat": -24.9573,
+      "lon": -53.459
+    },
+    {
+      "name": "Petrópolis",
+      "city": "Petrópolis",
+      "state": "RJ",
+      "tier": "litoral-prime",
+      "lat": -22.52,
+      "lon": -43.1926
+    },
+    {
+      "name": "São Caetano do Sul",
+      "city": "São Caetano do Sul",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6229,
+      "lon": -46.5548
+    },
+    {
+      "name": "Americana",
+      "city": "Americana",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.7374,
+      "lon": -47.3331
+    },
+    {
+      "name": "Itabira",
+      "city": "Itabira",
+      "state": "MG",
+      "tier": "media-a",
+      "lat": -19.6239,
+      "lon": -43.2312
+    },
+    {
+      "name": "Ipojuca",
+      "city": "Ipojuca",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.39303,
+      "lon": -35.0609
+    },
+    {
+      "name": "Suzano",
+      "city": "Suzano",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5448,
+      "lon": -46.3112
+    },
+    {
+      "name": "Embu das Artes",
+      "city": "Embu das Artes",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6437,
+      "lon": -46.8579
+    },
+    {
+      "name": "São Carlos",
+      "city": "São Carlos",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.0174,
+      "lon": -47.886
+    },
+    {
+      "name": "Jaguariúna",
+      "city": "Jaguariúna",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.7037,
+      "lon": -46.9851
+    },
+    {
+      "name": "Ilhabela",
+      "city": "Ilhabela",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.7785,
+      "lon": -45.3552
+    },
+    {
+      "name": "São José",
+      "city": "São José",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -27.6136,
+      "lon": -48.6366
+    },
+    {
+      "name": "Pindamonhangaba",
+      "city": "Pindamonhangaba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.9246,
+      "lon": -45.4613
+    },
+    {
+      "name": "Cabo de Santo Agostinho",
+      "city": "Cabo de Santo Agostinho",
+      "state": "PE",
+      "tier": "litoral-alta",
+      "lat": -8.28218,
+      "lon": -35.0253
+    },
+    {
+      "name": "Cariacica",
+      "city": "Cariacica",
+      "state": "ES",
+      "tier": "litoral-alta",
+      "lat": -20.2632,
+      "lon": -40.4165
+    },
+    {
+      "name": "Chapecó",
+      "city": "Chapecó",
+      "state": "SC",
+      "tier": "alta",
+      "lat": -27.1004,
+      "lon": -52.6152
+    },
+    {
+      "name": "Paranaguá",
+      "city": "Paranaguá",
+      "state": "PR",
+      "tier": "litoral-alta",
+      "lat": -25.5161,
+      "lon": -48.5225
+    },
+    {
+      "name": "Marabá",
+      "city": "Marabá",
+      "state": "PA",
+      "tier": "alta",
+      "lat": -5.38075,
+      "lon": -49.1327
+    },
+    {
+      "name": "Boa Vista",
+      "city": "Boa Vista",
+      "state": "RR",
+      "tier": "media-b",
+      "lat": 2.82384,
+      "lon": -60.6753
+    },
+    {
+      "name": "Rio Grande",
+      "city": "Rio Grande",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -32.0349,
+      "lon": -52.1071
+    },
+    {
+      "name": "Rio Claro",
+      "city": "Rio Claro",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.3984,
+      "lon": -47.5546
+    },
+    {
+      "name": "São Francisco do Conde",
+      "city": "São Francisco do Conde",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.6183,
+      "lon": -38.6786
+    },
+    {
+      "name": "Macapá",
+      "city": "Macapá",
+      "state": "AP",
+      "tier": "media-b",
+      "lat": 0.034934,
+      "lon": -51.0694
+    },
+    {
+      "name": "Itapevi",
+      "city": "Itapevi",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5488,
+      "lon": -46.9327
+    },
+    {
+      "name": "Sete Lagoas",
+      "city": "Sete Lagoas",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -19.4569,
+      "lon": -44.2413
+    },
+    {
+      "name": "Vinhedo",
+      "city": "Vinhedo",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.0302,
+      "lon": -46.9833
+    },
+    {
+      "name": "Passo Fundo",
+      "city": "Passo Fundo",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -28.2576,
+      "lon": -52.4091
+    },
+    {
+      "name": "Cabo Frio",
+      "city": "Cabo Frio",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.8894,
+      "lon": -42.0286
+    },
+    {
+      "name": "Maracanaú",
+      "city": "Maracanaú",
+      "state": "CE",
+      "tier": "litoral-alta",
+      "lat": -3.86699,
+      "lon": -38.6259
+    },
+    {
+      "name": "Dourados",
+      "city": "Dourados",
+      "state": "MS",
+      "tier": "alta",
+      "lat": -22.2231,
+      "lon": -54.812
+    },
+    {
+      "name": "Jaraguá do Sul",
+      "city": "Jaraguá do Sul",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -26.4851,
+      "lon": -49.0713
+    },
+    {
+      "name": "Araraquara",
+      "city": "Araraquara",
+      "state": "SP",
+      "tier": "alta",
+      "lat": -21.7845,
+      "lon": -48.178
+    },
+    {
+      "name": "Três Lagoas",
+      "city": "Três Lagoas",
+      "state": "MS",
+      "tier": "alta",
+      "lat": -20.7849,
+      "lon": -51.7007
+    },
+    {
+      "name": "Santana de Parnaíba",
+      "city": "Santana de Parnaíba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.4439,
+      "lon": -46.9178
+    },
+    {
+      "name": "Franca",
+      "city": "Franca",
+      "state": "SP",
+      "tier": "media-a",
+      "lat": -20.5352,
+      "lon": -47.4039
+    },
+    {
+      "name": "Angra dos Reis",
+      "city": "Angra dos Reis",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -23.0011,
+      "lon": -44.3196
+    },
+    {
+      "name": "Rio Branco",
+      "city": "Rio Branco",
+      "state": "AC",
+      "tier": "media-b",
+      "lat": -9.97499,
+      "lon": -67.8243
+    },
+    {
+      "name": "São Leopoldo",
+      "city": "São Leopoldo",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -29.7545,
+      "lon": -51.1498
+    },
+    {
+      "name": "Montes Claros",
+      "city": "Montes Claros",
+      "state": "MG",
+      "tier": "media-a",
+      "lat": -16.7282,
+      "lon": -43.8578
+    },
+    {
+      "name": "Pelotas",
+      "city": "Pelotas",
+      "state": "RS",
+      "tier": "media-a",
+      "lat": -31.7649,
+      "lon": -52.3371
+    },
+    {
+      "name": "Resende",
+      "city": "Resende",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.4705,
+      "lon": -44.4509
+    },
+    {
+      "name": "Pouso Alegre",
+      "city": "Pouso Alegre",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -22.2266,
+      "lon": -45.9389
+    },
+    {
+      "name": "Goiana",
+      "city": "Goiana",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.5606,
+      "lon": -34.9959
+    },
+    {
+      "name": "Itu",
+      "city": "Itu",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.2544,
+      "lon": -47.2927
+    },
+    {
+      "name": "Itaguaí",
+      "city": "Itaguaí",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.8636,
+      "lon": -43.7798
+    },
+    {
+      "name": "Guarujá",
+      "city": "Guarujá",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.9888,
+      "lon": -46.258
+    },
+    {
+      "name": "Caucaia",
+      "city": "Caucaia",
+      "state": "CE",
+      "tier": "litoral-alta",
+      "lat": -3.72797,
+      "lon": -38.6619
+    },
+    {
+      "name": "Campina Grande",
+      "city": "Campina Grande",
+      "state": "PB",
+      "tier": "litoral-alta",
+      "lat": -7.22196,
+      "lon": -35.8731
+    },
+    {
+      "name": "Palmas",
+      "city": "Palmas",
+      "state": "TO",
+      "tier": "media-b",
+      "lat": -10.24,
+      "lon": -48.3558
+    },
+    {
+      "name": "Taboão da Serra",
+      "city": "Taboão da Serra",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6019,
+      "lon": -46.7526
+    },
+    {
+      "name": "Gravataí",
+      "city": "Gravataí",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -29.9413,
+      "lon": -50.9869
+    },
+    {
+      "name": "Criciúma",
+      "city": "Criciúma",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -28.6723,
+      "lon": -49.3729
+    },
+    {
+      "name": "Novo Hamburgo",
+      "city": "Novo Hamburgo",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -29.6875,
+      "lon": -51.1328
+    },
+    {
+      "name": "Catalão",
+      "city": "Catalão",
+      "state": "GO",
+      "tier": "alta",
+      "lat": -18.1656,
+      "lon": -47.944
+    },
+    {
+      "name": "Várzea Grande",
+      "city": "Várzea Grande",
+      "state": "MT",
+      "tier": "media-a",
+      "lat": -15.6458,
+      "lon": -56.1322
+    },
+    {
+      "name": "São João da Barra",
+      "city": "São João da Barra",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.638,
+      "lon": -41.0446
+    },
+    {
+      "name": "Santa Cruz do Sul",
+      "city": "Santa Cruz do Sul",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -29.722,
+      "lon": -52.4343
+    },
+    {
+      "name": "Marília",
+      "city": "Marília",
+      "state": "SP",
+      "tier": "alta",
+      "lat": -22.2171,
+      "lon": -49.9501
+    },
+    {
+      "name": "Sinop",
+      "city": "Sinop",
+      "state": "MT",
+      "tier": "alta",
+      "lat": -11.8604,
+      "lon": -55.5091
+    },
+    {
+      "name": "Santa Maria",
+      "city": "Santa Maria",
+      "state": "RS",
+      "tier": "media-a",
+      "lat": -29.6868,
+      "lon": -53.8149
+    },
+    {
+      "name": "Itaquaquecetuba",
+      "city": "Itaquaquecetuba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.4835,
+      "lon": -46.3457
+    },
+    {
+      "name": "Salto",
+      "city": "Salto",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.1996,
+      "lon": -47.2931
+    },
+    {
+      "name": "Barcarena",
+      "city": "Barcarena",
+      "state": "PA",
+      "tier": "alta",
+      "lat": -1.51187,
+      "lon": -48.6195
+    },
+    {
+      "name": "Presidente Prudente",
+      "city": "Presidente Prudente",
+      "state": "SP",
+      "tier": "alta",
+      "lat": -22.1207,
+      "lon": -51.3925
+    },
+    {
+      "name": "Araçatuba",
+      "city": "Araçatuba",
+      "state": "SP",
+      "tier": "alta",
+      "lat": -21.2076,
+      "lon": -50.4401
+    },
+    {
+      "name": "São João de Meriti",
+      "city": "São João de Meriti",
+      "state": "RJ",
+      "tier": "litoral-prime",
+      "lat": -22.8058,
+      "lon": -43.3729
+    },
+    {
+      "name": "Araxá",
+      "city": "Araxá",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -19.5902,
+      "lon": -46.9438
+    },
+    {
+      "name": "Rio das Ostras",
+      "city": "Rio das Ostras",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.5174,
+      "lon": -41.9475
+    },
+    {
+      "name": "Ananindeua",
+      "city": "Ananindeua",
+      "state": "PA",
+      "tier": "media-b",
+      "lat": -1.36391,
+      "lon": -48.3743
+    },
+    {
+      "name": "Belford Roxo",
+      "city": "Belford Roxo",
+      "state": "RJ",
+      "tier": "litoral-prime",
+      "lat": -22.764,
+      "lon": -43.3992
+    },
+    {
+      "name": "Luís Eduardo Magalhães",
+      "city": "Luís Eduardo Magalhães",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.0956,
+      "lon": -45.7866
+    },
+    {
+      "name": "Praia Grande",
+      "city": "Praia Grande",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -24.0084,
+      "lon": -46.4121
+    },
+    {
+      "name": "Brusque",
+      "city": "Brusque",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -27.0977,
+      "lon": -48.9107
+    },
+    {
+      "name": "Caruaru",
+      "city": "Caruaru",
+      "state": "PE",
+      "tier": "litoral-alta",
+      "lat": -8.28455,
+      "lon": -35.9699
+    },
+    {
+      "name": "São Gonçalo do Amarante",
+      "city": "São Gonçalo do Amarante",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.60515,
+      "lon": -38.9726
+    },
+    {
+      "name": "Poços de Caldas",
+      "city": "Poços de Caldas",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -21.78,
+      "lon": -46.5692
+    },
+    {
+      "name": "São Francisco do Sul",
+      "city": "São Francisco do Sul",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.2579,
+      "lon": -48.6344
+    },
+    {
+      "name": "Itupeva",
+      "city": "Itupeva",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.1526,
+      "lon": -47.0593
+    },
+    {
+      "name": "Atibaia",
+      "city": "Atibaia",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.1171,
+      "lon": -46.5563
+    },
+    {
+      "name": "Divinópolis",
+      "city": "Divinópolis",
+      "state": "MG",
+      "tier": "media-a",
+      "lat": -20.1446,
+      "lon": -44.8912
+    },
+    {
+      "name": "Guarapuava",
+      "city": "Guarapuava",
+      "state": "PR",
+      "tier": "alta",
+      "lat": -25.3902,
+      "lon": -51.4623
+    },
+    {
+      "name": "Arujá",
+      "city": "Arujá",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.3965,
+      "lon": -46.32
+    },
+    {
+      "name": "Itatiba",
+      "city": "Itatiba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.0035,
+      "lon": -46.8464
+    },
+    {
+      "name": "Vitória da Conquista",
+      "city": "Vitória da Conquista",
+      "state": "BA",
+      "tier": "media-a",
+      "lat": -14.8615,
+      "lon": -40.8442
+    },
+    {
+      "name": "Palhoça",
+      "city": "Palhoça",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -27.6455,
+      "lon": -48.6697
+    },
+    {
+      "name": "Varginha",
+      "city": "Varginha",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -21.5556,
+      "lon": -45.4364
+    },
+    {
+      "name": "Mossoró",
+      "city": "Mossoró",
+      "state": "RN",
+      "tier": "litoral-alta",
+      "lat": -5.18374,
+      "lon": -37.3474
+    },
+    {
+      "name": "Linhares",
+      "city": "Linhares",
+      "state": "ES",
+      "tier": "litoral-alta",
+      "lat": -19.3946,
+      "lon": -40.0643
+    },
+    {
+      "name": "Jataí",
+      "city": "Jataí",
+      "state": "GO",
+      "tier": "alta",
+      "lat": -17.8784,
+      "lon": -51.7204
+    },
+    {
+      "name": "Petrolina",
+      "city": "Petrolina",
+      "state": "PE",
+      "tier": "litoral-alta",
+      "lat": -9.38866,
+      "lon": -40.5027
+    },
+    {
+      "name": "Valinhos",
+      "city": "Valinhos",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.9698,
+      "lon": -46.9974
+    },
+    {
+      "name": "Pinhais",
+      "city": "Pinhais",
+      "state": "PR",
+      "tier": "litoral-alta",
+      "lat": -25.4429,
+      "lon": -49.1927
+    },
+    {
+      "name": "Bragança Paulista",
+      "city": "Bragança Paulista",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.9527,
+      "lon": -46.5419
+    },
+    {
+      "name": "Guaratinguetá",
+      "city": "Guaratinguetá",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.8075,
+      "lon": -45.1938
+    },
+    {
+      "name": "Santa Bárbara d'Oeste",
+      "city": "Santa Bárbara d'Oeste",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.7553,
+      "lon": -47.4143
+    },
+    {
+      "name": "Imperatriz",
+      "city": "Imperatriz",
+      "state": "MA",
+      "tier": "media-a",
+      "lat": -5.51847,
+      "lon": -47.4777
+    },
+    {
+      "name": "Bento Gonçalves",
+      "city": "Bento Gonçalves",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -29.1662,
+      "lon": -51.5165
+    },
+    {
+      "name": "Araquari",
+      "city": "Araquari",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.3754,
+      "lon": -48.7188
+    },
+    {
+      "name": "Toledo",
+      "city": "Toledo",
+      "state": "PR",
+      "tier": "alta",
+      "lat": -24.7246,
+      "lon": -53.7412
+    },
+    {
+      "name": "Governador Valadares",
+      "city": "Governador Valadares",
+      "state": "MG",
+      "tier": "media-a",
+      "lat": -18.8545,
+      "lon": -41.9555
+    },
+    {
+      "name": "Balneário Camboriú",
+      "city": "Balneário Camboriú",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -26.9926,
+      "lon": -48.6352
+    },
+    {
+      "name": "Lauro de Freitas",
+      "city": "Lauro de Freitas",
+      "state": "BA",
+      "tier": "litoral-alta",
+      "lat": -12.8978,
+      "lon": -38.321
+    },
+    {
+      "name": "Sertãozinho",
+      "city": "Sertãozinho",
+      "state": "SP",
+      "tier": "alta",
+      "lat": -21.1316,
+      "lon": -47.9875
+    },
+    {
+      "name": "Barreiras",
+      "city": "Barreiras",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.1439,
+      "lon": -44.9968
+    },
+    {
+      "name": "Araras",
+      "city": "Araras",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.3572,
+      "lon": -47.3842
+    },
+    {
+      "name": "Itatiaia",
+      "city": "Itatiaia",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.4897,
+      "lon": -44.5675
+    },
+    {
+      "name": "Erechim",
+      "city": "Erechim",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -27.6364,
+      "lon": -52.2697
+    },
+    {
+      "name": "Mogi Guaçu",
+      "city": "Mogi Guaçu",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.3675,
+      "lon": -46.9428
+    },
+    {
+      "name": "Carapicuíba",
+      "city": "Carapicuíba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5235,
+      "lon": -46.8407
+    },
+    {
+      "name": "Parnamirim",
+      "city": "Parnamirim",
+      "state": "RN",
+      "tier": "litoral-alta",
+      "lat": -5.91116,
+      "lon": -35.271
+    },
+    {
+      "name": "Candeias",
+      "city": "Candeias",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.6716,
+      "lon": -38.5472
+    },
+    {
+      "name": "Lages",
+      "city": "Lages",
+      "state": "SC",
+      "tier": "opp",
+      "lat": -27.815,
+      "lon": -50.3259
+    },
+    {
+      "name": "Cachoeirinha",
+      "city": "Cachoeirinha",
+      "state": "RS",
+      "tier": "alta",
+      "lat": -29.9472,
+      "lon": -51.1016
+    },
+    {
+      "name": "Barra Mansa",
+      "city": "Barra Mansa",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.5481,
+      "lon": -44.1752
+    },
+    {
+      "name": "Santarém",
+      "city": "Santarém",
+      "state": "PA",
+      "tier": "media-a",
+      "lat": -2.43849,
+      "lon": -54.6996
+    },
+    {
+      "name": "Itapetininga",
+      "city": "Itapetininga",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5886,
+      "lon": -48.0483
+    },
+    {
+      "name": "Três Rios",
+      "city": "Três Rios",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.1165,
+      "lon": -43.2185
+    },
+    {
+      "name": "Simões Filho",
+      "city": "Simões Filho",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.7866,
+      "lon": -38.4029
+    },
+    {
+      "name": "Nova Friburgo",
+      "city": "Nova Friburgo",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.2932,
+      "lon": -42.5377
+    },
+    {
+      "name": "Mogi Mirim",
+      "city": "Mogi Mirim",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.4332,
+      "lon": -46.9532
+    },
+    {
+      "name": "Cachoeiro de Itapemirim",
+      "city": "Cachoeiro de Itapemirim",
+      "state": "ES",
+      "tier": "media-a",
+      "lat": -20.8462,
+      "lon": -41.1198
+    },
+    {
+      "name": "Patos de Minas",
+      "city": "Patos de Minas",
+      "state": "MG",
+      "tier": "opp",
+      "lat": -18.5699,
+      "lon": -46.5013
+    },
+    {
+      "name": "Navegantes",
+      "city": "Navegantes",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.8943,
+      "lon": -48.6546
+    },
+    {
+      "name": "São Vicente",
+      "city": "São Vicente",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.9574,
+      "lon": -46.3883
+    },
+    {
+      "name": "Quissamã",
+      "city": "Quissamã",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.1031,
+      "lon": -41.4693
+    },
+    {
+      "name": "Botucatu",
+      "city": "Botucatu",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.8837,
+      "lon": -48.4437
+    },
+    {
+      "name": "Cabreúva",
+      "city": "Cabreúva",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.3053,
+      "lon": -47.1362
+    },
+    {
+      "name": "Teresópolis",
+      "city": "Teresópolis",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.4165,
+      "lon": -42.9752
+    },
+    {
+      "name": "Arapiraca",
+      "city": "Arapiraca",
+      "state": "AL",
+      "tier": "litoral-alta",
+      "lat": -9.75487,
+      "lon": -36.6615
+    },
+    {
+      "name": "Barretos",
+      "city": "Barretos",
+      "state": "SP",
+      "tier": "alta",
+      "lat": -20.5531,
+      "lon": -48.5698
+    },
+    {
+      "name": "São Desidério",
+      "city": "São Desidério",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.3572,
+      "lon": -44.9769
+    },
+    {
+      "name": "Araguari",
+      "city": "Araguari",
+      "state": "MG",
+      "tier": "alta",
+      "lat": -18.6456,
+      "lon": -48.1934
+    },
+    {
+      "name": "Olinda",
+      "city": "Olinda",
+      "state": "PE",
+      "tier": "litoral-alta",
+      "lat": -8.01017,
+      "lon": -34.8545
+    },
+    {
+      "name": "Anchieta",
+      "city": "Anchieta",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.7955,
+      "lon": -40.6425
+    },
+    {
+      "name": "Colombo",
+      "city": "Colombo",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.2925,
+      "lon": -49.2262
+    },
+    {
+      "name": "Itaboraí",
+      "city": "Itaboraí",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.7565,
+      "lon": -42.8639
+    },
+    {
+      "name": "Tucuruí",
+      "city": "Tucuruí",
+      "state": "PA",
+      "tier": "alta",
+      "lat": -3.7657,
+      "lon": -49.6773
+    },
+    {
+      "name": "Paulista",
+      "city": "Paulista",
+      "state": "PE",
+      "tier": "litoral-alta",
+      "lat": -7.93401,
+      "lon": -34.8684
+    },
+    {
+      "name": "Tangará da Serra",
+      "city": "Tangará da Serra",
+      "state": "MT",
+      "tier": "alta",
+      "lat": -14.6229,
+      "lon": -57.4933
+    },
+    {
+      "name": "Jaú",
+      "city": "Jaú",
+      "state": "SP",
+      "tier": "opp",
+      "lat": -22.2936,
+      "lon": -48.5592
+    },
+    {
+      "name": "Luziânia",
+      "city": "Luziânia",
+      "state": "GO",
+      "tier": "media-a",
+      "lat": -16.253,
+      "lon": -47.95
+    },
+    {
+      "name": "Sobral",
+      "city": "Sobral",
+      "state": "CE",
+      "tier": "litoral-alta",
+      "lat": -3.68913,
+      "lon": -40.3482
+    },
+    {
+      "name": "Itumbiara",
+      "city": "Itumbiara",
+      "state": "GO",
+      "tier": "alta",
+      "lat": -18.4093,
+      "lon": -49.2158
+    },
+    {
+      "name": "Aracruz",
+      "city": "Aracruz",
+      "state": "ES",
+      "tier": "litoral-alta",
+      "lat": -19.82,
+      "lon": -40.2764
+    },
+    {
+      "name": "Santa Luzia",
+      "city": "Santa Luzia",
+      "state": "MG",
+      "tier": "media-b",
+      "lat": -19.7548,
+      "lon": -43.8497
+    },
+    {
+      "name": "Araguaína",
+      "city": "Araguaína",
+      "state": "TO",
+      "tier": "opp",
+      "lat": -7.19238,
+      "lon": -48.2044
+    },
+    {
+      "name": "Caçapava",
+      "city": "Caçapava",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.0992,
+      "lon": -45.7076
+    },
+    {
+      "name": "Juazeiro",
+      "city": "Juazeiro",
+      "state": "BA",
+      "tier": "litoral-alta",
+      "lat": -9.41622,
+      "lon": -40.5033
+    },
+    {
+      "name": "Ribeirão das Neves",
+      "city": "Ribeirão das Neves",
+      "state": "MG",
+      "tier": "media-b",
+      "lat": -19.7621,
+      "lon": -44.0844
+    },
+    {
+      "name": "Ilhéus",
+      "city": "Ilhéus",
+      "state": "BA",
+      "tier": "opp",
+      "lat": -14.793,
+      "lon": -39.046
+    },
+    {
+      "name": "Amparo",
+      "city": "Amparo",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.7088,
+      "lon": -46.772
+    },
+    {
+      "name": "Juazeiro do Norte",
+      "city": "Juazeiro do Norte",
+      "state": "CE",
+      "tier": "litoral-alta",
+      "lat": -7.19621,
+      "lon": -39.3076
+    },
+    {
+      "name": "Tatuí",
+      "city": "Tatuí",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.3487,
+      "lon": -47.8461
+    },
+    {
+      "name": "Cambé",
+      "city": "Cambé",
+      "state": "PR",
+      "tier": "alta",
+      "lat": -23.2766,
+      "lon": -51.2798
+    },
+    {
+      "name": "Itapecerica da Serra",
+      "city": "Itapecerica da Serra",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.7161,
+      "lon": -46.8572
+    },
+    {
+      "name": "Jandira",
+      "city": "Jandira",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5275,
+      "lon": -46.9023
+    },
+    {
+      "name": "Caieiras",
+      "city": "Caieiras",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.3607,
+      "lon": -46.7397
+    },
+    {
+      "name": "Tubarão",
+      "city": "Tubarão",
+      "state": "SC",
+      "tier": "litoral-alta",
+      "lat": -28.4713,
+      "lon": -49.0144
+    },
+    {
+      "name": "Araçariguama",
+      "city": "Araçariguama",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.4366,
+      "lon": -47.0608
+    },
+    {
+      "name": "Seropédica",
+      "city": "Seropédica",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.7526,
+      "lon": -43.7155
+    },
+    {
+      "name": "Magé",
+      "city": "Magé",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.6632,
+      "lon": -43.0315
+    },
+    {
+      "name": "Itapira",
+      "city": "Itapira",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.4357,
+      "lon": -46.8224
+    },
+    {
+      "name": "Ferraz de Vasconcelos",
+      "city": "Ferraz de Vasconcelos",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.5411,
+      "lon": -46.371
+    },
+    {
+      "name": "Castanhal",
+      "city": "Castanhal",
+      "state": "PA",
+      "tier": "media-b",
+      "lat": -1.29797,
+      "lon": -47.9167
+    },
+    {
+      "name": "São Bento do Sul",
+      "city": "São Bento do Sul",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.2495,
+      "lon": -49.3831
+    },
+    {
+      "name": "Vitória de Santo Antão",
+      "city": "Vitória de Santo Antão",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.12819,
+      "lon": -35.2976
+    },
+    {
+      "name": "Alagoinhas",
+      "city": "Alagoinhas",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.1335,
+      "lon": -38.4208
+    },
+    {
+      "name": "Caraguatatuba",
+      "city": "Caraguatatuba",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.6125,
+      "lon": -45.4125
+    },
+    {
+      "name": "Colatina",
+      "city": "Colatina",
+      "state": "ES",
+      "tier": "litoral-alta",
+      "lat": -19.5493,
+      "lon": -40.6269
+    },
+    {
+      "name": "Queimados",
+      "city": "Queimados",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.7102,
+      "lon": -43.5518
+    },
+    {
+      "name": "Viamão",
+      "city": "Viamão",
+      "state": "RS",
+      "tier": "media-b",
+      "lat": -30.0819,
+      "lon": -51.0194
+    },
+    {
+      "name": "Monte Mor",
+      "city": "Monte Mor",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.945,
+      "lon": -47.3122
+    },
+    {
+      "name": "Franco da Rocha",
+      "city": "Franco da Rocha",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.3229,
+      "lon": -46.729
+    },
+    {
+      "name": "Porto Real",
+      "city": "Porto Real",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.4175,
+      "lon": -44.2952
+    },
+    {
+      "name": "Araruama",
+      "city": "Araruama",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.8697,
+      "lon": -42.3326
+    },
+    {
+      "name": "Ji-Paraná",
+      "city": "Ji-Paraná",
+      "state": "RO",
+      "tier": "media-a",
+      "lat": -10.8777,
+      "lon": -61.9322
+    },
+    {
+      "name": "Viana",
+      "city": "Viana",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.3825,
+      "lon": -40.4933
+    },
+    {
+      "name": "Itabuna",
+      "city": "Itabuna",
+      "state": "BA",
+      "tier": "media-b",
+      "lat": -14.7876,
+      "lon": -39.2781
+    },
+    {
+      "name": "Gaspar",
+      "city": "Gaspar",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.9336,
+      "lon": -48.9534
+    },
+    {
+      "name": "Cordeirópolis",
+      "city": "Cordeirópolis",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.4778,
+      "lon": -47.4519
+    },
+    {
+      "name": "Leme",
+      "city": "Leme",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.1809,
+      "lon": -47.3841
+    },
+    {
+      "name": "Nova Odessa",
+      "city": "Nova Odessa",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.7832,
+      "lon": -47.2941
+    },
+    {
+      "name": "Alumínio",
+      "city": "Alumínio",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.5306,
+      "lon": -47.2546
+    },
+    {
+      "name": "Várzea Paulista",
+      "city": "Várzea Paulista",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.2136,
+      "lon": -46.8234
+    },
+    {
+      "name": "Paulo Afonso",
+      "city": "Paulo Afonso",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -9.3983,
+      "lon": -38.2216
+    },
+    {
+      "name": "Votorantim",
+      "city": "Votorantim",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5446,
+      "lon": -47.4388
+    },
+    {
+      "name": "Santa Gertrudes",
+      "city": "Santa Gertrudes",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.4572,
+      "lon": -47.5272
+    },
+    {
+      "name": "Ribeirão Pires",
+      "city": "Ribeirão Pires",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.7067,
+      "lon": -46.4058
+    },
+    {
+      "name": "Lorena",
+      "city": "Lorena",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.7334,
+      "lon": -45.1197
+    },
+    {
+      "name": "Aquiraz",
+      "city": "Aquiraz",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.89929,
+      "lon": -38.3896
+    },
+    {
+      "name": "Porto Seguro",
+      "city": "Porto Seguro",
+      "state": "BA",
+      "tier": "opp",
+      "lat": -16.4435,
+      "lon": -39.0643
+    },
+    {
+      "name": "Poá",
+      "city": "Poá",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5333,
+      "lon": -46.3473
+    },
+    {
+      "name": "Porto Feliz",
+      "city": "Porto Feliz",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.2093,
+      "lon": -47.5251
+    },
+    {
+      "name": "Indaial",
+      "city": "Indaial",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.8992,
+      "lon": -49.2354
+    },
+    {
+      "name": "Eusébio",
+      "city": "Eusébio",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.8925,
+      "lon": -38.4559
+    },
+    {
+      "name": "Içara",
+      "city": "Içara",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -28.7132,
+      "lon": -49.3087
+    },
+    {
+      "name": "Igarassu",
+      "city": "Igarassu",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.82881,
+      "lon": -34.9013
+    },
+    {
+      "name": "São Roque",
+      "city": "São Roque",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5226,
+      "lon": -47.1357
+    },
+    {
+      "name": "Marechal Deodoro",
+      "city": "Marechal Deodoro",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.70971,
+      "lon": -35.8967
+    },
+    {
+      "name": "Boituva",
+      "city": "Boituva",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.2855,
+      "lon": -47.6786
+    },
+    {
+      "name": "Fazenda Rio Grande",
+      "city": "Fazenda Rio Grande",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.6624,
+      "lon": -49.3073
+    },
+    {
+      "name": "Alvorada",
+      "city": "Alvorada",
+      "state": "RS",
+      "tier": "media-b",
+      "lat": -29.9914,
+      "lon": -51.0809
+    },
+    {
+      "name": "Correntina",
+      "city": "Correntina",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.3477,
+      "lon": -44.6333
+    },
+    {
+      "name": "Nossa Senhora do Socorro",
+      "city": "Nossa Senhora do Socorro",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.8468,
+      "lon": -37.1231
+    },
+    {
+      "name": "Mangaratiba",
+      "city": "Mangaratiba",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.9594,
+      "lon": -44.0409
+    },
+    {
+      "name": "Ibirité",
+      "city": "Ibirité",
+      "state": "MG",
+      "tier": "opp",
+      "lat": -20.0252,
+      "lon": -44.0569
+    },
+    {
+      "name": "Cruzeiro",
+      "city": "Cruzeiro",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.5728,
+      "lon": -44.969
+    },
+    {
+      "name": "Jequié",
+      "city": "Jequié",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.8509,
+      "lon": -40.0877
+    },
+    {
+      "name": "Cabedelo",
+      "city": "Cabedelo",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -6.98731,
+      "lon": -34.8284
+    },
+    {
+      "name": "Valença",
+      "city": "Valença",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.2445,
+      "lon": -43.7129
+    },
+    {
+      "name": "Garanhuns",
+      "city": "Garanhuns",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.88243,
+      "lon": -36.4966
+    },
+    {
+      "name": "Nilópolis",
+      "city": "Nilópolis",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.8057,
+      "lon": -43.4233
+    },
+    {
+      "name": "Dias d'Ávila",
+      "city": "Dias d'Ávila",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.6187,
+      "lon": -38.2926
+    },
+    {
+      "name": "Jarinu",
+      "city": "Jarinu",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.1039,
+      "lon": -46.728
+    },
+    {
+      "name": "Capivari",
+      "city": "Capivari",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.9951,
+      "lon": -47.5071
+    },
+    {
+      "name": "Parnaíba",
+      "city": "Parnaíba",
+      "state": "PI",
+      "tier": "opp",
+      "lat": -2.90585,
+      "lon": -41.7754
+    },
+    {
+      "name": "Armação dos Búzios",
+      "city": "Armação dos Búzios",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.7528,
+      "lon": -41.8846
+    },
+    {
+      "name": "Valparaíso de Goiás",
+      "city": "Valparaíso de Goiás",
+      "state": "GO",
+      "tier": "opp",
+      "lat": -16.0651,
+      "lon": -47.9757
+    },
+    {
+      "name": "São Mateus",
+      "city": "São Mateus",
+      "state": "ES",
+      "tier": "litoral-alta",
+      "lat": -18.7214,
+      "lon": -39.8579
+    },
+    {
+      "name": "Vargem Grande Paulista",
+      "city": "Vargem Grande Paulista",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.5993,
+      "lon": -47.022
+    },
+    {
+      "name": "Canindé de São Francisco",
+      "city": "Canindé de São Francisco",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -9.64882,
+      "lon": -37.7923
+    },
+    {
+      "name": "Itapema",
+      "city": "Itapema",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -27.0861,
+      "lon": -48.616
+    },
+    {
+      "name": "Teixeira de Freitas",
+      "city": "Teixeira de Freitas",
+      "state": "BA",
+      "tier": "opp",
+      "lat": -17.5399,
+      "lon": -39.74
+    },
+    {
+      "name": "Pomerode",
+      "city": "Pomerode",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.7384,
+      "lon": -49.1785
+    },
+    {
+      "name": "Belo Jardim",
+      "city": "Belo Jardim",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.3313,
+      "lon": -36.4258
+    },
+    {
+      "name": "Conceição do Jacuípe",
+      "city": "Conceição do Jacuípe",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.3268,
+      "lon": -38.7684
+    },
+    {
+      "name": "São Pedro da Aldeia",
+      "city": "São Pedro da Aldeia",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.8429,
+      "lon": -42.1026
+    },
+    {
+      "name": "Barra do Piraí",
+      "city": "Barra do Piraí",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.4715,
+      "lon": -43.8269
+    },
+    {
+      "name": "Ubatuba",
+      "city": "Ubatuba",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.4332,
+      "lon": -45.0834
+    },
+    {
+      "name": "Arraial do Cabo",
+      "city": "Arraial do Cabo",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.9774,
+      "lon": -42.0267
+    },
+    {
+      "name": "Mairinque",
+      "city": "Mairinque",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.5398,
+      "lon": -47.185
+    },
+    {
+      "name": "Biguaçu",
+      "city": "Biguaçu",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -27.496,
+      "lon": -48.6598
+    },
+    {
+      "name": "Mesquita",
+      "city": "Mesquita",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.8028,
+      "lon": -43.4601
+    },
+    {
+      "name": "Barra dos Coqueiros",
+      "city": "Barra dos Coqueiros",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.8996,
+      "lon": -37.0323
+    },
+    {
+      "name": "Santa Rita",
+      "city": "Santa Rita",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -7.11724,
+      "lon": -34.9753
+    },
+    {
+      "name": "Guarapari",
+      "city": "Guarapari",
+      "state": "ES",
+      "tier": "litoral-alta",
+      "lat": -20.6772,
+      "lon": -40.5093
+    },
+    {
+      "name": "Timbó",
+      "city": "Timbó",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.8246,
+      "lon": -49.269
+    },
+    {
+      "name": "Campo Limpo Paulista",
+      "city": "Campo Limpo Paulista",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.2078,
+      "lon": -46.7889
+    },
+    {
+      "name": "Guaramirim",
+      "city": "Guaramirim",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.4688,
+      "lon": -49.0026
+    },
+    {
+      "name": "Imbituba",
+      "city": "Imbituba",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -28.2284,
+      "lon": -48.6659
+    },
+    {
+      "name": "Águas Lindas de Goiás",
+      "city": "Águas Lindas de Goiás",
+      "state": "GO",
+      "tier": "opp",
+      "lat": -15.7617,
+      "lon": -48.2816
+    },
+    {
+      "name": "Piraí",
+      "city": "Piraí",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.6215,
+      "lon": -43.9081
+    },
+    {
+      "name": "Santo Antônio de Jesus",
+      "city": "Santo Antônio de Jesus",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.9614,
+      "lon": -39.2584
+    },
+    {
+      "name": "Tijucas",
+      "city": "Tijucas",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -27.2354,
+      "lon": -48.6322
+    },
+    {
+      "name": "Araranguá",
+      "city": "Araranguá",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -28.9356,
+      "lon": -49.4918
+    },
+    {
+      "name": "Barra Velha",
+      "city": "Barra Velha",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.637,
+      "lon": -48.6933
+    },
+    {
+      "name": "Ibiúna",
+      "city": "Ibiúna",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.6596,
+      "lon": -47.223
+    },
+    {
+      "name": "Itanhaém",
+      "city": "Itanhaém",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -24.1736,
+      "lon": -46.788
+    },
+    {
+      "name": "Registro",
+      "city": "Registro",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -24.4979,
+      "lon": -47.8449
+    },
+    {
+      "name": "Casimiro de Abreu",
+      "city": "Casimiro de Abreu",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.4812,
+      "lon": -42.2066
+    },
+    {
+      "name": "Cerquilho",
+      "city": "Cerquilho",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.1665,
+      "lon": -47.7459
+    },
+    {
+      "name": "Timon",
+      "city": "Timon",
+      "state": "MA",
+      "tier": "opp",
+      "lat": -5.09769,
+      "lon": -42.8329
+    },
+    {
+      "name": "São José de Ribamar",
+      "city": "São José de Ribamar",
+      "state": "MA",
+      "tier": "opp",
+      "lat": -2.54704,
+      "lon": -44.0597
+    },
+    {
+      "name": "Mairiporã",
+      "city": "Mairiporã",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.3171,
+      "lon": -46.5897
+    },
+    {
+      "name": "Camboriú",
+      "city": "Camboriú",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -27.0241,
+      "lon": -48.6503
+    },
+    {
+      "name": "Camaragibe",
+      "city": "Camaragibe",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.02351,
+      "lon": -34.9782
+    },
+    {
+      "name": "Salto de Pirapora",
+      "city": "Salto de Pirapora",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.6474,
+      "lon": -47.5743
+    },
+    {
+      "name": "Itabaiana",
+      "city": "Itabaiana",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.6826,
+      "lon": -37.4273
+    },
+    {
+      "name": "Campina Grande do Sul",
+      "city": "Campina Grande do Sul",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.3044,
+      "lon": -49.0551
+    },
+    {
+      "name": "Tietê",
+      "city": "Tietê",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.1101,
+      "lon": -47.7164
+    },
+    {
+      "name": "Iracemápolis",
+      "city": "Iracemápolis",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.5832,
+      "lon": -47.523
+    },
+    {
+      "name": "Estância",
+      "city": "Estância",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -11.2659,
+      "lon": -37.4484
+    },
+    {
+      "name": "Horizonte",
+      "city": "Horizonte",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.1209,
+      "lon": -38.4707
+    },
+    {
+      "name": "Caxias",
+      "city": "Caxias",
+      "state": "MA",
+      "tier": "opp",
+      "lat": -4.86505,
+      "lon": -43.3617
+    },
+    {
+      "name": "Cosmópolis",
+      "city": "Cosmópolis",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.6419,
+      "lon": -47.1926
+    },
+    {
+      "name": "Campo Formoso",
+      "city": "Campo Formoso",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.5105,
+      "lon": -40.32
+    },
+    {
+      "name": "Bertioga",
+      "city": "Bertioga",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -23.8486,
+      "lon": -46.1396
+    },
+    {
+      "name": "Espírito Santo do Pinhal",
+      "city": "Espírito Santo do Pinhal",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.1909,
+      "lon": -46.7477
+    },
+    {
+      "name": "Patos",
+      "city": "Patos",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -7.01743,
+      "lon": -37.2747
+    },
+    {
+      "name": "Benevides",
+      "city": "Benevides",
+      "state": "PA",
+      "tier": "media-a",
+      "lat": -1.36183,
+      "lon": -48.2434
+    },
+    {
+      "name": "Peruíbe",
+      "city": "Peruíbe",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -24.312,
+      "lon": -47.0012
+    },
+    {
+      "name": "Paraty",
+      "city": "Paraty",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -23.2221,
+      "lon": -44.7175
+    },
+    {
+      "name": "Abaetetuba",
+      "city": "Abaetetuba",
+      "state": "PA",
+      "tier": "opp",
+      "lat": -1.72183,
+      "lon": -48.8788
+    },
+    {
+      "name": "Pedro Leopoldo",
+      "city": "Pedro Leopoldo",
+      "state": "MG",
+      "tier": "media-a",
+      "lat": -19.6308,
+      "lon": -44.0383
+    },
+    {
+      "name": "Almirante Tamandaré",
+      "city": "Almirante Tamandaré",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.3188,
+      "lon": -49.3037
+    },
+    {
+      "name": "Santa Cruz do Capibaribe",
+      "city": "Santa Cruz do Capibaribe",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.94802,
+      "lon": -36.2061
+    },
+    {
+      "name": "São Gonçalo do Amarante",
+      "city": "São Gonçalo do Amarante",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -5.79068,
+      "lon": -35.3257
+    },
+    {
+      "name": "Iguatu",
+      "city": "Iguatu",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -6.36281,
+      "lon": -39.2892
+    },
+    {
+      "name": "Francisco Morato",
+      "city": "Francisco Morato",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.2792,
+      "lon": -46.7448
+    },
+    {
+      "name": "Crato",
+      "city": "Crato",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -7.2153,
+      "lon": -39.4103
+    },
+    {
+      "name": "Santo Antônio de Posse",
+      "city": "Santo Antônio de Posse",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6029,
+      "lon": -46.9192
+    },
+    {
+      "name": "Jacobina",
+      "city": "Jacobina",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.1812,
+      "lon": -40.5117
+    },
+    {
+      "name": "Pojuca",
+      "city": "Pojuca",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.4303,
+      "lon": -38.3374
+    },
+    {
+      "name": "Rio Bonito",
+      "city": "Rio Bonito",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.7181,
+      "lon": -42.6276
+    },
+    {
+      "name": "Macaíba",
+      "city": "Macaíba",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -5.85229,
+      "lon": -35.3552
+    },
+    {
+      "name": "Lagarto",
+      "city": "Lagarto",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.9136,
+      "lon": -37.6689
+    },
+    {
+      "name": "Rio das Pedras",
+      "city": "Rio das Pedras",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.8417,
+      "lon": -47.6047
+    },
+    {
+      "name": "Itapipoca",
+      "city": "Itapipoca",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.49933,
+      "lon": -39.5836
+    },
+    {
+      "name": "Coruripe",
+      "city": "Coruripe",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -10.1276,
+      "lon": -36.1717
+    },
+    {
+      "name": "Guarabira",
+      "city": "Guarabira",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -6.85064,
+      "lon": -35.485
+    },
+    {
+      "name": "Cajati",
+      "city": "Cajati",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.7324,
+      "lon": -48.1223
+    },
+    {
+      "name": "Braço do Norte",
+      "city": "Braço do Norte",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -28.2681,
+      "lon": -49.1701
+    },
+    {
+      "name": "Carpina",
+      "city": "Carpina",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.84566,
+      "lon": -35.2514
+    },
+    {
+      "name": "Valença",
+      "city": "Valença",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.3669,
+      "lon": -39.073
+    },
+    {
+      "name": "Tianguá",
+      "city": "Tianguá",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.72965,
+      "lon": -40.9923
+    },
+    {
+      "name": "Abreu e Lima",
+      "city": "Abreu e Lima",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.90072,
+      "lon": -34.8984
+    },
+    {
+      "name": "Artur Nogueira",
+      "city": "Artur Nogueira",
+      "state": "SP",
+      "tier": "litoral-prime",
+      "lat": -22.5727,
+      "lon": -47.1727
+    },
+    {
+      "name": "Sento Sé",
+      "city": "Sento Sé",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -9.74138,
+      "lon": -41.8786
+    },
+    {
+      "name": "Aracati",
+      "city": "Aracati",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.55826,
+      "lon": -37.7679
+    },
+    {
+      "name": "Serra Talhada",
+      "city": "Serra Talhada",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.98178,
+      "lon": -38.289
+    },
+    {
+      "name": "Petrolândia",
+      "city": "Petrolândia",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -9.06863,
+      "lon": -38.3027
+    },
+    {
+      "name": "Santa Isabel",
+      "city": "Santa Isabel",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.3172,
+      "lon": -46.2237
+    },
+    {
+      "name": "Maranguape",
+      "city": "Maranguape",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.89143,
+      "lon": -38.6829
+    },
+    {
+      "name": "Santa Maria de Jetibá",
+      "city": "Santa Maria de Jetibá",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.0253,
+      "lon": -40.7439
+    },
+    {
+      "name": "Piedade",
+      "city": "Piedade",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.7139,
+      "lon": -47.4256
+    },
+    {
+      "name": "Iguape",
+      "city": "Iguape",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -24.699,
+      "lon": -47.5537
+    },
+    {
+      "name": "Guararema",
+      "city": "Guararema",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.4112,
+      "lon": -46.0369
+    },
+    {
+      "name": "Piraquara",
+      "city": "Piraquara",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.4422,
+      "lon": -49.0624
+    },
+    {
+      "name": "Irecê",
+      "city": "Irecê",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.3033,
+      "lon": -41.8535
+    },
+    {
+      "name": "Japeri",
+      "city": "Japeri",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.6435,
+      "lon": -43.6602
+    },
+    {
+      "name": "Pedreira",
+      "city": "Pedreira",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.7413,
+      "lon": -46.8948
+    },
+    {
+      "name": "Atalaia",
+      "city": "Atalaia",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.5119,
+      "lon": -36.0086
+    },
+    {
+      "name": "São Bento do Una",
+      "city": "São Bento do Una",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.52637,
+      "lon": -36.4465
+    },
+    {
+      "name": "Angatuba",
+      "city": "Angatuba",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.4917,
+      "lon": -48.4139
+    },
+    {
+      "name": "Açu",
+      "city": "Açu",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -5.58362,
+      "lon": -36.914
+    },
+    {
+      "name": "Holambra",
+      "city": "Holambra",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6405,
+      "lon": -47.0487
+    },
+    {
+      "name": "Bom Jesus dos Perdões",
+      "city": "Bom Jesus dos Perdões",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.1356,
+      "lon": -46.4675
+    },
+    {
+      "name": "Embu-Guaçu",
+      "city": "Embu-Guaçu",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.8297,
+      "lon": -46.8136
+    },
+    {
+      "name": "Pinheiral",
+      "city": "Pinheiral",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.5172,
+      "lon": -44.0022
+    },
+    {
+      "name": "Campos do Jordão",
+      "city": "Campos do Jordão",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.7296,
+      "lon": -45.5833
+    },
+    {
+      "name": "São Lourenço da Mata",
+      "city": "São Lourenço da Mata",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.00684,
+      "lon": -35.0124
+    },
+    {
+      "name": "Limoeiro do Norte",
+      "city": "Limoeiro do Norte",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.14392,
+      "lon": -38.0847
+    },
+    {
+      "name": "Rio Largo",
+      "city": "Rio Largo",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.47783,
+      "lon": -35.8394
+    },
+    {
+      "name": "União dos Palmares",
+      "city": "União dos Palmares",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.15921,
+      "lon": -36.0223
+    },
+    {
+      "name": "Laranjal Paulista",
+      "city": "Laranjal Paulista",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0506,
+      "lon": -47.8375
+    },
+    {
+      "name": "Quixeramobim",
+      "city": "Quixeramobim",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.19067,
+      "lon": -39.2889
+    },
+    {
+      "name": "Caicó",
+      "city": "Caicó",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -6.45441,
+      "lon": -37.1067
+    },
+    {
+      "name": "Rio Branco do Sul",
+      "city": "Rio Branco do Sul",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.1892,
+      "lon": -49.3115
+    },
+    {
+      "name": "São Miguel dos Campos",
+      "city": "São Miguel dos Campos",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.78301,
+      "lon": -36.0971
+    },
+    {
+      "name": "Bayeux",
+      "city": "Bayeux",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -7.1238,
+      "lon": -34.9293
+    },
+    {
+      "name": "Guapimirim",
+      "city": "Guapimirim",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.5347,
+      "lon": -42.9895
+    },
+    {
+      "name": "Ilha Comprida",
+      "city": "Ilha Comprida",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.7307,
+      "lon": -47.5383
+    },
+    {
+      "name": "Pacajus",
+      "city": "Pacajus",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.17107,
+      "lon": -38.465
+    },
+    {
+      "name": "Gravatá",
+      "city": "Gravatá",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.21118,
+      "lon": -35.5675
+    },
+    {
+      "name": "Teotônio Vilela",
+      "city": "Teotônio Vilela",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.91656,
+      "lon": -36.3492
+    },
+    {
+      "name": "Bom Jesus da Lapa",
+      "city": "Bom Jesus da Lapa",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.2506,
+      "lon": -43.4108
+    },
+    {
+      "name": "Barbalha",
+      "city": "Barbalha",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -7.2982,
+      "lon": -39.3021
+    },
+    {
+      "name": "Nova Venécia",
+      "city": "Nova Venécia",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.715,
+      "lon": -40.4053
+    },
+    {
+      "name": "Vassouras",
+      "city": "Vassouras",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.4059,
+      "lon": -43.6686
+    },
+    {
+      "name": "Sousa",
+      "city": "Sousa",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -6.75148,
+      "lon": -38.2311
+    },
+    {
+      "name": "Aguaí",
+      "city": "Aguaí",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.0572,
+      "lon": -46.9735
+    },
+    {
+      "name": "Mata de São João",
+      "city": "Mata de São João",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.5307,
+      "lon": -38.3009
+    },
+    {
+      "name": "Escada",
+      "city": "Escada",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.35672,
+      "lon": -35.2241
+    },
+    {
+      "name": "Cachoeiras de Macacu",
+      "city": "Cachoeiras de Macacu",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.4658,
+      "lon": -42.6523
+    },
+    {
+      "name": "Santo Antônio de Pádua",
+      "city": "Santo Antônio de Pádua",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.541,
+      "lon": -42.1832
+    },
+    {
+      "name": "Morada Nova",
+      "city": "Morada Nova",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.09736,
+      "lon": -38.3702
+    },
+    {
+      "name": "Pilar do Sul",
+      "city": "Pilar do Sul",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.8077,
+      "lon": -47.7222
+    },
+    {
+      "name": "Itirapina",
+      "city": "Itirapina",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.2562,
+      "lon": -47.8166
+    },
+    {
+      "name": "Araripina",
+      "city": "Araripina",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.57073,
+      "lon": -40.494
+    },
+    {
+      "name": "João Câmara",
+      "city": "João Câmara",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -5.54094,
+      "lon": -35.8122
+    },
+    {
+      "name": "Capão Bonito",
+      "city": "Capão Bonito",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -24.0113,
+      "lon": -48.3482
+    },
+    {
+      "name": "Itaitinga",
+      "city": "Itaitinga",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.96577,
+      "lon": -38.5298
+    },
+    {
+      "name": "Mongaguá",
+      "city": "Mongaguá",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -24.0809,
+      "lon": -46.6265
+    },
+    {
+      "name": "Paraíba do Sul",
+      "city": "Paraíba do Sul",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.1585,
+      "lon": -43.304
+    },
+    {
+      "name": "Pacatuba",
+      "city": "Pacatuba",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.9784,
+      "lon": -38.6183
+    },
+    {
+      "name": "Cajazeiras",
+      "city": "Cajazeiras",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -6.88004,
+      "lon": -38.5577
+    },
+    {
+      "name": "Arcoverde",
+      "city": "Arcoverde",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.41519,
+      "lon": -37.0577
+    },
+    {
+      "name": "Araçoiaba da Serra",
+      "city": "Araçoiaba da Serra",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.5029,
+      "lon": -47.6166
+    },
+    {
+      "name": "Jaguarari",
+      "city": "Jaguarari",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.2569,
+      "lon": -40.1999
+    },
+    {
+      "name": "Palmeira dos Índios",
+      "city": "Palmeira dos Índios",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.40568,
+      "lon": -36.6328
+    },
+    {
+      "name": "Barra de São Francisco",
+      "city": "Barra de São Francisco",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.7548,
+      "lon": -40.8965
+    },
+    {
+      "name": "Paracambi",
+      "city": "Paracambi",
+      "state": "RJ",
+      "tier": "litoral-alta",
+      "lat": -22.6078,
+      "lon": -43.7108
+    },
+    {
+      "name": "Laranjeiras",
+      "city": "Laranjeiras",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.7981,
+      "lon": -37.1731
+    },
+    {
+      "name": "Russas",
+      "city": "Russas",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.92673,
+      "lon": -37.9721
+    },
+    {
+      "name": "São Gonçalo dos Campos",
+      "city": "São Gonçalo dos Campos",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.4331,
+      "lon": -38.9663
+    },
+    {
+      "name": "Santo Amaro",
+      "city": "Santo Amaro",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.5472,
+      "lon": -38.7137
+    },
+    {
+      "name": "Brotas",
+      "city": "Brotas",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.2795,
+      "lon": -48.1251
+    },
+    {
+      "name": "Socorro",
+      "city": "Socorro",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.5903,
+      "lon": -46.5251
+    },
+    {
+      "name": "Maragogi",
+      "city": "Maragogi",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.00744,
+      "lon": -35.2267
+    },
+    {
+      "name": "Trairi",
+      "city": "Trairi",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.26932,
+      "lon": -39.2681
+    },
+    {
+      "name": "Macau",
+      "city": "Macau",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -5.10795,
+      "lon": -36.6318
+    },
+    {
+      "name": "Quixadá",
+      "city": "Quixadá",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.9663,
+      "lon": -39.0155
+    },
+    {
+      "name": "Laguna",
+      "city": "Laguna",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -28.4843,
+      "lon": -48.7772
+    },
+    {
+      "name": "Serrinha",
+      "city": "Serrinha",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.6584,
+      "lon": -39.01
+    },
+    {
+      "name": "Cascavel",
+      "city": "Cascavel",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.12967,
+      "lon": -38.2412
+    },
+    {
+      "name": "Beberibe",
+      "city": "Beberibe",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.17741,
+      "lon": -38.1271
+    },
+    {
+      "name": "Cruz das Almas",
+      "city": "Cruz das Almas",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.6675,
+      "lon": -39.1008
+    },
+    {
+      "name": "Aparecida",
+      "city": "Aparecida",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.8495,
+      "lon": -45.2325
+    },
+    {
+      "name": "São José de Mipibu",
+      "city": "São José de Mipibu",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -6.0773,
+      "lon": -35.2417
+    },
+    {
+      "name": "Penha",
+      "city": "Penha",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -26.7754,
+      "lon": -48.6465
+    },
+    {
+      "name": "São Cristóvão",
+      "city": "São Cristóvão",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -11.0084,
+      "lon": -37.2044
+    },
+    {
+      "name": "Rio Real",
+      "city": "Rio Real",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.4814,
+      "lon": -37.9332
+    },
+    {
+      "name": "São João Batista",
+      "city": "São João Batista",
+      "state": "SC",
+      "tier": "litoral-b",
+      "lat": -27.2772,
+      "lon": -48.8474
+    },
+    {
+      "name": "Acaraú",
+      "city": "Acaraú",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -2.88769,
+      "lon": -40.1183
+    },
+    {
+      "name": "Elias Fausto",
+      "city": "Elias Fausto",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0428,
+      "lon": -47.3682
+    },
+    {
+      "name": "Ceará-Mirim",
+      "city": "Ceará-Mirim",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -5.64323,
+      "lon": -35.4247
+    },
+    {
+      "name": "Salgueiro",
+      "city": "Salgueiro",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.07373,
+      "lon": -39.1247
+    },
+    {
+      "name": "Sapucaia",
+      "city": "Sapucaia",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.9949,
+      "lon": -42.9142
+    },
+    {
+      "name": "Senhor do Bonfim",
+      "city": "Senhor do Bonfim",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.4594,
+      "lon": -40.1865
+    },
+    {
+      "name": "Itaberaba",
+      "city": "Itaberaba",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.5242,
+      "lon": -40.3059
+    },
+    {
+      "name": "Penedo",
+      "city": "Penedo",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -10.2874,
+      "lon": -36.5819
+    },
+    {
+      "name": "Guaratuba",
+      "city": "Guaratuba",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.8817,
+      "lon": -48.5752
+    },
+    {
+      "name": "Biritiba-Mirim",
+      "city": "Biritiba-Mirim",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.5698,
+      "lon": -46.0407
+    },
+    {
+      "name": "Iperó",
+      "city": "Iperó",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.3513,
+      "lon": -47.6927
+    },
+    {
+      "name": "Jaguaré",
+      "city": "Jaguaré",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.907,
+      "lon": -40.0759
+    },
+    {
+      "name": "Bezerros",
+      "city": "Bezerros",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.2328,
+      "lon": -35.796
+    },
+    {
+      "name": "Rio Grande da Serra",
+      "city": "Rio Grande da Serra",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.7437,
+      "lon": -46.3971
+    },
+    {
+      "name": "Domingos Martins",
+      "city": "Domingos Martins",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.3603,
+      "lon": -40.6594
+    },
+    {
+      "name": "São Miguel Arcanjo",
+      "city": "São Miguel Arcanjo",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.8782,
+      "lon": -47.9935
+    },
+    {
+      "name": "Crateús",
+      "city": "Crateús",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.16768,
+      "lon": -40.6536
+    },
+    {
+      "name": "Ipeúna",
+      "city": "Ipeúna",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.4355,
+      "lon": -47.7151
+    },
+    {
+      "name": "São Luís do Quitunde",
+      "city": "São Luís do Quitunde",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.31816,
+      "lon": -35.5606
+    },
+    {
+      "name": "Paudalho",
+      "city": "Paudalho",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.90287,
+      "lon": -35.1716
+    },
+    {
+      "name": "Palmares",
+      "city": "Palmares",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.68423,
+      "lon": -35.589
+    },
+    {
+      "name": "Surubim",
+      "city": "Surubim",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.84746,
+      "lon": -35.7481
+    },
+    {
+      "name": "Santo Estêvão",
+      "city": "Santo Estêvão",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.428,
+      "lon": -39.2505
+    },
+    {
+      "name": "Canindé",
+      "city": "Canindé",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.35162,
+      "lon": -39.3155
+    },
+    {
+      "name": "Tremembé",
+      "city": "Tremembé",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.9571,
+      "lon": -45.5475
+    },
+    {
+      "name": "Moreno",
+      "city": "Moreno",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.10871,
+      "lon": -35.0835
+    },
+    {
+      "name": "Matinhos",
+      "city": "Matinhos",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.8237,
+      "lon": -48.549
+    },
+    {
+      "name": "Bom Jardim",
+      "city": "Bom Jardim",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.1545,
+      "lon": -42.4251
+    },
+    {
+      "name": "São Pedro",
+      "city": "São Pedro",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.5483,
+      "lon": -47.9096
+    },
+    {
+      "name": "Conceição do Coité",
+      "city": "Conceição do Coité",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.56,
+      "lon": -39.2808
+    },
+    {
+      "name": "Itaporanga d'Ajuda",
+      "city": "Itaporanga d'Ajuda",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.99,
+      "lon": -37.3078
+    },
+    {
+      "name": "Piúma",
+      "city": "Piúma",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.8334,
+      "lon": -40.7268
+    },
+    {
+      "name": "Casa Nova",
+      "city": "Casa Nova",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -9.16408,
+      "lon": -40.974
+    },
+    {
+      "name": "Pesqueira",
+      "city": "Pesqueira",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.35797,
+      "lon": -36.6978
+    },
+    {
+      "name": "Pinheiros",
+      "city": "Pinheiros",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.4141,
+      "lon": -40.2171
+    },
+    {
+      "name": "Conchal",
+      "city": "Conchal",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.3375,
+      "lon": -47.1729
+    },
+    {
+      "name": "São Sebastião",
+      "city": "São Sebastião",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.93043,
+      "lon": -36.559
+    },
+    {
+      "name": "São Sebastião do Passé",
+      "city": "São Sebastião do Passé",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.5123,
+      "lon": -38.4905
+    },
+    {
+      "name": "São Fidélis",
+      "city": "São Fidélis",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.6551,
+      "lon": -41.756
+    },
+    {
+      "name": "Serra Negra",
+      "city": "Serra Negra",
+      "state": "SP",
+      "tier": "media-a",
+      "lat": -22.6139,
+      "lon": -46.7033
+    },
+    {
+      "name": "Cantagalo",
+      "city": "Cantagalo",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.9797,
+      "lon": -42.3664
+    },
+    {
+      "name": "Camocim",
+      "city": "Camocim",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -2.9005,
+      "lon": -40.8544
+    },
+    {
+      "name": "Limoeiro",
+      "city": "Limoeiro",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.8726,
+      "lon": -35.4402
+    },
+    {
+      "name": "Dois Córregos",
+      "city": "Dois Córregos",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.3673,
+      "lon": -48.3819
+    },
+    {
+      "name": "Pirapora do Bom Jesus",
+      "city": "Pirapora do Bom Jesus",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.3965,
+      "lon": -46.9991
+    },
+    {
+      "name": "Brejo Santo",
+      "city": "Brejo Santo",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -7.48469,
+      "lon": -38.9799
+    },
+    {
+      "name": "Touros",
+      "city": "Touros",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -5.20182,
+      "lon": -35.4621
+    },
+    {
+      "name": "Mamanguape",
+      "city": "Mamanguape",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -6.8337,
+      "lon": -35.1213
+    },
+    {
+      "name": "Currais Novos",
+      "city": "Currais Novos",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -6.25484,
+      "lon": -36.5146
+    },
+    {
+      "name": "Dourado",
+      "city": "Dourado",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.1044,
+      "lon": -48.3178
+    },
+    {
+      "name": "Euclides da Cunha",
+      "city": "Euclides da Cunha",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.5078,
+      "lon": -39.0153
+    },
+    {
+      "name": "Nossa Senhora da Glória",
+      "city": "Nossa Senhora da Glória",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.2158,
+      "lon": -37.4211
+    },
+    {
+      "name": "Simão Dias",
+      "city": "Simão Dias",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.7387,
+      "lon": -37.8097
+    },
+    {
+      "name": "Ouricuri",
+      "city": "Ouricuri",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.87918,
+      "lon": -40.08
+    },
+    {
+      "name": "Itarema",
+      "city": "Itarema",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -2.9248,
+      "lon": -39.9167
+    },
+    {
+      "name": "Toritama",
+      "city": "Toritama",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.00955,
+      "lon": -36.0637
+    },
+    {
+      "name": "São Gabriel da Palha",
+      "city": "São Gabriel da Palha",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.0182,
+      "lon": -40.5365
+    },
+    {
+      "name": "Timbaúba",
+      "city": "Timbaúba",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.50484,
+      "lon": -35.3119
+    },
+    {
+      "name": "São José do Vale do Rio Preto",
+      "city": "São José do Vale do Rio Preto",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.1525,
+      "lon": -42.9327
+    },
+    {
+      "name": "Cesário Lange",
+      "city": "Cesário Lange",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.226,
+      "lon": -47.9545
+    },
+    {
+      "name": "Icó",
+      "city": "Icó",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -6.39627,
+      "lon": -38.8554
+    },
+    {
+      "name": "Campo Alegre",
+      "city": "Campo Alegre",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.78451,
+      "lon": -36.3525
+    },
+    {
+      "name": "Esplanada",
+      "city": "Esplanada",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.7942,
+      "lon": -37.9432
+    },
+    {
+      "name": "Carapebus",
+      "city": "Carapebus",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.1821,
+      "lon": -41.663
+    },
+    {
+      "name": "Sirinhaém",
+      "city": "Sirinhaém",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.58778,
+      "lon": -35.1126
+    },
+    {
+      "name": "Ribeira do Pombal",
+      "city": "Ribeira do Pombal",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.8373,
+      "lon": -38.5382
+    },
+    {
+      "name": "Tauá",
+      "city": "Tauá",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.98585,
+      "lon": -40.2968
+    },
+    {
+      "name": "Esperança",
+      "city": "Esperança",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -7.02278,
+      "lon": -35.8597
+    },
+    {
+      "name": "Apodi",
+      "city": "Apodi",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -5.65349,
+      "lon": -37.7946
+    },
+    {
+      "name": "Pau dos Ferros",
+      "city": "Pau dos Ferros",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -6.10498,
+      "lon": -38.2077
+    },
+    {
+      "name": "Catu",
+      "city": "Catu",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.3513,
+      "lon": -38.3791
+    },
+    {
+      "name": "Tanguá",
+      "city": "Tanguá",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.7423,
+      "lon": -42.7202
+    },
+    {
+      "name": "Nazaré da Mata",
+      "city": "Nazaré da Mata",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.74149,
+      "lon": -35.2193
+    },
+    {
+      "name": "Paty do Alferes",
+      "city": "Paty do Alferes",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.4309,
+      "lon": -43.4285
+    },
+    {
+      "name": "Entre Rios",
+      "city": "Entre Rios",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.9392,
+      "lon": -38.0871
+    },
+    {
+      "name": "Sapé",
+      "city": "Sapé",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -7.09359,
+      "lon": -35.228
+    },
+    {
+      "name": "Jaguaquara",
+      "city": "Jaguaquara",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.5248,
+      "lon": -39.964
+    },
+    {
+      "name": "Pilar",
+      "city": "Pilar",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.60135,
+      "lon": -35.9543
+    },
+    {
+      "name": "Delmiro Gouveia",
+      "city": "Delmiro Gouveia",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.38534,
+      "lon": -37.9987
+    },
+    {
+      "name": "Cachoeira Paulista",
+      "city": "Cachoeira Paulista",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -22.6665,
+      "lon": -45.0154
+    },
+    {
+      "name": "Guaraciaba do Norte",
+      "city": "Guaraciaba do Norte",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.15814,
+      "lon": -40.7476
+    },
+    {
+      "name": "Sooretama",
+      "city": "Sooretama",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.1897,
+      "lon": -40.0974
+    },
+    {
+      "name": "Amontada",
+      "city": "Amontada",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.36017,
+      "lon": -39.8288
+    },
+    {
+      "name": "Ipirá",
+      "city": "Ipirá",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.1561,
+      "lon": -39.7359
+    },
+    {
+      "name": "Piracaia",
+      "city": "Piracaia",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0525,
+      "lon": -46.3594
+    },
+    {
+      "name": "Engenheiro Coelho",
+      "city": "Engenheiro Coelho",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.4836,
+      "lon": -47.211
+    },
+    {
+      "name": "Tobias Barreto",
+      "city": "Tobias Barreto",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -11.1798,
+      "lon": -37.9995
+    },
+    {
+      "name": "Santana do Ipanema",
+      "city": "Santana do Ipanema",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.36999,
+      "lon": -37.248
+    },
+    {
+      "name": "João Neiva",
+      "city": "João Neiva",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.7577,
+      "lon": -40.386
+    },
+    {
+      "name": "Bom Conselho",
+      "city": "Bom Conselho",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -9.16919,
+      "lon": -36.6857
+    },
+    {
+      "name": "Ubajara",
+      "city": "Ubajara",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.85448,
+      "lon": -40.9204
+    },
+    {
+      "name": "Monteiro",
+      "city": "Monteiro",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -7.88363,
+      "lon": -37.1184
+    },
+    {
+      "name": "Itaocara",
+      "city": "Itaocara",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.6748,
+      "lon": -42.0758
+    },
+    {
+      "name": "Santa Quitéria",
+      "city": "Santa Quitéria",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.32608,
+      "lon": -40.1523
+    },
+    {
+      "name": "Morungaba",
+      "city": "Morungaba",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.8811,
+      "lon": -46.7896
+    },
+    {
+      "name": "Miguel Pereira",
+      "city": "Miguel Pereira",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.4572,
+      "lon": -43.4803
+    },
+    {
+      "name": "Iguaba Grande",
+      "city": "Iguaba Grande",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.8495,
+      "lon": -42.2299
+    },
+    {
+      "name": "São Benedito",
+      "city": "São Benedito",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.04713,
+      "lon": -40.8596
+    },
+    {
+      "name": "Morro do Chapéu",
+      "city": "Morro do Chapéu",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.5488,
+      "lon": -41.1565
+    },
+    {
+      "name": "Inhambupe",
+      "city": "Inhambupe",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.781,
+      "lon": -38.355
+    },
+    {
+      "name": "Seabra",
+      "city": "Seabra",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.4169,
+      "lon": -41.7722
+    },
+    {
+      "name": "Santa Cruz",
+      "city": "Santa Cruz",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -6.22475,
+      "lon": -36.0193
+    },
+    {
+      "name": "Queimadas",
+      "city": "Queimadas",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -7.35029,
+      "lon": -35.9031
+    },
+    {
+      "name": "Conceição da Barra",
+      "city": "Conceição da Barra",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.5883,
+      "lon": -39.7362
+    },
+    {
+      "name": "Canguaretama",
+      "city": "Canguaretama",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -6.37193,
+      "lon": -35.1281
+    },
+    {
+      "name": "Comendador Levy Gasparian",
+      "city": "Comendador Levy Gasparian",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.0404,
+      "lon": -43.214
+    },
+    {
+      "name": "Viçosa do Ceará",
+      "city": "Viçosa do Ceará",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.5667,
+      "lon": -41.0916
+    },
+    {
+      "name": "Silva Jardim",
+      "city": "Silva Jardim",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.6574,
+      "lon": -42.3961
+    },
+    {
+      "name": "Vera Cruz",
+      "city": "Vera Cruz",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.9568,
+      "lon": -38.6153
+    },
+    {
+      "name": "Sumidouro",
+      "city": "Sumidouro",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.0485,
+      "lon": -42.6761
+    },
+    {
+      "name": "Santa Maria da Vitória",
+      "city": "Santa Maria da Vitória",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.3859,
+      "lon": -44.2011
+    },
+    {
+      "name": "Itapajé",
+      "city": "Itapajé",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.68314,
+      "lon": -39.5855
+    },
+    {
+      "name": "Custódia",
+      "city": "Custódia",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.08546,
+      "lon": -37.6443
+    },
+    {
+      "name": "Pariquera-Açu",
+      "city": "Pariquera-Açu",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.7147,
+      "lon": -47.8742
+    },
+    {
+      "name": "Águas de Lindóia",
+      "city": "Águas de Lindóia",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.4733,
+      "lon": -46.6314
+    },
+    {
+      "name": "Lajedo",
+      "city": "Lajedo",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.65791,
+      "lon": -36.3293
+    },
+    {
+      "name": "Capim Grosso",
+      "city": "Capim Grosso",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.3797,
+      "lon": -40.0089
+    },
+    {
+      "name": "Santa Teresa",
+      "city": "Santa Teresa",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.9363,
+      "lon": -40.5979
+    },
+    {
+      "name": "Ribeirão",
+      "city": "Ribeirão",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.50957,
+      "lon": -35.3698
+    },
+    {
+      "name": "Livramento de Nossa Senhora",
+      "city": "Livramento de Nossa Senhora",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.6369,
+      "lon": -41.8432
+    },
+    {
+      "name": "Juquitiba",
+      "city": "Juquitiba",
+      "state": "SP",
+      "tier": "litoral-alta",
+      "lat": -23.9244,
+      "lon": -47.0653
+    },
+    {
+      "name": "São Bento",
+      "city": "São Bento",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -6.48529,
+      "lon": -37.4488
+    },
+    {
+      "name": "Jaguaruana",
+      "city": "Jaguaruana",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.83151,
+      "lon": -37.781
+    },
+    {
+      "name": "Acopiara",
+      "city": "Acopiara",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -6.08911,
+      "lon": -39.448
+    },
+    {
+      "name": "Santa Maria da Boa Vista",
+      "city": "Santa Maria da Boa Vista",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.79766,
+      "lon": -39.8241
+    },
+    {
+      "name": "Carmo",
+      "city": "Carmo",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.931,
+      "lon": -42.6046
+    },
+    {
+      "name": "Jaguaribe",
+      "city": "Jaguaribe",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.90213,
+      "lon": -38.6227
+    },
+    {
+      "name": "Nova Cruz",
+      "city": "Nova Cruz",
+      "state": "RN",
+      "tier": "litoral-b",
+      "lat": -6.47511,
+      "lon": -35.4286
+    },
+    {
+      "name": "Paracuru",
+      "city": "Paracuru",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.41436,
+      "lon": -39.03
+    },
+    {
+      "name": "Glória do Goitá",
+      "city": "Glória do Goitá",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.00568,
+      "lon": -35.2904
+    },
+    {
+      "name": "Girau do Ponciano",
+      "city": "Girau do Ponciano",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.88404,
+      "lon": -36.8316
+    },
+    {
+      "name": "Buíque",
+      "city": "Buíque",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.61954,
+      "lon": -37.1606
+    },
+    {
+      "name": "Tucano",
+      "city": "Tucano",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.9584,
+      "lon": -38.7894
+    },
+    {
+      "name": "Afogados da Ingazeira",
+      "city": "Afogados da Ingazeira",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.74312,
+      "lon": -37.631
+    },
+    {
+      "name": "Campo Magro",
+      "city": "Campo Magro",
+      "state": "PR",
+      "tier": "litoral-b",
+      "lat": -25.3687,
+      "lon": -49.4501
+    },
+    {
+      "name": "Bonito",
+      "city": "Bonito",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.47163,
+      "lon": -35.7292
+    },
+    {
+      "name": "Boa Viagem",
+      "city": "Boa Viagem",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.11258,
+      "lon": -39.7337
+    },
+    {
+      "name": "Itabaianinha",
+      "city": "Itabaianinha",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -11.2693,
+      "lon": -37.7875
+    },
+    {
+      "name": "Paraipaba",
+      "city": "Paraipaba",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.43799,
+      "lon": -39.1479
+    },
+    {
+      "name": "Jacupiranga",
+      "city": "Jacupiranga",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.6963,
+      "lon": -48.0064
+    },
+    {
+      "name": "Rio Bananal",
+      "city": "Rio Bananal",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.2719,
+      "lon": -40.3366
+    },
+    {
+      "name": "Itambé",
+      "city": "Itambé",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.41403,
+      "lon": -35.0963
+    },
+    {
+      "name": "Santaluz",
+      "city": "Santaluz",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.2508,
+      "lon": -39.375
+    },
+    {
+      "name": "Ipu",
+      "city": "Ipu",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.31748,
+      "lon": -40.7059
+    },
+    {
+      "name": "Vicência",
+      "city": "Vicência",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.65655,
+      "lon": -35.3139
+    },
+    {
+      "name": "Mauriti",
+      "city": "Mauriti",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -7.38597,
+      "lon": -38.7708
+    },
+    {
+      "name": "Marechal Floriano",
+      "city": "Marechal Floriano",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.4159,
+      "lon": -40.67
+    },
+    {
+      "name": "Missão Velha",
+      "city": "Missão Velha",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -7.23522,
+      "lon": -39.143
+    },
+    {
+      "name": "Charqueada",
+      "city": "Charqueada",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.5096,
+      "lon": -47.7755
+    },
+    {
+      "name": "Catolé do Rocha",
+      "city": "Catolé do Rocha",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -6.34062,
+      "lon": -37.747
+    },
+    {
+      "name": "Barreiros",
+      "city": "Barreiros",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.81605,
+      "lon": -35.1832
+    },
+    {
+      "name": "Jeremoabo",
+      "city": "Jeremoabo",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.0685,
+      "lon": -38.3471
+    },
+    {
+      "name": "Araci",
+      "city": "Araci",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.3253,
+      "lon": -38.9584
+    },
+    {
+      "name": "Remanso",
+      "city": "Remanso",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -9.61944,
+      "lon": -42.0848
+    },
+    {
+      "name": "Pentecoste",
+      "city": "Pentecoste",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.79274,
+      "lon": -39.2692
+    },
+    {
+      "name": "Cachoeira",
+      "city": "Cachoeira",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.5994,
+      "lon": -38.9587
+    },
+    {
+      "name": "Granja",
+      "city": "Granja",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.12788,
+      "lon": -40.8372
+    },
+    {
+      "name": "Fundão",
+      "city": "Fundão",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.937,
+      "lon": -40.4078
+    },
+    {
+      "name": "Camamu",
+      "city": "Camamu",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.9398,
+      "lon": -39.1071
+    },
+    {
+      "name": "Várzea Alegre",
+      "city": "Várzea Alegre",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -6.78264,
+      "lon": -39.2942
+    },
+    {
+      "name": "Pombal",
+      "city": "Pombal",
+      "state": "PB",
+      "tier": "litoral-b",
+      "lat": -6.76606,
+      "lon": -37.8003
+    },
+    {
+      "name": "Nazaré Paulista",
+      "city": "Nazaré Paulista",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.1747,
+      "lon": -46.3983
+    },
+    {
+      "name": "Amargosa",
+      "city": "Amargosa",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.0215,
+      "lon": -39.602
+    },
+    {
+      "name": "Brejo da Madre de Deus",
+      "city": "Brejo da Madre de Deus",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.14933,
+      "lon": -36.3741
+    },
+    {
+      "name": "Xique-Xique",
+      "city": "Xique-Xique",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.823,
+      "lon": -42.7245
+    },
+    {
+      "name": "Gandu",
+      "city": "Gandu",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.7441,
+      "lon": -39.4747
+    },
+    {
+      "name": "Monte Santo",
+      "city": "Monte Santo",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.4374,
+      "lon": -39.3321
+    },
+    {
+      "name": "Alfredo Chaves",
+      "city": "Alfredo Chaves",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.6396,
+      "lon": -40.7543
+    },
+    {
+      "name": "Miracatu",
+      "city": "Miracatu",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.2766,
+      "lon": -47.4625
+    },
+    {
+      "name": "Cordeiro",
+      "city": "Cordeiro",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.0267,
+      "lon": -42.3648
+    },
+    {
+      "name": "Tabuleiro do Norte",
+      "city": "Tabuleiro do Norte",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.24353,
+      "lon": -38.1282
+    },
+    {
+      "name": "Baturité",
+      "city": "Baturité",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.32598,
+      "lon": -38.8812
+    },
+    {
+      "name": "São Caetano",
+      "city": "São Caetano",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.33763,
+      "lon": -36.2869
+    },
+    {
+      "name": "Mombaça",
+      "city": "Mombaça",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.73844,
+      "lon": -39.63
+    },
+    {
+      "name": "Floresta",
+      "city": "Floresta",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.60307,
+      "lon": -38.5687
+    },
+    {
+      "name": "Rafard",
+      "city": "Rafard",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0105,
+      "lon": -47.5318
+    },
+    {
+      "name": "São José do Egito",
+      "city": "São José do Egito",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.46945,
+      "lon": -37.274
+    },
+    {
+      "name": "Cabrobó",
+      "city": "Cabrobó",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.50548,
+      "lon": -39.3094
+    },
+    {
+      "name": "Itariri",
+      "city": "Itariri",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.2834,
+      "lon": -47.1736
+    },
+    {
+      "name": "Itapicuru",
+      "city": "Itapicuru",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.3088,
+      "lon": -38.2262
+    },
+    {
+      "name": "Rio Claro",
+      "city": "Rio Claro",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.72,
+      "lon": -44.1419
+    },
+    {
+      "name": "Conceição de Macabu",
+      "city": "Conceição de Macabu",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.0834,
+      "lon": -41.8719
+    },
+    {
+      "name": "Vila Valério",
+      "city": "Vila Valério",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.9958,
+      "lon": -40.3849
+    },
+    {
+      "name": "Conchas",
+      "city": "Conchas",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0154,
+      "lon": -48.0134
+    },
+    {
+      "name": "Macaúbas",
+      "city": "Macaúbas",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.0186,
+      "lon": -42.6945
+    },
+    {
+      "name": "Barra",
+      "city": "Barra",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.0859,
+      "lon": -43.1459
+    },
+    {
+      "name": "Areal",
+      "city": "Areal",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.2283,
+      "lon": -43.1118
+    },
+    {
+      "name": "Trindade",
+      "city": "Trindade",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.759,
+      "lon": -40.2647
+    },
+    {
+      "name": "Poço Redondo",
+      "city": "Poço Redondo",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -9.80616,
+      "lon": -37.6833
+    },
+    {
+      "name": "Aliança",
+      "city": "Aliança",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.60398,
+      "lon": -35.2227
+    },
+    {
+      "name": "Serra do Ramalho",
+      "city": "Serra do Ramalho",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.5659,
+      "lon": -43.5929
+    },
+    {
+      "name": "Ecoporanga",
+      "city": "Ecoporanga",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.3702,
+      "lon": -40.836
+    },
+    {
+      "name": "Montanha",
+      "city": "Montanha",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.1303,
+      "lon": -40.3668
+    },
+    {
+      "name": "Riachão do Jacuípe",
+      "city": "Riachão do Jacuípe",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -11.8067,
+      "lon": -39.3818
+    },
+    {
+      "name": "Engenheiro Paulo de Frontin",
+      "city": "Engenheiro Paulo de Frontin",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.5498,
+      "lon": -43.6827
+    },
+    {
+      "name": "São Bento do Sapucaí",
+      "city": "São Bento do Sapucaí",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6837,
+      "lon": -45.7287
+    },
+    {
+      "name": "Maragogipe",
+      "city": "Maragogipe",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.776,
+      "lon": -38.9175
+    },
+    {
+      "name": "Pedro Canário",
+      "city": "Pedro Canário",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.3004,
+      "lon": -39.9574
+    },
+    {
+      "name": "Águas Belas",
+      "city": "Águas Belas",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -9.11125,
+      "lon": -37.1226
+    },
+    {
+      "name": "Cambuci",
+      "city": "Cambuci",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.5691,
+      "lon": -41.9187
+    },
+    {
+      "name": "Cícero Dantas",
+      "city": "Cícero Dantas",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.5897,
+      "lon": -38.3794
+    },
+    {
+      "name": "Capela do Alto",
+      "city": "Capela do Alto",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.4685,
+      "lon": -47.7388
+    },
+    {
+      "name": "Ruy Barbosa",
+      "city": "Ruy Barbosa",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.2816,
+      "lon": -40.4931
+    },
+    {
+      "name": "Pedra Branca",
+      "city": "Pedra Branca",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -5.45341,
+      "lon": -39.7078
+    },
+    {
+      "name": "Estiva Gerbi",
+      "city": "Estiva Gerbi",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.2713,
+      "lon": -46.9481
+    },
+    {
+      "name": "Queluz",
+      "city": "Queluz",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.5312,
+      "lon": -44.7781
+    },
+    {
+      "name": "Capela",
+      "city": "Capela",
+      "state": "SE",
+      "tier": "litoral-b",
+      "lat": -10.5069,
+      "lon": -37.0628
+    },
+    {
+      "name": "Sete Barras",
+      "city": "Sete Barras",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.382,
+      "lon": -47.9279
+    },
+    {
+      "name": "Massapê",
+      "city": "Massapê",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.52364,
+      "lon": -40.3423
+    },
+    {
+      "name": "Saltinho",
+      "city": "Saltinho",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.8442,
+      "lon": -47.6754
+    },
+    {
+      "name": "Roseira",
+      "city": "Roseira",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.8938,
+      "lon": -45.307
+    },
+    {
+      "name": "Ribeirão Bonito",
+      "city": "Ribeirão Bonito",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.0685,
+      "lon": -48.182
+    },
+    {
+      "name": "Pardinho",
+      "city": "Pardinho",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0841,
+      "lon": -48.3679
+    },
+    {
+      "name": "Sertânia",
+      "city": "Sertânia",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.06847,
+      "lon": -37.2684
+    },
+    {
+      "name": "Bom Jardim",
+      "city": "Bom Jardim",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.79695,
+      "lon": -35.5784
+    },
+    {
+      "name": "Juquiá",
+      "city": "Juquiá",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.3101,
+      "lon": -47.6426
+    },
+    {
+      "name": "Catende",
+      "city": "Catende",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.67509,
+      "lon": -35.7024
+    },
+    {
+      "name": "Pancas",
+      "city": "Pancas",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.2229,
+      "lon": -40.8534
+    },
+    {
+      "name": "Mendes",
+      "city": "Mendes",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.5245,
+      "lon": -43.7312
+    },
+    {
+      "name": "Curaçá",
+      "city": "Curaçá",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -8.98458,
+      "lon": -39.8997
+    },
+    {
+      "name": "Jambeiro",
+      "city": "Jambeiro",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.2522,
+      "lon": -45.6942
+    },
+    {
+      "name": "Paraibuna",
+      "city": "Paraibuna",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.3872,
+      "lon": -45.6639
+    },
+    {
+      "name": "Cansanção",
+      "city": "Cansanção",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.6647,
+      "lon": -39.4944
+    },
+    {
+      "name": "Itiúba",
+      "city": "Itiúba",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.6948,
+      "lon": -39.8446
+    },
+    {
+      "name": "Corumbataí",
+      "city": "Corumbataí",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.2213,
+      "lon": -47.6215
+    },
+    {
+      "name": "Lavras da Mangabeira",
+      "city": "Lavras da Mangabeira",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -6.7448,
+      "lon": -38.9706
+    },
+    {
+      "name": "São José do Belmonte",
+      "city": "São José do Belmonte",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.85723,
+      "lon": -38.7577
+    },
+    {
+      "name": "Ipubi",
+      "city": "Ipubi",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.64505,
+      "lon": -40.1476
+    },
+    {
+      "name": "Nova Russas",
+      "city": "Nova Russas",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.70581,
+      "lon": -40.5621
+    },
+    {
+      "name": "Governador Lindenberg",
+      "city": "Governador Lindenberg",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.1864,
+      "lon": -40.4473
+    },
+    {
+      "name": "São José da Tapera",
+      "city": "São José da Tapera",
+      "state": "AL",
+      "tier": "litoral-b",
+      "lat": -9.55768,
+      "lon": -37.3831
+    },
+    {
+      "name": "São Domingos do Norte",
+      "city": "São Domingos do Norte",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.1452,
+      "lon": -40.6281
+    },
+    {
+      "name": "Santa Leopoldina",
+      "city": "Santa Leopoldina",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.0999,
+      "lon": -40.527
+    },
+    {
+      "name": "Eldorado",
+      "city": "Eldorado",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.5281,
+      "lon": -48.1141
+    },
+    {
+      "name": "Ipueiras",
+      "city": "Ipueiras",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -4.53802,
+      "lon": -40.7118
+    },
+    {
+      "name": "Cunha",
+      "city": "Cunha",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0731,
+      "lon": -44.9576
+    },
+    {
+      "name": "Itaguaçu",
+      "city": "Itaguaçu",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.8018,
+      "lon": -40.8601
+    },
+    {
+      "name": "Exu",
+      "city": "Exu",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.50364,
+      "lon": -39.7238
+    },
+    {
+      "name": "Bela Cruz",
+      "city": "Bela Cruz",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.04996,
+      "lon": -40.1671
+    },
+    {
+      "name": "Pereiras",
+      "city": "Pereiras",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0804,
+      "lon": -47.972
+    },
+    {
+      "name": "Riacho de Santana",
+      "city": "Riacho de Santana",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -13.6059,
+      "lon": -42.9397
+    },
+    {
+      "name": "Bodocó",
+      "city": "Bodocó",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.77759,
+      "lon": -39.9338
+    },
+    {
+      "name": "João Alfredo",
+      "city": "João Alfredo",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -7.86565,
+      "lon": -35.5787
+    },
+    {
+      "name": "Campos Belos",
+      "city": "Campos Belos",
+      "state": "GO",
+      "tier": "media-a",
+      "lat": -13.035,
+      "lon": -46.7681
+    },
+    {
+      "name": "Iconha",
+      "city": "Iconha",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.7913,
+      "lon": -40.8132
+    },
+    {
+      "name": "Pinhalzinho",
+      "city": "Pinhalzinho",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.7811,
+      "lon": -46.5897
+    },
+    {
+      "name": "Guareí",
+      "city": "Guareí",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.3714,
+      "lon": -48.1837
+    },
+    {
+      "name": "Marilândia",
+      "city": "Marilândia",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.4114,
+      "lon": -40.5456
+    },
+    {
+      "name": "Santa Branca",
+      "city": "Santa Branca",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.3933,
+      "lon": -45.8875
+    },
+    {
+      "name": "Potim",
+      "city": "Potim",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.8343,
+      "lon": -45.2552
+    },
+    {
+      "name": "Quatis",
+      "city": "Quatis",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.4045,
+      "lon": -44.2597
+    },
+    {
+      "name": "Rio das Flores",
+      "city": "Rio das Flores",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.1692,
+      "lon": -43.5856
+    },
+    {
+      "name": "Pilão Arcado",
+      "city": "Pilão Arcado",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -10.0051,
+      "lon": -42.4936
+    },
+    {
+      "name": "Ibiraçu",
+      "city": "Ibiraçu",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.8366,
+      "lon": -40.3732
+    },
+    {
+      "name": "Parambu",
+      "city": "Parambu",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -6.20768,
+      "lon": -40.6905
+    },
+    {
+      "name": "São Lourenço da Serra",
+      "city": "São Lourenço da Serra",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.8491,
+      "lon": -46.9432
+    },
+    {
+      "name": "Torrinha",
+      "city": "Torrinha",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.4237,
+      "lon": -48.1731
+    },
+    {
+      "name": "Santana do Acaraú",
+      "city": "Santana do Acaraú",
+      "state": "CE",
+      "tier": "litoral-b",
+      "lat": -3.46144,
+      "lon": -40.2118
+    },
+    {
+      "name": "Gameleira",
+      "city": "Gameleira",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.5798,
+      "lon": -35.3846
+    },
+    {
+      "name": "Boa Esperança",
+      "city": "Boa Esperança",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.5395,
+      "lon": -40.3025
+    },
+    {
+      "name": "Itarana",
+      "city": "Itarana",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.875,
+      "lon": -40.8753
+    },
+    {
+      "name": "Cananéia",
+      "city": "Cananéia",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -25.0144,
+      "lon": -47.9341
+    },
+    {
+      "name": "Joanópolis",
+      "city": "Joanópolis",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.927,
+      "lon": -46.2741
+    },
+    {
+      "name": "Paratinga",
+      "city": "Paratinga",
+      "state": "BA",
+      "tier": "litoral-b",
+      "lat": -12.687,
+      "lon": -43.1798
+    },
+    {
+      "name": "Água Preta",
+      "city": "Água Preta",
+      "state": "PE",
+      "tier": "litoral-b",
+      "lat": -8.70609,
+      "lon": -35.5263
+    },
+    {
+      "name": "Monte Alegre do Sul",
+      "city": "Monte Alegre do Sul",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6817,
+      "lon": -46.681
+    },
+    {
+      "name": "Salesópolis",
+      "city": "Salesópolis",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.5288,
+      "lon": -45.8465
+    },
+    {
+      "name": "Duas Barras",
+      "city": "Duas Barras",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.0536,
+      "lon": -42.5232
+    },
+    {
+      "name": "Aperibé",
+      "city": "Aperibé",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.6252,
+      "lon": -42.1017
+    },
+    {
+      "name": "Lindóia",
+      "city": "Lindóia",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.5226,
+      "lon": -46.65
+    },
+    {
+      "name": "Águia Branca",
+      "city": "Águia Branca",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.9846,
+      "lon": -40.7437
+    },
+    {
+      "name": "Trajano de Moraes",
+      "city": "Trajano de Moraes",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -22.0638,
+      "lon": -42.0643
+    },
+    {
+      "name": "São Sebastião do Alto",
+      "city": "São Sebastião do Alto",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.9578,
+      "lon": -42.1328
+    },
+    {
+      "name": "Igaratá",
+      "city": "Igaratá",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.2037,
+      "lon": -46.157
+    },
+    {
+      "name": "Santa Maria Madalena",
+      "city": "Santa Maria Madalena",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.9547,
+      "lon": -42.0098
+    },
+    {
+      "name": "Porangaba",
+      "city": "Porangaba",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.1761,
+      "lon": -48.1195
+    },
+    {
+      "name": "Rio Novo do Sul",
+      "city": "Rio Novo do Sul",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -20.8556,
+      "lon": -40.9388
+    },
+    {
+      "name": "São Roque do Canaã",
+      "city": "São Roque do Canaã",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -19.7411,
+      "lon": -40.6526
+    },
+    {
+      "name": "Mineiros do Tietê",
+      "city": "Mineiros do Tietê",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.412,
+      "lon": -48.451
+    },
+    {
+      "name": "Santo Antônio do Jardim",
+      "city": "Santo Antônio do Jardim",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.1121,
+      "lon": -46.6845
+    },
+    {
+      "name": "Bananal",
+      "city": "Bananal",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6819,
+      "lon": -44.3281
+    },
+    {
+      "name": "Macuco",
+      "city": "Macuco",
+      "state": "RJ",
+      "tier": "litoral-b",
+      "lat": -21.9813,
+      "lon": -42.2533
+    },
+    {
+      "name": "Jumirim",
+      "city": "Jumirim",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0884,
+      "lon": -47.7868
+    },
+    {
+      "name": "Bofete",
+      "city": "Bofete",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.1055,
+      "lon": -48.2582
+    },
+    {
+      "name": "Analândia",
+      "city": "Analândia",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.1289,
+      "lon": -47.6619
+    },
+    {
+      "name": "São Luiz do Paraitinga",
+      "city": "São Luiz do Paraitinga",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.222,
+      "lon": -45.3109
+    },
+    {
+      "name": "Sarapuí",
+      "city": "Sarapuí",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.6397,
+      "lon": -47.8249
+    },
+    {
+      "name": "Piquete",
+      "city": "Piquete",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6069,
+      "lon": -45.1869
+    },
+    {
+      "name": "Tapiraí",
+      "city": "Tapiraí",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.9612,
+      "lon": -47.5062
+    },
+    {
+      "name": "Água Doce do Norte",
+      "city": "Água Doce do Norte",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.5482,
+      "lon": -40.9854
+    },
+    {
+      "name": "Tuiuti",
+      "city": "Tuiuti",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.8193,
+      "lon": -46.6937
+    },
+    {
+      "name": "Vila Pavão",
+      "city": "Vila Pavão",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.6091,
+      "lon": -40.609
+    },
+    {
+      "name": "Pedro de Toledo",
+      "city": "Pedro de Toledo",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.2764,
+      "lon": -47.2354
+    },
+    {
+      "name": "Anhembi",
+      "city": "Anhembi",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.793,
+      "lon": -48.1336
+    },
+    {
+      "name": "Santa Cruz da Conceição",
+      "city": "Santa Cruz da Conceição",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.1405,
+      "lon": -47.4512
+    },
+    {
+      "name": "Albertina",
+      "city": "Albertina",
+      "state": "MG",
+      "tier": "media-a",
+      "lat": -22.2018,
+      "lon": -46.6139
+    },
+    {
+      "name": "Vargem",
+      "city": "Vargem",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.887,
+      "lon": -46.4124
+    },
+    {
+      "name": "Santa Maria da Serra",
+      "city": "Santa Maria da Serra",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.5661,
+      "lon": -48.1593
+    },
+    {
+      "name": "Campina do Monte Alegre",
+      "city": "Campina do Monte Alegre",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.5895,
+      "lon": -48.4758
+    },
+    {
+      "name": "Santo Antônio do Pinhal",
+      "city": "Santo Antônio do Pinhal",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.827,
+      "lon": -45.663
+    },
+    {
+      "name": "Águas de São Pedro",
+      "city": "Águas de São Pedro",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.5977,
+      "lon": -47.8734
+    },
+    {
+      "name": "Quadra",
+      "city": "Quadra",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.2993,
+      "lon": -48.0547
+    },
+    {
+      "name": "Lavrinhas",
+      "city": "Lavrinhas",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.57,
+      "lon": -44.9024
+    },
+    {
+      "name": "Canas",
+      "city": "Canas",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.7003,
+      "lon": -45.0521
+    },
+    {
+      "name": "Alambari",
+      "city": "Alambari",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.5503,
+      "lon": -47.898
+    },
+    {
+      "name": "Mombuca",
+      "city": "Mombuca",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.9285,
+      "lon": -47.559
+    },
+    {
+      "name": "Pedra Bela",
+      "city": "Pedra Bela",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.7902,
+      "lon": -46.4455
+    },
+    {
+      "name": "Ribeirão Grande",
+      "city": "Ribeirão Grande",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -24.1011,
+      "lon": -48.3679
+    },
+    {
+      "name": "Ponto Belo",
+      "city": "Ponto Belo",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.1253,
+      "lon": -40.5458
+    },
+    {
+      "name": "Mucurici",
+      "city": "Mucurici",
+      "state": "ES",
+      "tier": "litoral-b",
+      "lat": -18.0965,
+      "lon": -40.52
+    },
+    {
+      "name": "Natividade da Serra",
+      "city": "Natividade da Serra",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.3707,
+      "lon": -45.4468
+    },
+    {
+      "name": "Silveiras",
+      "city": "Silveiras",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6638,
+      "lon": -44.8522
+    },
+    {
+      "name": "Monteiro Lobato",
+      "city": "Monteiro Lobato",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.9544,
+      "lon": -45.8407
+    },
+    {
+      "name": "Lagoinha",
+      "city": "Lagoinha",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.0846,
+      "lon": -45.1944
+    },
+    {
+      "name": "Redenção da Serra",
+      "city": "Redenção da Serra",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.2638,
+      "lon": -45.5422
+    },
+    {
+      "name": "São José do Barreiro",
+      "city": "São José do Barreiro",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6414,
+      "lon": -44.5774
+    },
+    {
+      "name": "Areias",
+      "city": "Areias",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.5786,
+      "lon": -44.6992
+    },
+    {
+      "name": "Arapeí",
+      "city": "Arapeí",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.6717,
+      "lon": -44.4441
+    },
+    {
+      "name": "Trabiju",
+      "city": "Trabiju",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -22.0388,
+      "lon": -48.3342
+    },
+    {
+      "name": "Torre de Pedra",
+      "city": "Torre de Pedra",
+      "state": "SP",
+      "tier": "litoral-b",
+      "lat": -23.2462,
+      "lon": -48.1955
+    }
+  ]
+}

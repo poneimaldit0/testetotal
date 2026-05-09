@@ -1,0 +1,1 @@
+UPDATE profiles SET tipo_usuario = 'gestor_conta', status = 'ativo', updated_at = NOW() WHERE email = 'joevertepb@gmail.com';
