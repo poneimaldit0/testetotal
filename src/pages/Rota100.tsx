@@ -701,25 +701,47 @@ function VisitaBlock({
       </div>
 
       {/* Status por empresa */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: (isPresencial && agendadas.length > 0) ? 14 : 4 }}>
-        {empAtivas.map(emp => {
-          const feito = emp.statusAcompanhamento === 'visita_realizada' || emp.statusAcompanhamento === 'reuniao_realizada';
-          return (
-            <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: feito ? C.vd : acClr, flexShrink: 0 }} />
-              <span style={{ fontWeight: 600, color: C.nv }}>{emp.nome}</span>
-              <span style={{ color: C.cz }}>
-                {feito
-                  ? (isPresencial ? '— presença confirmada' : '— reunião realizada')
-                  : (isPresencial ? '— aguardando confirmação' : '— link enviado')}
-              </span>
-              {feito && emp.visitaConfirmadaEm && (
-                <span style={{ color: C.cz }}>· {fmtTm(emp.visitaConfirmadaEm)}</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {(() => {
+        const allSameTime = !isPresencial && empAtivas.length > 1 &&
+          empAtivas.every(e => e.dataHora === empAtivas[0].dataHora);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: (isPresencial && agendadas.length > 0) ? 14 : 4 }}>
+            {empAtivas.map(emp => {
+              const feito      = emp.statusAcompanhamento === 'visita_realizada' || emp.statusAcompanhamento === 'reuniao_realizada';
+              const confirmada  = !feito && !!emp.visitaConfirmadaEm;
+              const preConf     = !feito && !confirmada && !!emp.preConfirmadoEm;
+              let statusLabel: string;
+              let dotColor: string;
+              if (feito) {
+                statusLabel = isPresencial ? 'presença confirmada' : 'entrou na reunião ✓';
+                dotColor = C.vd;
+              } else if (confirmada) {
+                statusLabel = 'confirmada';
+                dotColor = C.vd;
+              } else if (preConf) {
+                statusLabel = 'pré-confirmada';
+                dotColor = '#534AB7';
+              } else {
+                statusLabel = 'aguardando confirmação';
+                dotColor = acClr;
+              }
+              const empTime = !isPresencial && emp.dataHora ? fmtTm(emp.dataHora) : null;
+              return (
+                <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, flexWrap: 'wrap' }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600, color: C.nv }}>{emp.nome}</span>
+                  {empTime && (
+                    <span style={{ color: allSameTime ? C.cz : C.nv, fontWeight: allSameTime ? 400 : 600 }}>
+                      — {empTime}
+                    </span>
+                  )}
+                  <span style={{ color: C.cz }}>— {statusLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* QR Code único — visita presencial */}
       {isPresencial && agendadas.length > 0 && (
@@ -745,39 +767,12 @@ function VisitaBlock({
         </div>
       )}
 
-      {/* Botões de reunião online — por empresa */}
+      {/* Reunião online — nota informativa (sem links de fornecedor) */}
       {!isPresencial && (agendadas.length > 0 || realizadas.length > 0) && (
-        <div style={{ borderTop: '1px solid rgba(83,74,183,.14)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* Agendadas: botão de entrada ou aviso sem link */}
-          {agendadas.map(emp => (emp.tokenVisita || emp.linkReuniao) ? (
-            <a key={emp.id}
-              href={emp.tokenVisita
-                ? `${window.location.origin}/entrar-reuniao/${emp.id}/${emp.tokenVisita}`
-                : (emp.linkReuniao ?? '#')}
-              target="_blank" rel="noreferrer"
-              className="r100-btn r100-btn-primary r100-btn-sm"
-              style={{ textDecoration: 'none', alignSelf: 'flex-start' }}
-            >
-              🎥 Entrar na reunião — {emp.nome}
-            </a>
-          ) : (
-            <div key={emp.id} style={{ fontSize: 11, color: C.cz, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.bd, flexShrink: 0, display: 'inline-block' }} />
-              <span style={{ color: C.nv, fontWeight: 600 }}>{emp.nome}</span>
-              <span>— aguardando link de reunião</span>
-            </div>
-          ))}
-          {/* Realizadas: indicador de confirmação */}
-          {realizadas.map(emp => (
-            <div key={emp.id} style={{ fontSize: 11, color: C.cz, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.vd, flexShrink: 0, display: 'inline-block' }} />
-              <span style={{ color: C.nv, fontWeight: 600 }}>{emp.nome}</span>
-              <span>— reunião realizada</span>
-              {emp.visitaConfirmadaEm && (
-                <span>· {fmtTm(emp.visitaConfirmadaEm)}</span>
-              )}
-            </div>
-          ))}
+        <div style={{ borderTop: '1px solid rgba(83,74,183,.14)', paddingTop: 12 }}>
+          <div style={{ fontSize: 11, color: '#534AB7', background: '#EEF0FF', borderRadius: 8, padding: '8px 12px', lineHeight: 1.6 }}>
+            🔗 As empresas receberão o link de acesso individualmente pela Reforma100.
+          </div>
         </div>
       )}
     </div>
@@ -1127,102 +1122,167 @@ function CompatRankingCard({ emp, isRec, idx }: { emp: EmpresaRanking; isRec: bo
 }
 
 function CompatibilizacaoTab({
-  requested, onRequest, onGoToEmpresas, compatResult,
+  onGoToEmpresas, empresas, orcamentoId, token, clienteNome,
 }: {
-  requested: boolean;
-  onRequest: () => void;
   onGoToEmpresas: () => void;
-  compatResult: CompatibilizacaoCompleta | null;
+  empresas:       Rota100Empresa[];
+  orcamentoId:    string;
+  token:          string;
+  clienteNome:    string;
 }) {
-  // ── Estado liberado ──────────────────────────────────────────────────────────
-  if (compatResult) {
-    const ranking = [...(compatResult.ranking ?? [])].sort((a, b) => a.posicao - b.posicao);
-    const recomendada = ranking.find(e => e.candidatura_id === compatResult.empresa_recomendada_id) ?? ranking[0];
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+  const comProposta = empresas.filter(e => e.propostaEnviada);
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [enviando,     setEnviando]     = useState(false);
+  const [enviado,      setEnviado]      = useState(false);
 
-        {/* Header */}
-        <div style={{ borderRadius: 14, background: 'linear-gradient(150deg,#2D3395 0%,#3d4ab5 100%)', padding: '22px 24px', color: '#fff' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65, marginBottom: 8 }}>Análise Reforma100</div>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, fontWeight: 400, lineHeight: 1.3, marginBottom: 10 }}>
-            Compatibilização de propostas pronta
-          </div>
-          <p style={{ fontSize: 13, lineHeight: 1.8, opacity: .85 }}>
-            Analisamos cada proposta em detalhe — escopo, preço, prazo e risco — e preparamos esta comparação para te ajudar a decidir com segurança.
-          </p>
+  useEffect(() => {
+    if (!token) return;
+    getCompatRequests(token).then(reqs => {
+      const ids = reqs
+        .filter(r => r.tipo === 'individual' && r.empresaId)
+        .map(r => r.empresaId!);
+      if (ids.length > 0) {
+        setSelecionadas(new Set(ids));
+        setEnviado(true);
+      } else if (reqs.some(r => r.tipo === 'completa')) {
+        setSelecionadas(new Set(comProposta.map(e => e.id)));
+        setEnviado(true);
+      }
+    });
+  }, [token]);
+
+  const toggle = (id: string) => {
+    setSelecionadas(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+    setEnviado(false);
+  };
+
+  const handleEnviar = async () => {
+    if (selecionadas.size === 0) return;
+    setEnviando(true);
+    try {
+      if (selecionadas.size === comProposta.length) {
+        await saveCompatRequest(token, clienteNome, { orcamentoId, tipo: 'completa' });
+      } else {
+        for (const id of selecionadas) {
+          await saveCompatRequest(token, clienteNome, { orcamentoId, empresaId: id, tipo: 'individual' });
+        }
+      }
+      setEnviado(true);
+    } catch {
+      // silent fail — escolha local persiste para próxima tentativa
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Header */}
+      <div style={{ borderRadius: 14, background: 'linear-gradient(150deg,#2D3395 0%,#3d4ab5 100%)', padding: '22px 24px', color: '#fff' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65, marginBottom: 8 }}>Análise de propostas</div>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, fontWeight: 400, lineHeight: 1.35, marginBottom: 10 }}>
+          Seu consultor vai te ajudar a comparar e escolher com segurança.
         </div>
-
-        {/* Empresa indicada — card escuro estilo Isabella seção 7 */}
-        {recomendada && (
-          <div style={{
-            background: 'linear-gradient(150deg,#155d38 0%,#1f7a4a 100%)',
-            borderRadius: 14, padding: '26px', color: '#fff',
-            display: 'flex', flexDirection: 'column', gap: 10,
-          }}>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65 }}>Empresa mais indicada</div>
-            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, lineHeight: 1.3 }}>{recomendada.empresa}</div>
-            {compatResult.recomendacao_geral && (
-              <p style={{ fontSize: 13, lineHeight: 1.8, opacity: .9 }}>{compatResult.recomendacao_geral}</p>
-            )}
-            <div style={{ marginTop: 'auto', background: 'rgba(255,255,255,.15)', borderRadius: 8, padding: '12px 16px', textAlign: 'center', fontWeight: 700, fontSize: 15, border: '1px solid rgba(255,255,255,.25)' }}>
-              {compatFmtBRL(recomendada.valor_proposta)} · Score {recomendada.score_composto}/100
-            </div>
-          </div>
-        )}
-
-        {/* Ranking de propostas */}
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: '#888', marginBottom: 12 }}>
-            Comparativo de propostas — {ranking.length} empresa{ranking.length !== 1 ? 's' : ''} avaliada{ranking.length !== 1 ? 's' : ''}
-          </div>
-          {ranking.map((emp, i) => (
-            <CompatRankingCard
-              key={emp.candidatura_id}
-              emp={emp}
-              isRec={emp.candidatura_id === compatResult.empresa_recomendada_id}
-              idx={i}
-            />
-          ))}
-        </div>
-
-        <div style={{ borderRadius: 8, background: '#eef0ff', borderLeft: '4px solid #2D3395', padding: '14px 18px' }}>
-          <p style={{ fontSize: 12, color: '#1a2070', lineHeight: 1.75 }}>
-            Esta análise foi preparada pelo seu consultor Reforma100 com base nas propostas recebidas. Compartilhe qual empresa você deseja seguir para darmos os próximos passos juntos.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Estado solicitado (aguardando) ───────────────────────────────────────────
-  if (requested) {
-    return (
-      <div className="r100-card" style={{ textAlign: 'center', padding: '52px 36px', background: C.vd2, borderColor: 'rgba(26,122,74,.15)' }}>
-        <div style={{ width: 68, height: 68, borderRadius: '50%', background: C.vd, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 22px', boxShadow: '0 4px 20px rgba(26,122,74,.25)' }}>📬</div>
-        <h3 className="serif" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, color: C.vd, marginBottom: 12, lineHeight: 1.25 }}>Solicitação registrada!</h3>
-        <p style={{ fontSize: 14, color: C.nv, lineHeight: 1.8, maxWidth: 420, margin: '0 auto' }}>
-          Seu consultor já foi acionado. Em breve você receberá o contato com a compatibilização da sua reforma.
+        <p style={{ fontSize: 13, lineHeight: 1.8, opacity: .85 }}>
+          Indique abaixo quais empresas você quer seguir analisando. Seu consultor Reforma100 vai orientar você na decisão.
         </p>
       </div>
-    );
-  }
 
-  // ── Estado bloqueado (preservado) ────────────────────────────────────────────
-  return (
-    <div style={{ background: '#fff', border: `1.5px dashed ${C.bd}`, borderRadius: 16, padding: '52px 36px', textAlign: 'center', boxShadow: '0 1px 6px rgba(0,0,0,.04)' }}>
-      <div style={{ width: 72, height: 72, borderRadius: '50%', background: C.fd, border: `2px solid ${C.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 22px' }}>🔒</div>
-      <h3 className="serif" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, color: C.nv, marginBottom: 12, lineHeight: 1.25 }}>Compatibilização indisponível</h3>
-      <p style={{ fontSize: 13, color: C.cz, lineHeight: 1.85, maxWidth: 440, margin: '0 auto 28px' }}>
-        A compatibilização é gerada <strong style={{ color: C.nv }}>somente após você decidir</strong> seguir com uma ou mais empresas.<br /><br />
-        Vá até a aba <strong style={{ color: C.nv }}>Empresas</strong>, veja as propostas e confirme se deseja seguir com alguma.
-      </p>
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <button className="r100-btn r100-btn-primary r100-btn-md" onClick={onGoToEmpresas}>
-          Ir para Empresas →
-        </button>
-        <button className="r100-btn r100-btn-ghost r100-btn-md" onClick={onRequest}>
-          Solicitar compatibilização
-        </button>
+      {/* Seleção de empresas */}
+      {comProposta.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: 10, padding: '24px 20px', boxShadow: '0 1px 6px rgba(0,0,0,.07)', textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: C.cz, lineHeight: 1.8, marginBottom: 14 }}>
+            Nenhuma proposta recebida ainda. Aguarde as empresas enviarem suas propostas.
+          </p>
+          <button className="r100-btn r100-btn-ghost r100-btn-sm" onClick={onGoToEmpresas}>
+            Ver empresas →
+          </button>
+        </div>
+      ) : (
+        <div style={{ background: '#fff', borderRadius: 10, padding: '20px', boxShadow: '0 1px 6px rgba(0,0,0,.07)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: '#888', marginBottom: 14 }}>
+            Empresas com proposta — selecione quais deseja analisar
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {comProposta.map(emp => {
+              const sel = selecionadas.has(emp.id);
+              return (
+                <label key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: '11px 14px', borderRadius: 8, background: sel ? '#eef0ff' : '#f8f9fc', border: `1.5px solid ${sel ? '#2D3395' : '#e5e7eb'}`, transition: 'all .15s' }}>
+                  <input
+                    type="checkbox"
+                    checked={sel}
+                    onChange={() => toggle(emp.id)}
+                    style={{ width: 16, height: 16, accentColor: '#2D3395', flexShrink: 0, cursor: 'pointer' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: sel ? '#2D3395' : C.nv, marginBottom: 2 }}>{emp.nome}</div>
+                    {emp.valor && emp.valor !== '—' && (
+                      <div style={{ fontSize: 11, color: C.cz }}>{emp.valor}</div>
+                    )}
+                  </div>
+                  {sel && (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#e8eaff', color: '#2D3395', flexShrink: 0 }}>
+                      Selecionada
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+
+          {/* Ações */}
+          <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #f0f0f0', paddingTop: 14 }}>
+            <button
+              className="r100-btn r100-btn-primary r100-btn-md"
+              disabled={selecionadas.size === 0 || enviando}
+              onClick={handleEnviar}
+              style={{ opacity: selecionadas.size === 0 ? .5 : 1 }}
+            >
+              {enviando
+                ? 'Enviando…'
+                : enviado
+                  ? '✓ Escolha enviada'
+                  : `Enviar escolha (${selecionadas.size} empresa${selecionadas.size !== 1 ? 's' : ''})`}
+            </button>
+            {selecionadas.size < comProposta.length && (
+              <button
+                className="r100-btn r100-btn-ghost r100-btn-sm"
+                onClick={() => { setSelecionadas(new Set(comProposta.map(e => e.id))); setEnviado(false); }}
+              >
+                Selecionar todas
+              </button>
+            )}
+            {selecionadas.size > 0 && (
+              <button
+                className="r100-btn r100-btn-ghost r100-btn-sm"
+                onClick={() => { setSelecionadas(new Set()); setEnviado(false); }}
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+
+          {enviado && (
+            <div style={{ marginTop: 12, borderRadius: 8, background: '#e0f5ec', borderLeft: '4px solid #1B7A4A', padding: '10px 14px' }}>
+              <p style={{ fontSize: 12, color: '#0d3d23', lineHeight: 1.6, margin: 0 }}>
+                ✔ Escolha registrada. Seu consultor Reforma100 já foi notificado e vai te orientar nos próximos passos.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Nota informativa */}
+      <div style={{ borderRadius: 8, background: '#eef0ff', borderLeft: '4px solid #2D3395', padding: '14px 18px' }}>
+        <p style={{ fontSize: 12, color: '#1a2070', lineHeight: 1.75, margin: 0 }}>
+          A análise completa das propostas é preparada pelo seu consultor Reforma100 com base nas empresas selecionadas. Fale com ele para esclarecer dúvidas antes de decidir.
+        </p>
       </div>
     </div>
   );
@@ -1629,7 +1689,7 @@ export default function Rota100() {
     { id: 'checklist',        label: 'Checklist' },
     { id: 'escopo',           label: 'Escopo' },
     { id: 'empresas',         label: 'Empresas' },
-    { id: 'compatibilizacao', label: compatResult ? 'Compat. ✓' : 'Compat. 🔒', locked: !compatResult },
+    { id: 'compatibilizacao', label: 'Compatibilização', locked: false },
     { id: 'marketplace',      label: 'Marketplace' },
     { id: 'avaliacoes',       label: 'Avaliações' },
   ];
@@ -1771,7 +1831,7 @@ export default function Rota100() {
           {activeTab === 'checklist'        && <ChecklistTab items={data?.checklist ?? MOCK_ROTA100.checklist} empresas={data?.empresas ?? []} />}
           {activeTab === 'escopo'           && <EscopoTab {...(data?.escopo ?? MOCK_ROTA100.escopo)} />}
           {activeTab === 'empresas'         && <EmpresasTab empresas={data?.empresas ?? MOCK_ROTA100.empresas as any} token={token} tipoAtendimento={data?.tipoAtendimento ?? null} onCompatIndividual={handleCompatIndividual} onCompatCompleta={handleCompatCompleta} onDispensa={handleDispensa} />}
-          {activeTab === 'compatibilizacao' && <CompatibilizacaoTab requested={compatRequested} onRequest={handleCompatRequest} onGoToEmpresas={() => setActiveTab('empresas')} compatResult={compatResult} />}
+          {activeTab === 'compatibilizacao' && <CompatibilizacaoTab onGoToEmpresas={() => setActiveTab('empresas')} empresas={data?.empresas ?? []} orcamentoId={data?.orcamentoId ?? ''} token={token} clienteNome={cliente.nome} />}
           {activeTab === 'marketplace'      && <MarketplaceTab />}
           {activeTab === 'avaliacoes'       && <AvaliacoesTab empresas={data?.empresas ?? []} token={token} orcamentoId={data?.orcamentoId ?? ''} />}
         </div>
