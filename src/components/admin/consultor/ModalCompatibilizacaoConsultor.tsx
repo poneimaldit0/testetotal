@@ -20,9 +20,6 @@ import {
   Pencil, X, Info, ShieldCheck, ShieldAlert, ThumbsUp, ThumbsDown,
   ExternalLink, RefreshCw, Plus, Upload, FileText, Zap,
 } from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
-} from 'recharts';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -136,7 +133,7 @@ function DimStatusBadge({ status }: { status: DimStatus }) {
   return <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 text-xs gap-1"><CheckCircle2 className="h-3 w-3" />ok</Badge>;
 }
 
-// ── PriceBarChart ─────────────────────────────────────────────────────────────
+// ── PriceBarChart (Isabella vchart style) ────────────────────────────────────
 
 const CHART_CORES = ['#2D3395', '#F7A226', '#1B7A4A', '#8B2252', '#0D7377', '#B5451B'];
 
@@ -152,57 +149,45 @@ function PriceBarChart({ ranking }: { ranking: EmpresaRanking[] }) {
     : null;
   const mercadoAlto = mercadoMedio ? Math.round(mercadoMedio * 1.30) : null;
 
-  const data: { name: string; value: number; fill: string; isRef: boolean }[] = [
+  const data: { name: string; value: number; color: string; isRef: boolean }[] = [
     ...withValue.map((e, i) => ({
-      name:  e.empresa.split(/[\s(]/)[0].slice(0, 11),
+      name:  e.empresa.split(/[\s(]/)[0].slice(0, 12),
       value: e.valor_proposta!,
-      fill:  CHART_CORES[i] ?? '#2D3395',
+      color: CHART_CORES[i] ?? '#2D3395',
       isRef: false,
     })),
-    ...(mercadoMedio != null ? [{ name: 'Mercado Medio', value: mercadoMedio, fill: '#9CA3AF', isRef: true }] : []),
-    ...(mercadoAlto  != null ? [{ name: 'Alto Padrao',   value: mercadoAlto,  fill: '#A78BFA', isRef: true }] : []),
+    ...(mercadoMedio != null ? [{ name: 'Mercado Médio', value: mercadoMedio, color: '#9CA3AF', isRef: true }] : []),
+    ...(mercadoAlto  != null ? [{ name: 'Alto Padrão',   value: mercadoAlto,  color: '#A78BFA', isRef: true }] : []),
   ];
 
+  const maxVal = Math.max(...data.map(d => d.value));
   const fmt = (v: number) =>
     v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   return (
-    <div className="rounded-xl border bg-muted/20 p-4 space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-        <BarChart2 className="h-3.5 w-3.5" />
+    <div style={{ background: '#fff', borderRadius: 10, padding: '18px 18px 12px', boxShadow: '0 1px 6px rgba(0,0,0,.07)', marginBottom: 4 }}>
+      <p style={{ fontSize: 11, fontWeight: 700, color: '#2D3395', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <BarChart2 style={{ width: 13, height: 13 }} />
         Comparativo de valores
-        {mercadoMedio != null && (
-          <span className="font-normal text-gray-400 normal-case ml-1">
-            · Mercado Medio: {fmt(mercadoMedio)}
-            {mercadoAlto != null && ` · Alto Padrao: ${fmt(mercadoAlto)}`}
-          </span>
-        )}
       </p>
-      <ResponsiveContainer width="100%" height={190}>
-        <BarChart data={data} margin={{ top: 22, right: 8, bottom: 4, left: 4 }} barCategoryGap="28%">
-          <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-          <YAxis hide domain={[0, 'dataMax + 10000']} />
-          <Tooltip
-            formatter={(v: number) => [fmt(v), 'Valor']}
-            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
-          />
-          <Bar dataKey="value" radius={[5, 5, 0, 0]}>
-            {data.map((d, i) => (
-              <Cell key={i} fill={d.fill} opacity={d.isRef ? 0.55 : 1} />
-            ))}
-            <LabelList
-              dataKey="value"
-              position="top"
-              formatter={(v: number) => fmt(v)}
-              style={{ fontSize: 9, fontWeight: 700, fill: '#374151' }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-      <div className="flex flex-wrap gap-2 pt-1">
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 160, padding: '0 4px', position: 'relative' }}>
+        {data.map((d, i) => {
+          const h = Math.max(4, Math.round((d.value / maxVal) * 100));
+          return (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, height: '100%' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, marginBottom: 4, whiteSpace: 'nowrap', textAlign: 'center', color: '#374151' }}>{fmt(d.value)}</div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%' }}>
+                <div style={{ width: '100%', borderRadius: '5px 5px 0 0', background: d.color, opacity: d.isRef ? 0.6 : 1, height: `${h}%`, transition: 'height .8s cubic-bezier(.25,.46,.45,.94)' }} />
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#444', textAlign: 'center', marginTop: 7, lineHeight: 1.3, padding: '0 2px', wordBreak: 'break-word' as const }}>{d.name}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12, paddingTop: 10, borderTop: '1px solid #f0f0f0' }}>
         {data.map((d, i) => (
-          <span key={i} className="flex items-center gap-1 text-[10px] text-gray-500">
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: d.fill, display: 'inline-block', opacity: d.isRef ? 0.55 : 1 }} />
+          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#555' }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: d.color, display: 'inline-block', opacity: d.isRef ? 0.6 : 1 }} />
             {d.name}
           </span>
         ))}
@@ -304,32 +289,35 @@ function DecisaoEstrategicaCard({ decisao }: { decisao: DecisaoEstrategica }) {
 function RecommendationCard({ ac, rankingAtivo }: { ac: CompatibilizacaoCompleta; rankingAtivo: EmpresaRanking[] }) {
   const recomendada = rankingAtivo.find(e => e.candidatura_id === ac.empresa_recomendada_id);
   const score = recomendada?.score_composto ?? 0;
-  const nivel = score >= 75 ? 'ok' : score >= 50 ? 'atencao' : 'critico';
+  const empIdx = rankingAtivo.findIndex(e => e.candidatura_id === ac.empresa_recomendada_id);
+  const empColor = CHART_CORES[empIdx] ?? '#2D3395';
 
-  const borderCls = nivel === 'ok' ? 'border-green-400 bg-green-50/60' :
-                    nivel === 'atencao' ? 'border-yellow-400 bg-yellow-50/60' :
-                    'border-red-400 bg-red-50/60';
-  const badgeCls  = nivel === 'ok' ? 'bg-green-600 hover:bg-green-600 text-white' :
-                    nivel === 'atencao' ? 'bg-yellow-500 hover:bg-yellow-500 text-white' :
-                    'bg-red-600 hover:bg-red-600 text-white';
+  const darkGrad = empIdx === 1
+    ? 'linear-gradient(150deg,#b8620a 0%,#e09020 100%)'
+    : empIdx === 2
+      ? 'linear-gradient(150deg,#155d38 0%,#1f7a4a 100%)'
+      : `linear-gradient(150deg,${empColor}dd 0%,${empColor} 100%)`;
 
   return (
-    <div className={`rounded-xl border-2 p-4 space-y-3 ${borderCls}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1 flex-1 min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recomendação da IA</p>
-          <Badge className={`gap-1.5 text-xs font-semibold px-2.5 py-1 ${badgeCls}`}>
-            <Star className="h-3 w-3" />
+    <div className="rounded-xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.10)' }}>
+      {/* Header gradiente escuro */}
+      <div style={{ background: darkGrad, padding: '18px 20px', color: '#fff' }}>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1px', opacity: .65, marginBottom: 8 }}>Recomendação da IA</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, fontWeight: 400, lineHeight: 1.3 }}>
             {recomendada?.empresa ?? '—'}
-          </Badge>
-        </div>
-        <div className="text-right shrink-0">
-          <p className={`text-3xl font-black leading-none ${SCORE_COR(score)}`}>{score}</p>
-          <p className="text-xs text-muted-foreground">score</p>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1 }}>{score}</div>
+            <div style={{ fontSize: 9, opacity: .7 }}>score</div>
+          </div>
         </div>
       </div>
-      <p className="text-sm leading-relaxed text-gray-800 line-clamp-3">{ac.recomendacao_geral}</p>
-      <p className="text-xs text-gray-600 italic leading-relaxed border-l-2 border-gray-300 pl-2">{ac.justificativa_recomendacao}</p>
+      {/* Corpo */}
+      <div className="p-4 space-y-2 bg-card border border-t-0 rounded-b-xl border-gray-100">
+        <p className="text-sm leading-relaxed text-gray-800 line-clamp-3">{ac.recomendacao_geral}</p>
+        <p className="text-xs text-gray-600 italic leading-relaxed border-l-2 border-gray-300 pl-2">{ac.justificativa_recomendacao}</p>
+      </div>
     </div>
   );
 }
@@ -349,12 +337,21 @@ function RankingCard({
     emp.diferenca_mercado != null && emp.diferenca_mercado < -5 && emp.score_composto >= 70
   );
 
+  const cardColor = CHART_CORES[emp.posicao - 1] ?? '#2D3395';
+
   return (
-    <div className={`rounded-xl border p-4 space-y-3 transition-all ${
-      recomendada
-        ? 'border-green-400 bg-green-50/50 shadow-md ring-1 ring-green-300'
-        : 'border-border bg-card'
-    }`}>
+    <div
+      className={`rounded-xl border p-4 space-y-3 transition-all ${
+        recomendada ? 'bg-green-50/50 shadow-md' : 'bg-card'
+      }`}
+      style={{
+        borderTopWidth: 4,
+        borderTopStyle: 'solid',
+        borderTopColor: cardColor,
+        borderColor: recomendada ? '#86efac' : undefined,
+        boxShadow: recomendada ? '0 4px 16px rgba(27,122,74,.1)' : undefined,
+      }}
+    >
       {/* Cabeçalho */}
       <div className="flex items-center gap-3">
         <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black border-2 shrink-0 ${POS_CLS(emp.posicao)}`}>

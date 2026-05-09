@@ -1062,48 +1062,61 @@ function compatFmtBRL(v: number | null | undefined): string {
 
 function CompatMercadoBadge({ diff }: { diff: number | null | undefined }) {
   if (diff == null) return null;
-  if (diff > 10)  return <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#FEE2E2', color: '#B91C1C' }}>+{diff.toFixed(1)}% acima do mercado</span>;
-  if (diff < -10) return <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#FEF3C7', color: '#92400E' }}>{diff.toFixed(1)}% abaixo do mercado</span>;
-  return <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: C.vd2, color: C.vd }}>Dentro do mercado</span>;
+  const base = { fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20, display: 'inline-block' as const };
+  if (diff >  10) return <span style={{ ...base, background: '#fde8e8', color: '#C0392B' }}>+{diff.toFixed(1)}% vs. mercado</span>;
+  if (diff < -10) return <span style={{ ...base, background: '#fff3cd', color: '#856404' }}>{diff.toFixed(1)}% vs. mercado</span>;
+  return <span style={{ ...base, background: '#e0f5ec', color: '#1B7A4A' }}>Dentro da faixa ✔</span>;
 }
 
 function CompatRankingCard({ emp, isRec, idx }: { emp: EmpresaRanking; isRec: boolean; idx: number }) {
   const cor = COMPAT_CORES[idx] ?? '#2D3395';
   const temRisco = emp.score_risco != null && emp.score_risco < 50;
+  const justText = emp.justificativa_posicao ?? '';
   const fortes   = (emp.pontos_fortes ?? []).slice(0, 3);
+  const scoreCor = emp.score_composto >= 75 ? '#1B7A4A' : emp.score_composto >= 50 ? '#E08B00' : '#C0392B';
+
   return (
-    <div style={{ borderRadius: 14, border: `1.5px solid ${isRec ? C.vd : C.bd}`, background: isRec ? C.vd2 : '#fff', padding: '18px 20px', boxShadow: isRec ? '0 2px 14px rgba(26,122,74,.12)' : '0 1px 4px rgba(0,0,0,.04)', borderLeft: `5px solid ${cor}`, marginBottom: 12 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: '50%', background: cor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, flexShrink: 0 }}>
-          {emp.posicao}
-        </div>
+    <div style={{
+      background: '#fff', borderRadius: 10, padding: '20px',
+      boxShadow: isRec ? '0 4px 16px rgba(45,51,149,.12)' : '0 1px 6px rgba(0,0,0,.07)',
+      borderTop: `4px solid ${cor}`,
+      outline: isRec ? '1.5px solid rgba(27,122,74,.3)' : undefined,
+      marginBottom: 12,
+    }}>
+      {/* Label */}
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: '#888', marginBottom: 6 }}>
+        #{emp.posicao} · {isRec ? 'Empresa recomendada' : 'Empresa'}
+      </div>
+      {/* Nome + score */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: isRec ? C.vd : C.nv }}>{emp.empresa}</span>
-            {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: C.vd, color: '#fff' }}>Indicada</span>}
-            {temRisco && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: '#FEE2E2', color: '#B91C1C' }}>Atenção: risco</span>}
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.nv }}>{compatFmtBRL(emp.valor_proposta)}</span>
+          <div style={{ fontWeight: 700, fontSize: 15, color: cor, marginBottom: 5 }}>{emp.empresa}</div>
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>{compatFmtBRL(emp.valor_proposta)}</span>
             <CompatMercadoBadge diff={emp.diferenca_mercado} />
+            {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#e0f5ec', color: '#1B7A4A' }}>Indicada ✔</span>}
+            {temRisco && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#fde8e8', color: '#C0392B' }}>Risco alto</span>}
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, color: emp.score_composto >= 75 ? C.vd : emp.score_composto >= 50 ? C.am : C.vm }}>{emp.score_composto}</div>
-          <div style={{ fontSize: 9, color: C.cz }}>avaliação</div>
+          <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, color: scoreCor }}>{emp.score_composto}</div>
+          <div style={{ fontSize: 9, color: '#888' }}>/ 100</div>
         </div>
       </div>
-      {/* Barra de avaliação */}
-      <div style={{ height: 4, borderRadius: 9, background: C.bd, marginBottom: 10, overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 9, background: cor, width: `${emp.score_composto}%`, transition: 'width .6s' }} />
+      {/* Barra */}
+      <div style={{ height: 5, borderRadius: 9, background: '#f0f0f0', marginBottom: 12, overflow: 'hidden' }}>
+        <div style={{ height: '100%', borderRadius: 9, background: cor, width: `${emp.score_composto}%`, transition: 'width .6s cubic-bezier(.25,.46,.45,.94)' }} />
       </div>
-      {/* Pontos fortes */}
-      {fortes.length > 0 && (
+      {/* Justificativa */}
+      {justText ? (
+        <p style={{ fontSize: 12, color: '#333', lineHeight: 1.7, margin: 0 }}>
+          {justText.slice(0, 220)}{justText.length > 220 ? '…' : ''}
+        </p>
+      ) : fortes.length > 0 && (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
           {fortes.map((p, i) => (
-            <li key={i} style={{ fontSize: 12, color: C.nv, display: 'flex', gap: 6, lineHeight: 1.5 }}>
-              <span style={{ color: C.vd, flexShrink: 0 }}>✓</span>
+            <li key={i} style={{ fontSize: 12, color: '#333', display: 'flex', gap: 6, lineHeight: 1.5 }}>
+              <span style={{ color: '#F7A226', flexShrink: 0, fontWeight: 700 }}>→</span>
               <span>{p}</span>
             </li>
           ))}
@@ -1129,36 +1142,37 @@ function CompatibilizacaoTab({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Header */}
-        <div style={{ borderRadius: 16, background: `linear-gradient(135deg, ${C.nv} 0%, #2a3240 100%)`, padding: '22px 24px', color: '#fff' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,.45)', marginBottom: 6 }}>Análise Reforma100</div>
-          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, fontWeight: 400, lineHeight: 1.25, marginBottom: 10 }}>
+        <div style={{ borderRadius: 14, background: 'linear-gradient(150deg,#2D3395 0%,#3d4ab5 100%)', padding: '22px 24px', color: '#fff' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65, marginBottom: 8 }}>Análise Reforma100</div>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, fontWeight: 400, lineHeight: 1.3, marginBottom: 10 }}>
             Compatibilização de propostas pronta
           </div>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', lineHeight: 1.7 }}>
+          <p style={{ fontSize: 13, lineHeight: 1.8, opacity: .85 }}>
             Analisamos cada proposta em detalhe — escopo, preço, prazo e risco — e preparamos esta comparação para te ajudar a decidir com segurança.
           </p>
         </div>
 
-        {/* Empresa indicada */}
+        {/* Empresa indicada — card escuro estilo Isabella seção 7 */}
         {recomendada && (
-          <div style={{ borderRadius: 14, background: C.vd2, border: `1.5px solid ${C.vd}`, padding: '20px 22px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: C.vd, marginBottom: 8 }}>Empresa mais indicada</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, color: C.vd, flex: 1 }}>{recomendada.empresa}</div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 32, fontWeight: 900, color: C.vd, lineHeight: 1 }}>{recomendada.score_composto}</div>
-                <div style={{ fontSize: 9, color: C.vd }}>/ 100</div>
-              </div>
-            </div>
+          <div style={{
+            background: 'linear-gradient(150deg,#155d38 0%,#1f7a4a 100%)',
+            borderRadius: 14, padding: '26px', color: '#fff',
+            display: 'flex', flexDirection: 'column', gap: 10,
+          }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65 }}>Empresa mais indicada</div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, lineHeight: 1.3 }}>{recomendada.empresa}</div>
             {compatResult.recomendacao_geral && (
-              <p style={{ fontSize: 13, color: C.nv, lineHeight: 1.75, marginTop: 10 }}>{compatResult.recomendacao_geral}</p>
+              <p style={{ fontSize: 13, lineHeight: 1.8, opacity: .9 }}>{compatResult.recomendacao_geral}</p>
             )}
+            <div style={{ marginTop: 'auto', background: 'rgba(255,255,255,.15)', borderRadius: 8, padding: '12px 16px', textAlign: 'center', fontWeight: 700, fontSize: 15, border: '1px solid rgba(255,255,255,.25)' }}>
+              {compatFmtBRL(recomendada.valor_proposta)} · Score {recomendada.score_composto}/100
+            </div>
           </div>
         )}
 
         {/* Ranking de propostas */}
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: C.cz, marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: '#888', marginBottom: 12 }}>
             Comparativo de propostas — {ranking.length} empresa{ranking.length !== 1 ? 's' : ''} avaliada{ranking.length !== 1 ? 's' : ''}
           </div>
           {ranking.map((emp, i) => (
@@ -1171,9 +1185,9 @@ function CompatibilizacaoTab({
           ))}
         </div>
 
-        <div style={{ borderRadius: 12, background: C.fd, border: `1px solid ${C.bd}`, padding: '14px 18px' }}>
-          <p style={{ fontSize: 12, color: C.cz, lineHeight: 1.75 }}>
-            Esta análise foi preparada pelo seu consultor Reforma100 com base nas propostas recebidas. Fale com ele para esclarecer dúvidas antes de decidir.
+        <div style={{ borderRadius: 8, background: '#eef0ff', borderLeft: '4px solid #2D3395', padding: '14px 18px' }}>
+          <p style={{ fontSize: 12, color: '#1a2070', lineHeight: 1.75 }}>
+            Esta análise foi preparada pelo seu consultor Reforma100 com base nas propostas recebidas. Compartilhe qual empresa você deseja seguir para darmos os próximos passos juntos.
           </p>
         </div>
       </div>
