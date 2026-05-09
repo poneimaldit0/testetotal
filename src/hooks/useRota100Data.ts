@@ -58,6 +58,7 @@ export interface Rota100Empresa {
   tokenVisita:         string | null;
   linkReuniao:         string | null;
   visitaConfirmadaEm:  string | null;
+  preConfirmadoEm:     string | null;
   statusAcompanhamento: string | null;
   dataHora:            string | null;
 }
@@ -390,6 +391,7 @@ function buildEmpresas(candidaturas: any[], tipoAtendimento: TipoAtendimento, ho
       tokenVisita:        (c.token_visita as string | null) ?? null,
       linkReuniao:        (c.link_reuniao as string | null) ?? null,
       visitaConfirmadaEm: (c.visita_confirmada_em as string | null) ?? null,
+      preConfirmadoEm:    (c.pre_confirmado_em as string | null) ?? null,
       statusAcompanhamento: status || null,
       dataHora:           horariosByCand[c.id] ?? null,
     };

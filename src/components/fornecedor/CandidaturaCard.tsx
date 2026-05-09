@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
+import { supabase } from '@/integrations/supabase/client';
 import { ContatoSection } from './ContatoSection';
 import { AnexosOrcamento } from './AnexosOrcamento';
 import { PropostaAnexoUpload } from './PropostaAnexoUpload';
@@ -59,6 +60,24 @@ function StatusBadge({ status }: { status: string | null }) {
 
 function PainelOperacional({ candidatura }: { candidatura: CandidaturaOrcamento }) {
   const s = candidatura.statusAcompanhamento;
+  const [preConfirmadoEm, setPreConfirmadoEm] = useState<string | null>(candidatura.preConfirmadoEm ?? null);
+  const [salvando, setSalvando] = useState(false);
+
+  const confirmarPresenca = async (via: string) => {
+    if (preConfirmadoEm || salvando) return;
+    setSalvando(true);
+    try {
+      const agora = new Date().toISOString();
+      await (supabase as any)
+        .from('candidaturas_fornecedores')
+        .update({ pre_confirmado_em: agora, pre_confirmado_via: via })
+        .eq('id', candidatura.candidaturaId)
+        .is('pre_confirmado_em', null);
+      setPreConfirmadoEm(agora);
+    } catch { /* silent */ } finally {
+      setSalvando(false);
+    }
+  };
 
   const isVisitaAgendada  = s === 'visita_agendada';
   const isVisitaRealizada = s === 'visita_realizada';
@@ -130,10 +149,27 @@ function PainelOperacional({ candidatura }: { candidatura: CandidaturaOrcamento 
           )}
 
           {isVisitaAgendada && (
-            <p className="text-xs text-amber-700 ml-6 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3 flex-shrink-0" />
-              A confirmação de presença será feita via QR Code no local da reforma.
-            </p>
+            preConfirmadoEm ? (
+              <p className="text-xs text-green-700 ml-6 flex items-center gap-1 font-medium">
+                <CheckCircle className="h-3 w-3 flex-shrink-0" />
+                Participação pré-confirmada em {format(new Date(preConfirmadoEm), "dd/MM 'às' HH:mm", { locale: ptBR })}
+              </p>
+            ) : (
+              <div className="ml-6 space-y-1.5">
+                <Button
+                  size="sm"
+                  disabled={salvando}
+                  onClick={() => confirmarPresenca('visita_presencial')}
+                  className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto"
+                >
+                  {salvando ? '…' : 'Pré-confirmar participação'}
+                </Button>
+                <p className="text-xs text-amber-700 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                  A confirmação oficial será feita via QR Code no local da reforma.
+                </p>
+              </div>
+            )
           )}
         </div>
       )}
@@ -160,7 +196,7 @@ function PainelOperacional({ candidatura }: { candidatura: CandidaturaOrcamento 
               Acesso registrado.
             </p>
           ) : candidatura.tokenVisita ? (
-            <div className="ml-0 sm:ml-6">
+            <div className="ml-0 sm:ml-6 space-y-2">
               <a
                 href={`/entrar-reuniao/${candidatura.candidaturaId}/${candidatura.tokenVisita}`}
                 target="_blank"
@@ -175,12 +211,46 @@ function PainelOperacional({ candidatura }: { candidatura: CandidaturaOrcamento 
                   Acessar reunião
                 </Button>
               </a>
+              {preConfirmadoEm ? (
+                <p className="text-xs text-green-700 flex items-center gap-1 font-medium">
+                  <CheckCircle className="h-3 w-3 flex-shrink-0" />
+                  Participação pré-confirmada em {format(new Date(preConfirmadoEm), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                </p>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={salvando}
+                  onClick={() => confirmarPresenca('reuniao_online')}
+                  className="w-full sm:w-auto h-8 text-xs border-violet-300 text-violet-700 hover:bg-violet-50"
+                >
+                  {salvando ? '…' : 'Pré-confirmar participação'}
+                </Button>
+              )}
             </div>
           ) : (
-            <p className="text-xs text-violet-700 ml-6 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3 flex-shrink-0" />
-              O link de acesso será enviado pela Reforma100.
-            </p>
+            <div className="ml-6 space-y-2">
+              <p className="text-xs text-violet-700 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                O link de acesso será enviado pela Reforma100.
+              </p>
+              {preConfirmadoEm ? (
+                <p className="text-xs text-green-700 flex items-center gap-1 font-medium">
+                  <CheckCircle className="h-3 w-3 flex-shrink-0" />
+                  Participação pré-confirmada em {format(new Date(preConfirmadoEm), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                </p>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={salvando}
+                  onClick={() => confirmarPresenca('reuniao_online')}
+                  className="w-full sm:w-auto h-8 text-xs border-violet-300 text-violet-700 hover:bg-violet-50"
+                >
+                  {salvando ? '…' : 'Pré-confirmar participação'}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}

@@ -922,8 +922,13 @@ function EmpresasTab({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: '7px 12px', borderRadius: 10, background: VISITA_STATUS[emp.statusAcompanhamento].bg, border: `1px solid ${VISITA_STATUS[emp.statusAcompanhamento].clr}22` }}>
                   <span style={{ fontSize: 14 }}>{VISITA_STATUS[emp.statusAcompanhamento].icon}</span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: VISITA_STATUS[emp.statusAcompanhamento].clr }}>{VISITA_STATUS[emp.statusAcompanhamento].label}</span>
-                  {emp.visitaConfirmadaEm && (
-                    <span style={{ fontSize: 10, color: C.cz, marginLeft: 4 }}>— confirmada pelo fornecedor</span>
+                  {(emp.statusAcompanhamento === 'visita_agendada' || emp.statusAcompanhamento === 'reuniao_agendada') && (
+                    <span style={{ fontSize: 10, marginLeft: 4, fontWeight: 600, color: emp.preConfirmadoEm ? C.vd : C.am }}>
+                      {emp.preConfirmadoEm ? '✅ Pré-confirmada' : '⏳ Aguardando confirmação'}
+                    </span>
+                  )}
+                  {(emp.statusAcompanhamento === 'visita_realizada' || emp.statusAcompanhamento === 'reuniao_realizada') && (
+                    <span style={{ fontSize: 10, color: C.vd, marginLeft: 4, fontWeight: 600 }}>✔ Confirmado pela Reforma100</span>
                   )}
                 </div>
               )}

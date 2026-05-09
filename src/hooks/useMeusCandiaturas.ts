@@ -34,6 +34,7 @@ export interface CandidaturaOrcamento {
   tokenVisita?: string | null;
   linkReuniao?: string | null;
   visitaConfirmadaEm?: string | null;
+  preConfirmadoEm?: string | null;
   // Adicionar campos de arquivos
   arquivos?: Array<{
     id: string;
@@ -95,6 +96,7 @@ export const useMeusCandidaturas = (userId?: string) => {
           token_visita,
           link_reuniao,
           visita_confirmada_em,
+          pre_confirmado_em,
           orcamentos (
             id,
             necessidade,
@@ -329,6 +331,7 @@ export const useMeusCandidaturas = (userId?: string) => {
             tokenVisita: (candidatura as any).token_visita || null,
             linkReuniao: (candidatura as any).link_reuniao || null,
             visitaConfirmadaEm: (candidatura as any).visita_confirmada_em || null,
+            preConfirmadoEm: (candidatura as any).pre_confirmado_em || null,
             arquivos: documentos,
             fotos: fotos
           };
