@@ -188,15 +188,32 @@ export function adaptarParaV9(orcamento: OrcamentoParaHtml, compat: Compatibiliz
   const chartGroups: V9ChartGroup[] = [];
   const proposalsWithValue = ranking.filter(e => e.valor_proposta != null);
   if (proposalsWithValue.length) {
-    const maxVal = Math.max(...proposalsWithValue.map(e => e.valor_proposta!));
-    const bars: V9ChartBar[] = proposalsWithValue.map((e, idx) => ({
+    // Derive market references from diferenca_mercado (% vs market)
+    const refVals = proposalsWithValue
+      .filter(e => e.diferenca_mercado != null)
+      .map(e => e.valor_proposta! / (1 + e.diferenca_mercado! / 100));
+    const mercadoMedio = refVals.length
+      ? Math.round(refVals.reduce((a, b) => a + b, 0) / refVals.length)
+      : null;
+    const mercadoAlto = mercadoMedio ? Math.round(mercadoMedio * 1.30) : null;
+
+    const bars: V9ChartBar[] = proposalsWithValue.map((e) => ({
       label: shortName(e.empresa),
       desc:  scoreLabel(e.score_composto),
       value: e.valor_proposta!,
       color: CORES[ranking.indexOf(e)] ?? '#2D3395',
       tip:   `${e.empresa}\nValor: ${moneyBR(e.valor_proposta)}\nScore: ${e.score_composto.toFixed(0)}/100\n${marketBadge(e.diferenca_mercado).text}`,
     }));
-    const cards: V9Card[] = proposalsWithValue.slice(0, 3).map((e, idx) => ({
+
+    if (mercadoMedio != null) {
+      bars.push({ label: 'Mercado\nMedio', desc: 'Referencia', value: mercadoMedio, color: '#9CA3AF', tip: `Referencia Mercado Medio\n${moneyBR(mercadoMedio)}` });
+    }
+    if (mercadoAlto != null) {
+      bars.push({ label: 'Alto\nPadrao', desc: 'Referencia +30%', value: mercadoAlto, color: '#A78BFA', tip: `Referencia Alto Padrao (+30%)\n${moneyBR(mercadoAlto)}` });
+    }
+
+    const maxVal = Math.max(...bars.map(b => b.value ?? 0));
+    const cards: V9Card[] = proposalsWithValue.slice(0, 3).map((e) => ({
       label: shortName(e.empresa),
       value: moneyBR(e.valor_proposta),
       desc:  `Score: ${e.score_composto.toFixed(0)}/100`,
@@ -206,7 +223,7 @@ export function adaptarParaV9(orcamento: OrcamentoParaHtml, compat: Compatibiliz
       title: 'Comparativo de Valores das Propostas',
       quote: ac?.metodologia
         ? `Metodologia: ${ac.metodologia}`
-        : 'Valores nominais das propostas apresentadas. Diferenças refletem escopo, prazo e condições de pagamento distintos.',
+        : 'Valores nominais das propostas apresentadas. Diferencas refletem escopo, prazo e condicoes de pagamento distintos.',
       cards,
       bars,
       max:   maxVal,

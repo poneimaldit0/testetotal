@@ -18,8 +18,11 @@ import {
   Loader2, BarChart2, AlertCircle, CheckCircle2, Send,
   ChevronUp, ChevronDown, History, Star, TrendingUp, TrendingDown,
   Pencil, X, Info, ShieldCheck, ShieldAlert, ThumbsUp, ThumbsDown,
-  ExternalLink, RefreshCw, Plus, Upload, FileText,
+  ExternalLink, RefreshCw, Plus, Upload, FileText, Zap,
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
+} from 'recharts';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -131,6 +134,81 @@ function DimStatusBadge({ status }: { status: DimStatus }) {
   if (status === 'atencao')   return <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-50 text-xs gap-1"><AlertCircle className="h-3 w-3" />atenção</Badge>;
   if (status === 'sem_dados') return <Badge variant="outline" className="text-gray-400 border-gray-200 text-xs">sem dados</Badge>;
   return <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 text-xs gap-1"><CheckCircle2 className="h-3 w-3" />ok</Badge>;
+}
+
+// ── PriceBarChart ─────────────────────────────────────────────────────────────
+
+const CHART_CORES = ['#2D3395', '#F7A226', '#1B7A4A', '#8B2252', '#0D7377', '#B5451B'];
+
+function PriceBarChart({ ranking }: { ranking: EmpresaRanking[] }) {
+  const withValue = ranking.filter(e => e.valor_proposta != null);
+  if (withValue.length < 1) return null;
+
+  const refVals = withValue
+    .filter(e => e.diferenca_mercado != null)
+    .map(e => e.valor_proposta! / (1 + e.diferenca_mercado! / 100));
+  const mercadoMedio = refVals.length
+    ? Math.round(refVals.reduce((a, b) => a + b, 0) / refVals.length)
+    : null;
+  const mercadoAlto = mercadoMedio ? Math.round(mercadoMedio * 1.30) : null;
+
+  const data: { name: string; value: number; fill: string; isRef: boolean }[] = [
+    ...withValue.map((e, i) => ({
+      name:  e.empresa.split(/[\s(]/)[0].slice(0, 11),
+      value: e.valor_proposta!,
+      fill:  CHART_CORES[i] ?? '#2D3395',
+      isRef: false,
+    })),
+    ...(mercadoMedio != null ? [{ name: 'Mercado Medio', value: mercadoMedio, fill: '#9CA3AF', isRef: true }] : []),
+    ...(mercadoAlto  != null ? [{ name: 'Alto Padrao',   value: mercadoAlto,  fill: '#A78BFA', isRef: true }] : []),
+  ];
+
+  const fmt = (v: number) =>
+    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+  return (
+    <div className="rounded-xl border bg-muted/20 p-4 space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+        <BarChart2 className="h-3.5 w-3.5" />
+        Comparativo de valores
+        {mercadoMedio != null && (
+          <span className="font-normal text-gray-400 normal-case ml-1">
+            · Mercado Medio: {fmt(mercadoMedio)}
+            {mercadoAlto != null && ` · Alto Padrao: ${fmt(mercadoAlto)}`}
+          </span>
+        )}
+      </p>
+      <ResponsiveContainer width="100%" height={190}>
+        <BarChart data={data} margin={{ top: 22, right: 8, bottom: 4, left: 4 }} barCategoryGap="28%">
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+          <YAxis hide domain={[0, 'dataMax + 10000']} />
+          <Tooltip
+            formatter={(v: number) => [fmt(v), 'Valor']}
+            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+          />
+          <Bar dataKey="value" radius={[5, 5, 0, 0]}>
+            {data.map((d, i) => (
+              <Cell key={i} fill={d.fill} opacity={d.isRef ? 0.55 : 1} />
+            ))}
+            <LabelList
+              dataKey="value"
+              position="top"
+              formatter={(v: number) => fmt(v)}
+              style={{ fontSize: 9, fontWeight: 700, fill: '#374151' }}
+            />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+      <div className="flex flex-wrap gap-2 pt-1">
+        {data.map((d, i) => (
+          <span key={i} className="flex items-center gap-1 text-[10px] text-gray-500">
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: d.fill, display: 'inline-block', opacity: d.isRef ? 0.55 : 1 }} />
+            {d.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── DecisaoEstrategicaCard ────────────────────────────────────────────────────
@@ -266,10 +344,16 @@ function RankingCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const foiMovida = posIaOriginal != null && posIaOriginal !== emp.posicao;
+  const temRiscoAlto    = emp.score_risco != null && emp.score_risco < 50;
+  const melhorCustoBeneficio = (
+    emp.diferenca_mercado != null && emp.diferenca_mercado < -5 && emp.score_composto >= 70
+  );
 
   return (
     <div className={`rounded-xl border p-4 space-y-3 transition-all ${
-      recomendada ? 'border-green-400 bg-green-50/40 shadow-sm' : 'border-border bg-card'
+      recomendada
+        ? 'border-green-400 bg-green-50/50 shadow-md ring-1 ring-green-300'
+        : 'border-border bg-card'
     }`}>
       {/* Cabeçalho */}
       <div className="flex items-center gap-3">
@@ -278,10 +362,20 @@ function RankingCard({
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-sm">{emp.empresa}</span>
+            <span className={`font-bold text-sm ${recomendada ? 'text-green-800' : ''}`}>{emp.empresa}</span>
             {recomendada && (
               <Badge className="bg-green-600 hover:bg-green-600 text-white text-xs gap-1 px-2">
                 <Star className="h-3 w-3" />Recomendada
+              </Badge>
+            )}
+            {melhorCustoBeneficio && (
+              <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-xs gap-1 px-2">
+                <Zap className="h-3 w-3" />Melhor custo-beneficio
+              </Badge>
+            )}
+            {temRiscoAlto && (
+              <Badge variant="outline" className="text-red-700 border-red-300 bg-red-50 text-xs gap-1">
+                <ShieldAlert className="h-3 w-3" />Risco alto
               </Badge>
             )}
             {foiMovida && (
@@ -297,7 +391,7 @@ function RankingCard({
                 {emp.valor_proposta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </span>
             ) : (
-              <Badge variant="outline" className="text-xs text-gray-400 border-gray-200">valor não informado</Badge>
+              <Badge variant="outline" className="text-xs text-gray-400 border-gray-200">valor nao informado</Badge>
             )}
           </div>
         </div>
@@ -306,7 +400,7 @@ function RankingCard({
             <button
               onClick={onRemover}
               className="mt-1 p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors"
-              title="Remover desta compatibilização"
+              title="Remover desta compatibilizacao"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1180,6 +1274,9 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
 
               {/* 3. Ranking */}
               <div className="space-y-3">
+                {rankingVisivel.length >= 1 && (
+                  <PriceBarChart ranking={rankingVisivel} />
+                )}
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">Ranking de empresas</p>
                   {canEdit && !editRanking && (

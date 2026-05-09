@@ -6,7 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { MOCK_ROTA100 } from '@/data/mockRota100';
 import { hasCompatRequest, saveCompatRequest, saveEmpresaDispensa, getDispensadas, getCompatRequests } from '@/lib/rota100Storage';
 import { useRota100Data, Rota100ChecklistItem, Rota100Empresa, Rota100Escopo } from '@/hooks/useRota100Data';
-import { useCompatibilizacaoIA } from '@/hooks/useCompatibilizacaoIA';
+import { useCompatibilizacaoIA, type CompatibilizacaoCompleta, type EmpresaRanking } from '@/hooks/useCompatibilizacaoIA';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -1052,7 +1052,135 @@ function EmpresasTab({
 }
 
 // ── COMPATIBILIZAÇÃO ──────────────────────────────────────────────────────────
-function CompatibilizacaoTab({ requested, onRequest, onGoToEmpresas }: { requested: boolean; onRequest: () => void; onGoToEmpresas: () => void }) {
+// ── helpers de compat (sem lógica de IA — só apresentação) ───────────────────
+const COMPAT_CORES = ['#2D3395', '#F7A226', '#1B7A4A', '#8B2252', '#0D7377', '#B5451B'] as const;
+
+function compatFmtBRL(v: number | null | undefined): string {
+  if (v == null || v === 0) return '—';
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function CompatMercadoBadge({ diff }: { diff: number | null | undefined }) {
+  if (diff == null) return null;
+  if (diff > 10)  return <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#FEE2E2', color: '#B91C1C' }}>+{diff.toFixed(1)}% acima do mercado</span>;
+  if (diff < -10) return <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#FEF3C7', color: '#92400E' }}>{diff.toFixed(1)}% abaixo do mercado</span>;
+  return <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: C.vd2, color: C.vd }}>Dentro do mercado</span>;
+}
+
+function CompatRankingCard({ emp, isRec, idx }: { emp: EmpresaRanking; isRec: boolean; idx: number }) {
+  const cor = COMPAT_CORES[idx] ?? '#2D3395';
+  const temRisco = emp.score_risco != null && emp.score_risco < 50;
+  const fortes   = (emp.pontos_fortes ?? []).slice(0, 3);
+  return (
+    <div style={{ borderRadius: 14, border: `1.5px solid ${isRec ? C.vd : C.bd}`, background: isRec ? C.vd2 : '#fff', padding: '18px 20px', boxShadow: isRec ? '0 2px 14px rgba(26,122,74,.12)' : '0 1px 4px rgba(0,0,0,.04)', borderLeft: `5px solid ${cor}`, marginBottom: 12 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', background: cor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, flexShrink: 0 }}>
+          {emp.posicao}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: isRec ? C.vd : C.nv }}>{emp.empresa}</span>
+            {isRec && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: C.vd, color: '#fff' }}>Indicada</span>}
+            {temRisco && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: '#FEE2E2', color: '#B91C1C' }}>Atenção: risco</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.nv }}>{compatFmtBRL(emp.valor_proposta)}</span>
+            <CompatMercadoBadge diff={emp.diferenca_mercado} />
+          </div>
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, color: emp.score_composto >= 75 ? C.vd : emp.score_composto >= 50 ? C.am : C.vm }}>{emp.score_composto}</div>
+          <div style={{ fontSize: 9, color: C.cz }}>avaliação</div>
+        </div>
+      </div>
+      {/* Barra de avaliação */}
+      <div style={{ height: 4, borderRadius: 9, background: C.bd, marginBottom: 10, overflow: 'hidden' }}>
+        <div style={{ height: '100%', borderRadius: 9, background: cor, width: `${emp.score_composto}%`, transition: 'width .6s' }} />
+      </div>
+      {/* Pontos fortes */}
+      {fortes.length > 0 && (
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {fortes.map((p, i) => (
+            <li key={i} style={{ fontSize: 12, color: C.nv, display: 'flex', gap: 6, lineHeight: 1.5 }}>
+              <span style={{ color: C.vd, flexShrink: 0 }}>✓</span>
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function CompatibilizacaoTab({
+  requested, onRequest, onGoToEmpresas, compatResult,
+}: {
+  requested: boolean;
+  onRequest: () => void;
+  onGoToEmpresas: () => void;
+  compatResult: CompatibilizacaoCompleta | null;
+}) {
+  // ── Estado liberado ──────────────────────────────────────────────────────────
+  if (compatResult) {
+    const ranking = [...(compatResult.ranking ?? [])].sort((a, b) => a.posicao - b.posicao);
+    const recomendada = ranking.find(e => e.candidatura_id === compatResult.empresa_recomendada_id) ?? ranking[0];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Header */}
+        <div style={{ borderRadius: 16, background: `linear-gradient(135deg, ${C.nv} 0%, #2a3240 100%)`, padding: '22px 24px', color: '#fff' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,.45)', marginBottom: 6 }}>Análise Reforma100</div>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, fontWeight: 400, lineHeight: 1.25, marginBottom: 10 }}>
+            Compatibilização de propostas pronta
+          </div>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', lineHeight: 1.7 }}>
+            Analisamos cada proposta em detalhe — escopo, preço, prazo e risco — e preparamos esta comparação para te ajudar a decidir com segurança.
+          </p>
+        </div>
+
+        {/* Empresa indicada */}
+        {recomendada && (
+          <div style={{ borderRadius: 14, background: C.vd2, border: `1.5px solid ${C.vd}`, padding: '20px 22px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: C.vd, marginBottom: 8 }}>Empresa mais indicada</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, color: C.vd, flex: 1 }}>{recomendada.empresa}</div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 32, fontWeight: 900, color: C.vd, lineHeight: 1 }}>{recomendada.score_composto}</div>
+                <div style={{ fontSize: 9, color: C.vd }}>/ 100</div>
+              </div>
+            </div>
+            {compatResult.recomendacao_geral && (
+              <p style={{ fontSize: 13, color: C.nv, lineHeight: 1.75, marginTop: 10 }}>{compatResult.recomendacao_geral}</p>
+            )}
+          </div>
+        )}
+
+        {/* Ranking de propostas */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: C.cz, marginBottom: 12 }}>
+            Comparativo de propostas — {ranking.length} empresa{ranking.length !== 1 ? 's' : ''} avaliada{ranking.length !== 1 ? 's' : ''}
+          </div>
+          {ranking.map((emp, i) => (
+            <CompatRankingCard
+              key={emp.candidatura_id}
+              emp={emp}
+              isRec={emp.candidatura_id === compatResult.empresa_recomendada_id}
+              idx={i}
+            />
+          ))}
+        </div>
+
+        <div style={{ borderRadius: 12, background: C.fd, border: `1px solid ${C.bd}`, padding: '14px 18px' }}>
+          <p style={{ fontSize: 12, color: C.cz, lineHeight: 1.75 }}>
+            Esta análise foi preparada pelo seu consultor Reforma100 com base nas propostas recebidas. Fale com ele para esclarecer dúvidas antes de decidir.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Estado solicitado (aguardando) ───────────────────────────────────────────
   if (requested) {
     return (
       <div className="r100-card" style={{ textAlign: 'center', padding: '52px 36px', background: C.vd2, borderColor: 'rgba(26,122,74,.15)' }}>
@@ -1065,6 +1193,7 @@ function CompatibilizacaoTab({ requested, onRequest, onGoToEmpresas }: { request
     );
   }
 
+  // ── Estado bloqueado (preservado) ────────────────────────────────────────────
   return (
     <div style={{ background: '#fff', border: `1.5px dashed ${C.bd}`, borderRadius: 16, padding: '52px 36px', textAlign: 'center', boxShadow: '0 1px 6px rgba(0,0,0,.04)' }}>
       <div style={{ width: 72, height: 72, borderRadius: '50%', background: C.fd, border: `2px solid ${C.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 22px' }}>🔒</div>
@@ -1350,11 +1479,31 @@ export default function Rota100() {
   const { token = '' } = useParams<{ token: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('checklist');
   const [compatRequested, setCompatRequested] = useState(false);
+  const [compatResult, setCompatResult] = useState<CompatibilizacaoCompleta | null>(null);
 
   const { data, loading, notFound } = useRota100Data(token);
 
   // Hook de compatibilização IA — inicializado com orcamentoId quando disponível
   const { solicitarCompatibilizacao } = useCompatibilizacaoIA(data?.orcamentoId ?? '');
+
+  // Busca compat enviada/aprovada para exibir ao cliente (somente leitura, sem alterar lógica de IA)
+  useEffect(() => {
+    if (!data?.orcamentoId) return;
+    (supabase as any)
+      .from('compatibilizacoes_analises_ia')
+      .select('analise_completa, ranking_ajustado')
+      .eq('orcamento_id', data.orcamentoId)
+      .in('status', ['enviado', 'aprovado'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data: row }: { data: any }) => {
+        if (row?.analise_completa) {
+          const ac = row.analise_completa as CompatibilizacaoCompleta;
+          setCompatResult({ ...ac, ranking: row.ranking_ajustado ?? ac.ranking });
+        }
+      });
+  }, [data?.orcamentoId]);
 
   useEffect(() => {
     if (!token) return;
@@ -1466,7 +1615,7 @@ export default function Rota100() {
     { id: 'checklist',        label: 'Checklist' },
     { id: 'escopo',           label: 'Escopo' },
     { id: 'empresas',         label: 'Empresas' },
-    { id: 'compatibilizacao', label: 'Compat. 🔒', locked: true },
+    { id: 'compatibilizacao', label: compatResult ? 'Compat. ✓' : 'Compat. 🔒', locked: !compatResult },
     { id: 'marketplace',      label: 'Marketplace' },
     { id: 'avaliacoes',       label: 'Avaliações' },
   ];
@@ -1608,7 +1757,7 @@ export default function Rota100() {
           {activeTab === 'checklist'        && <ChecklistTab items={data?.checklist ?? MOCK_ROTA100.checklist} empresas={data?.empresas ?? []} />}
           {activeTab === 'escopo'           && <EscopoTab {...(data?.escopo ?? MOCK_ROTA100.escopo)} />}
           {activeTab === 'empresas'         && <EmpresasTab empresas={data?.empresas ?? MOCK_ROTA100.empresas as any} token={token} tipoAtendimento={data?.tipoAtendimento ?? null} onCompatIndividual={handleCompatIndividual} onCompatCompleta={handleCompatCompleta} onDispensa={handleDispensa} />}
-          {activeTab === 'compatibilizacao' && <CompatibilizacaoTab requested={compatRequested} onRequest={handleCompatRequest} onGoToEmpresas={() => setActiveTab('empresas')} />}
+          {activeTab === 'compatibilizacao' && <CompatibilizacaoTab requested={compatRequested} onRequest={handleCompatRequest} onGoToEmpresas={() => setActiveTab('empresas')} compatResult={compatResult} />}
           {activeTab === 'marketplace'      && <MarketplaceTab />}
           {activeTab === 'avaliacoes'       && <AvaliacoesTab empresas={data?.empresas ?? []} token={token} orcamentoId={data?.orcamentoId ?? ''} />}
         </div>
