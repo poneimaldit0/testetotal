@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DialogTrigger } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { MessageCircle, Mail, Phone, Users, Clock, X, ChevronDown, ChevronUp, CalendarClock } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Users, Clock, X, ChevronDown, ChevronUp, CalendarClock, MapPin, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { OrcamentoGlobal } from '@/hooks/useOrcamentosGlobal';
@@ -130,16 +130,30 @@ export const OrcamentoCardGlobal: React.FC<OrcamentoCardGlobalProps> = ({
             </div>
             <div className="flex items-center gap-1 min-w-0 max-w-full overflow-hidden">
               <Users className="h-3 w-3 md:h-4 md:w-4 text-gray-500 flex-shrink-0" />
-              <span className="font-medium text-gray-600">Empresas:</span> 
-              <span className="ml-1 text-gray-800 truncate">{orcamento.quantidadeEmpresas}/3</span>
+              <span className="font-medium text-gray-600">Inscritas:</span>
+              <span className="ml-1 text-gray-800 truncate">{Math.min(orcamento.quantidadeEmpresas, 3)}/3</span>
             </div>
           </div>
 
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-4">
-            <div className="text-xs md:text-sm flex items-center gap-1">
-              <Clock className="h-3 w-3 md:h-4 md:w-4 text-gray-500" />
-              <span className="font-medium text-gray-600">Início pretendido:</span>{' '}
-              {exibirPrazoInicio()}
+            <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 md:h-4 md:w-4 text-gray-500 flex-shrink-0" />
+                <span className="font-medium text-gray-600">Início pretendido:</span>{' '}
+                {exibirPrazoInicio()}
+              </div>
+              {orcamento.tipoAtendimento === 'presencial' && (
+                <Badge variant="outline" className="text-[10px] md:text-xs gap-1 border-amber-300 bg-amber-50 text-amber-700">
+                  <MapPin className="h-3 w-3" />
+                  Visita presencial
+                </Badge>
+              )}
+              {orcamento.tipoAtendimento === 'online' && (
+                <Badge variant="outline" className="text-[10px] md:text-xs gap-1 border-violet-300 bg-violet-50 text-violet-700">
+                  <Video className="h-3 w-3" />
+                  Reunião online
+                </Badge>
+              )}
             </div>
             
             {/* Botões de ação */}

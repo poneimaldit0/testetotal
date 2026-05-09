@@ -24,6 +24,7 @@ export const buscarTodosOrcamentos = async (userId: string, apenasAbertos: boole
           email
         )
       ),
+      tipo_atendimento_tecnico,
       candidaturas_fornecedores!left(
         id,
         data_candidatura,
@@ -89,6 +90,7 @@ export const buscarOrcamentosOtimizado = async (userId: string, diasFechados: nu
           email
         )
       ),
+      tipo_atendimento_tecnico,
       candidaturas_fornecedores!left(
         id,
         data_candidatura,
@@ -226,6 +228,9 @@ export const processarDadosOrcamento = (orc: any, userId: string, contagemPorOrc
     ? orc.horarios_visita_orcamento 
     : [];
 
+  const estaInscrito = !!minhaInscricao;
+  const tipoAtendimento = (orc.tipo_atendimento_tecnico as 'presencial' | 'online' | null) ?? null;
+
   return {
     id: orc.id,
     necessidade: orc.necessidade,
@@ -242,9 +247,10 @@ export const processarDadosOrcamento = (orc: any, userId: string, contagemPorOrc
     inscricaoId: minhaInscricao?.id,
     inscritoEm: minhaInscricao ? criarDataLocal(minhaInscricao.data_candidatura) : undefined,
     statusAcompanhamento: minhaInscricao?.status_acompanhamento || null,
-    estaInscrito: !!minhaInscricao,
-    arquivos: documentos,
-    fotos,
+    estaInscrito,
+    tipoAtendimento,
+    arquivos: estaInscrito ? documentos : [],
+    fotos: estaInscrito ? fotos : [],
     horariosVisita
   };
 };

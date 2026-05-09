@@ -30,6 +30,10 @@ export interface CandidaturaOrcamento {
   dataAtualizacao: Date;
   // Horário de visita agendado
   horarioVisitaAgendado?: string | null;
+  // Campos operacionais pós-inscrição
+  tokenVisita?: string | null;
+  linkReuniao?: string | null;
+  visitaConfirmadaEm?: string | null;
   // Adicionar campos de arquivos
   arquivos?: Array<{
     id: string;
@@ -88,6 +92,9 @@ export const useMeusCandidaturas = (userId?: string) => {
           updated_at,
           status_acompanhamento,
           observacoes_acompanhamento,
+          token_visita,
+          link_reuniao,
+          visita_confirmada_em,
           orcamentos (
             id,
             necessidade,
@@ -319,6 +326,9 @@ export const useMeusCandidaturas = (userId?: string) => {
             dataCandidatura: new Date(candidatura.data_candidatura),
             dataAtualizacao: new Date((candidatura as any).updated_at || candidatura.data_candidatura),
             horarioVisitaAgendado: horarioVisita?.data_hora || null,
+            tokenVisita: (candidatura as any).token_visita || null,
+            linkReuniao: (candidatura as any).link_reuniao || null,
+            visitaConfirmadaEm: (candidatura as any).visita_confirmada_em || null,
             arquivos: documentos,
             fotos: fotos
           };

@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,14 +19,25 @@ import { useGestorConta } from '@/hooks/useGestorConta';
 import { CATEGORIAS_SERVICO } from '@/constants/orcamento';
 import { PRAZOS_INICIO } from '@/constants/orcamento';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, FileSpreadsheet, Info } from 'lucide-react';
+import { Plus, FileSpreadsheet, Info, Loader2, MapPin } from 'lucide-react';
 import { ProdutoSegmentacaoSelect } from './ProdutoSegmentacaoSelect';
+import { consultarCep, CepResultado } from '@/utils/cepIntelligencia';
+
+const CLASSIF_CORES: Record<string, string> = {
+  'Premium A+':               'bg-emerald-100 text-emerald-800 border-emerald-200',
+  'Premium A':                'bg-green-100 text-green-800 border-green-200',
+  'A-':                       'bg-blue-100 text-blue-800 border-blue-200',
+  'B+':                       'bg-sky-100 text-sky-800 border-sky-200',
+  'B':                        'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'Oportunidade':             'bg-orange-100 text-orange-800 border-orange-200',
+  'Periférico com potencial': 'bg-gray-100 text-gray-700 border-gray-200',
+};
 
 export const CadastroOrcamento: React.FC = () => {
   const { adicionarOrcamento } = useOrcamento();
   const { gestores, obterProximoGestor, loading: loadingGestores } = useGestorConta();
   const { toast } = useToast();
-  
+
   const [formData, setFormData] = useState({
     necessidade: '',
     categorias: [] as string[],
@@ -45,8 +57,36 @@ export const CadastroOrcamento: React.FC = () => {
   const [fotos, setFotos] = useState<File[]>([]);
   const [linkRota100, setLinkRota100] = useState<string | null>(null);
   const [videos, setVideos] = useState<File[]>([]);
+  const [cep, setCep] = useState('');
+  const [cepResultado, setCepResultado] = useState<CepResultado | null>(null);
+  const [cepCarregando, setCepCarregando] = useState(false);
+  const cepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCepChange = (valor: string) => {
+    setCep(valor);
+    if (cepTimerRef.current) clearTimeout(cepTimerRef.current);
+    const clean = valor.replace(/\D/g, '');
+    if (clean.length !== 8) {
+      setCepResultado(null);
+      return;
+    }
+    setCepCarregando(true);
+    cepTimerRef.current = setTimeout(async () => {
+      const resultado = await consultarCep(clean);
+      setCepResultado(resultado);
+      setCepCarregando(false);
+      if (resultado?.viaCep) {
+        const { bairro, localidade, uf } = resultado.viaCep;
+        const localAutoFill = [bairro, localidade, uf].filter(Boolean).join(', ');
+        if (localAutoFill) {
+          setFormData(prev => ({ ...prev, local: prev.local || localAutoFill }));
+        }
+      }
+    }, 400);
   };
 
   const handleCategoriaChange = (categoria: string, checked: boolean) => {
@@ -139,6 +179,8 @@ export const CadastroOrcamento: React.FC = () => {
       setArquivos([]);
       setFotos([]);
       setVideos([]);
+      setCep('');
+      setCepResultado(null);
 
       if (novoOrcamento?.rota100_token) {
         const url = `${window.location.origin}/rota100/${novoOrcamento.rota100_token}`;
@@ -235,6 +277,46 @@ export const CadastroOrcamento: React.FC = () => {
                     required
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cep">CEP</Label>
+                  <div className="relative">
+                    <Input
+                      id="cep"
+                      value={cep}
+                      onChange={(e) => handleCepChange(e.target.value)}
+                      placeholder="00000-000"
+                      maxLength={9}
+                    />
+                    {cepCarregando && (
+                      <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+
+                {cepResultado && (
+                  <div className="md:col-span-2 p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-slate-500 flex-shrink-0" />
+                      <span className="text-xs font-medium text-slate-600">
+                        {[cepResultado.regiao.bairro, cepResultado.regiao.cidade, cepResultado.regiao.uf].filter(Boolean).join(', ')}
+                      </span>
+                      <Badge variant="outline" className={`text-xs ${CLASSIF_CORES[cepResultado.regiao.classificacao] ?? 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                        {cepResultado.regiao.classificacao}
+                      </Badge>
+                      {(cepResultado.regiao.faixa_valor_min || cepResultado.regiao.faixa_valor_max) && (
+                        <span className="text-xs text-slate-500">
+                          Ticket: R$ {cepResultado.regiao.faixa_valor_min ? Math.round(cepResultado.regiao.faixa_valor_min / 1000) + 'k' : '?'}
+                          {' – '}
+                          R$ {cepResultado.regiao.faixa_valor_max ? Math.round(cepResultado.regiao.faixa_valor_max / 1000) + 'k' : '?'}
+                        </span>
+                      )}
+                    </div>
+                    {cepResultado.regiao.descricao && (
+                      <p className="text-xs text-slate-500 leading-relaxed">{cepResultado.regiao.descricao}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="tamanhoImovel">Tamanho do Imóvel (m²) *</Label>

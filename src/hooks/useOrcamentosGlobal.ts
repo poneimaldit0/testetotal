@@ -34,6 +34,7 @@ export interface OrcamentoGlobal {
   inscritoEm?: Date;
   statusAcompanhamento?: string | null;
   estaInscrito: boolean;
+  tipoAtendimento?: 'presencial' | 'online' | null;
   arquivos?: Arquivo[];
   fotos?: Arquivo[];
   horariosVisita?: Array<{
