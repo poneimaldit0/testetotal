@@ -222,7 +222,6 @@ export const ModalDetalhesOrcamentoCRM = ({
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [invalidadosPorConsultor, setInvalidadosPorConsultor] = useState<Set<string>>(new Set());
   const [recalculandoIA, setRecalculandoIA] = useState(false);
-  const [estimativasOpen, setEstimativasOpen] = useState(false);
 
   const podeRecalcularIA = ['master', 'admin', 'gestor_conta', 'sdr'].includes(
     profile?.tipo_usuario ?? ''
@@ -452,25 +451,7 @@ export const ModalDetalhesOrcamentoCRM = ({
               </p>
             </div>
 
-            {/* ── Estimativas (collapsible) ── */}
-            <div className="border rounded-lg overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setEstimativasOpen(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-              >
-                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide flex items-center gap-2">
-                  <Zap className="h-3.5 w-3.5 text-amber-500" />
-                  Estimativas técnicas
-                  {vt.medio != null && (
-                    <span className="font-normal text-gray-400 normal-case tracking-normal">· {formatarBRL(vt.medio)}</span>
-                  )}
-                </span>
-                {estimativasOpen ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-              </button>
-              {estimativasOpen && (
-              <div className="p-4 space-y-3 border-t">
-            <div className="rounded-lg p-3 bg-amber-50/40 border border-amber-200">
+            <div className="border rounded-lg p-4 bg-amber-50/40 border-amber-200">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Estimativa Técnica
@@ -517,13 +498,14 @@ export const ModalDetalhesOrcamentoCRM = ({
                 </div>
               )}
               {vt.budgetCliente != null && (
-                <p className=”text-xs text-muted-foreground mt-2”>
+                <p className="text-xs text-muted-foreground mt-2">
                   Informação visível apenas para gestores e administradores
                 </p>
               )}
             </div>
+            {/* â”€â”€ Estimativa IA â”€â”€ */}
             {podeRecalcularIA && (
-              <div className=”rounded-lg p-3 bg-violet-50/50 border border-violet-200”>
+              <div className="border rounded-lg p-4 bg-violet-50/50 border-violet-200">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-sm flex items-center gap-2 text-violet-800">
                     <Brain className="h-4 w-4" />
@@ -580,9 +562,6 @@ export const ModalDetalhesOrcamentoCRM = ({
                 )}
               </div>
             )}
-              </div>
-              )}
-            </div>
 
             <div>
               <label className="text-sm font-medium">Necessidade</label>
