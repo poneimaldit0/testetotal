@@ -2120,18 +2120,28 @@ function FormNovoLeadSDR({
   adicionarOrcamento,
   onSuccess,
   onCancel,
+  cepInicial,
 }: {
   adicionarOrcamento: (input: NovoOrcamentoInput) => Promise<{ id: string; rota100_token?: string | null } | undefined>;
   onSuccess: () => void;
   onCancel: () => void;
+  cepInicial?: CepResultado | null;
 }) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [linkRota100, setLinkRota100] = useState<string | null>(null);
   const [arquivosSelecionados, setArquivosSelecionados] = useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const localInicial = cepInicial
+    ? [cepInicial.viaCep.bairro, cepInicial.viaCep.localidade, cepInicial.viaCep.uf]
+        .filter(Boolean)
+        .join(', ')
+        .replace(/,\s*([^,]+)$/, ' – $1')
+    : '';
+
   const [form, setForm] = useState<NovoLeadForm>({
-    nome: '', telefone: '', email: '', local: '', tamanho: '', budget: '',
+    nome: '', telefone: '', email: '', local: localInicial, tamanho: '', budget: '',
     prazo: '', necessidade: '', categorias: [], tipoAtendimento: '',
     horarios: [{ ...HORARIO_VAZIO }, { ...HORARIO_VAZIO }, { ...HORARIO_VAZIO }],
   });
@@ -2281,6 +2291,74 @@ function FormNovoLeadSDR({
           <h2 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 20, color: C.NV, margin: 0 }}>Novo Lead SDR</h2>
           <button onClick={onCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: C.CZ, lineHeight: 1 }}>✕</button>
         </div>
+
+        {/* Card Inteligência CEP — visível apenas quando há consulta prévia */}
+        {cepInicial && (() => {
+          const r = cepInicial.regiao;
+          const v = cepInicial.viaCep;
+          const classBg: Record<string, string> = {
+            'Premium A+': '#F5EEF8', 'Premium A': '#EEF0FF', 'A-': '#E8F5EE',
+            'B+': '#FFF5DC', 'B': '#F7F6F3', 'Oportunidade': '#FFF5E6', 'Fora de área': '#F7F6F3',
+          };
+          const classClr: Record<string, string> = {
+            'Premium A+': '#6B21A8', 'Premium A': '#3B35B7', 'A-': '#1B7A4A',
+            'B+': '#9A6200', 'B': '#6B7280', 'Oportunidade': '#C45B10', 'Fora de área': '#6B7280',
+          };
+          const bg  = classBg[r.classificacao]  ?? '#F7F6F3';
+          const clr = classClr[r.classificacao] ?? '#6B7280';
+          const faixa = r.faixa_valor_min
+            ? r.faixa_valor_max
+              ? `R$${(r.faixa_valor_min / 1000).toFixed(0)}k – R$${(r.faixa_valor_max / 1000).toFixed(0)}k`
+              : `acima de R$${(r.faixa_valor_min / 1000).toFixed(0)}k`
+            : null;
+          return (
+            <div style={{
+              background: bg,
+              border: `1px solid ${clr}33`,
+              borderTop: `3px solid ${clr}`,
+              borderRadius: 10,
+              padding: '10px 14px',
+              marginBottom: 18,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.CZ, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  📍 Inteligência CEP — {v.cep}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, background: C.white, color: clr, border: `1px solid ${clr}44`, borderRadius: 999, padding: '2px 9px' }}>
+                  {r.classificacao}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: C.text, fontWeight: 500 }}>
+                {[v.logradouro, v.bairro, v.localidade, v.uf].filter(Boolean).join(', ')}
+              </div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {r.potencial && (
+                  <span style={{ fontSize: 11, color: clr, fontWeight: 600 }}>
+                    Potencial: {r.potencial}
+                  </span>
+                )}
+                {faixa && (
+                  <span style={{ fontSize: 11, color: C.CZ }}>
+                    Ticket estimado: {faixa}
+                  </span>
+                )}
+                {r.status_regiao && (
+                  <span style={{ fontSize: 11, color: C.CZ }}>
+                    Status: {r.status_regiao}
+                  </span>
+                )}
+              </div>
+              {r.descricao && (
+                <div style={{ fontSize: 11, color: C.CZ, lineHeight: 1.5, borderTop: `1px solid ${clr}22`, paddingTop: 6, marginTop: 2 }}>
+                  {r.descricao}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Dados do cliente */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -3185,6 +3263,7 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
           adicionarOrcamento={adicionarOrcamento}
           onSuccess={() => { setShowNovoLeadModal(false); fetchLeads(); }}
           onCancel={() => setShowNovoLeadModal(false)}
+          cepInicial={cepResultado}
         />
       )}
 
