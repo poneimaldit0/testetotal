@@ -1,9 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Identidade Visual GoodRef */
+/* Identidade Visual Reforma100 */
 
 @layer base {
   :root {
@@ -16,8 +17,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Cores primárias GoodRef - Verde */
-    --primary: 142 76% 36%;
+    /* Cor primária Isabella — azul #2D3395 */
+    --primary: 236 54% 38%;
     --primary-foreground: 0 0% 98%;
 
     /* Cores secundárias - Azul escuro */
@@ -48,7 +49,7 @@
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 142 76% 36%;
+    --sidebar-primary: 236 54% 38%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
@@ -93,12 +94,12 @@
     
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 142 76% 36%;
+    --sidebar-primary: 236 54% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 142 76% 36%;
+    --sidebar-ring: 236 54% 38%;
   }
 }
 
@@ -110,7 +111,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
   
   #root {
@@ -118,22 +119,68 @@
   }
 }
 
-/* Componentes customizados GoodRef */
+/* Componentes Reforma100 */
 @layer components {
-  .goodref-gradient {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  /* Header premium com gradiente Isabella */
+  .r100-header {
+    background: linear-gradient(150deg, #2D3395 0%, #3d4ab5 100%);
+    color: #fff;
+    padding: 28px 24px 22px;
   }
-  
-  .goodref-card {
-    @apply bg-white shadow-lg border border-gray-100 rounded-xl;
+  .r100-header-sdr {
+    background: linear-gradient(135deg, #2D3395 0%, #534AB7 100%);
+    color: #fff;
+    padding: 20px 24px 18px;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(45,51,149,0.22);
+    margin-bottom: 20px;
   }
-  
-  .goodref-button-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-colors;
+  .r100-header-crm {
+    background: linear-gradient(150deg, #2D3395 0%, #534AB7 100%);
+    color: #fff;
+    padding: 24px 28px 20px;
   }
-  
-  .goodref-button-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors;
+
+  /* Card padrão Isabella */
+  .r100-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.07), 0 0 1px rgba(0,0,0,.04);
+    overflow: hidden;
+    transition: box-shadow .18s, transform .18s;
+  }
+  .r100-card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.05);
+    transform: translateY(-2px);
+  }
+
+  /* Tipografia Isabella */
+  .r100-syne { font-family: 'Syne', sans-serif; }
+  .r100-serif { font-family: 'DM Serif Display', serif; }
+  .r100-sans  { font-family: 'DM Sans', sans-serif; }
+
+  /* Section label padrão */
+  .r100-section-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #6B7280;
+  }
+
+  /* Linha-clamp para títulos de card/ficha */
+  .r100-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .r100-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 

@@ -33,6 +33,7 @@ import { NotificationCenter } from "@/components/fornecedor/NotificationCenter"
 import {
   Sidebar,
   SidebarContent,
+  SidebarHeader,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -326,6 +327,30 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
 
   return (
     <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
+      <SidebarHeader>
+        <div style={{
+          padding: collapsed ? '14px 0' : '16px 20px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          borderBottom: '1px solid #E5E7EB',
+          marginBottom: 4,
+        }}>
+          {collapsed ? (
+            <div style={{
+              width: 30, height: 30, borderRadius: 8,
+              background: 'linear-gradient(135deg, #2D3395 0%, #534AB7 100%)',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 13,
+              flexShrink: 0,
+            }}>R</div>
+          ) : (
+            <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, color: '#1A2030', letterSpacing: '-0.3px', lineHeight: 1 }}>
+              Reforma<span style={{ color: '#2D3395' }}>100</span>
+            </span>
+          )}
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         {/* Notificações para Fornecedores e Concierges */}
         {['fornecedor', 'gestor_conta', 'customer_success'].includes(profile.tipo_usuario) && (

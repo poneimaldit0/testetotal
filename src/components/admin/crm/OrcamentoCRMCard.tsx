@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { crmEtapaColor } from '@/styles/tokens';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -58,8 +59,12 @@ export const OrcamentoCRMCard = ({
   };
 
   // Verificar se está em atraso (lead time excedido)
-  const estaEmAtraso = configEtapa?.dias_limite && 
+  const estaEmAtraso = configEtapa?.dias_limite &&
                        orcamento.tempo_na_etapa_dias > configEtapa.dias_limite;
+
+  const etapaBorderColor = configEtapa?.valor
+    ? (crmEtapaColor[configEtapa.valor] ?? '#E5E7EB')
+    : '#E5E7EB';
 
   const cardClassName = cn(
     "p-4 hover:shadow-lg transition-all cursor-pointer relative",
@@ -71,7 +76,7 @@ export const OrcamentoCRMCard = ({
   );
 
   return (
-    <Card className={cardClassName}>
+    <Card className={cardClassName} style={{ borderTop: `3px solid ${etapaBorderColor}` }}>
       {onToggleSelect && (
         <div className="absolute top-3 right-3 z-10 hover:scale-110 transition-transform" onClick={(e) => e.stopPropagation()}>
           <Checkbox

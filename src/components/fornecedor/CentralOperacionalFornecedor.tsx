@@ -4,29 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMeusCandidaturas, CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
 import { FichaOperacionalFornecedor } from './FichaOperacionalFornecedor';
-
-// ── Design tokens Isabella ────────────────────────────────────────────────────
-const I = {
-  azul:   '#2D3395',
-  azul2:  '#3d4ab5',
-  azul3:  '#eef0ff',
-  lj:     '#F7A226',
-  lj2:    '#fff8e1',
-  vd:     '#1B7A4A',
-  vd2:    '#e0f5ec',
-  am:     '#E08B00',
-  am2:    '#fff3cd',
-  rx:     '#534AB7',
-  rx2:    '#ede9ff',
-  vm:     '#C0392B',
-  vm2:    '#fde8e8',
-  cz:     '#6B7280',
-  cz2:    '#F3F4F6',
-  nv:     '#1A2030',
-  bd:     '#E5E7EB',
-  bg:     '#F4F5FB',
-  br:     '#FFFFFF',
-} as const;
+import { R as I } from '@/styles/tokens';
 
 // ── CSS injection ─────────────────────────────────────────────────────────────
 function useCentralStyles() {
@@ -764,11 +742,11 @@ export function CentralOperacionalFornecedor() {
             sub="Aguardando análise"
           />
           <KpiCard
-            borderColor={repKpi ? I.lj : I.cz}
-            icon="⭐"
-            value={repKpi ? repKpi.media.toFixed(1) : '—'}
+            borderColor={repKpi ? I.lj : I.azul}
+            icon={repKpi ? '⭐' : '🏅'}
+            value={repKpi ? repKpi.media.toFixed(1) : 'Nova'}
             label="Reputação"
-            sub={repKpi ? `${repKpi.total} avaliação${repKpi.total !== 1 ? 'ões' : ''}` : 'Sem avaliações ainda'}
+            sub={repKpi ? `${repKpi.total} avaliação${repKpi.total !== 1 ? 'ões' : ''}` : 'Complete perfil →'}
           />
         </div>
 

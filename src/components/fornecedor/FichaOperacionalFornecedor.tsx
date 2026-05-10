@@ -4,18 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
 import { PropostaAnexoUpload } from './PropostaAnexoUpload';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-
-// ── Tokens (mesmos da Central) ────────────────────────────────────────────────
-const I = {
-  azul: '#2D3395', azul2: '#3d4ab5', azul3: '#eef0ff',
-  lj: '#F7A226', lj2: '#fff8e1',
-  vd: '#1B7A4A', vd2: '#e0f5ec',
-  am: '#E08B00', am2: '#fff3cd',
-  rx: '#534AB7', rx2: '#ede9ff',
-  vm: '#C0392B', vm2: '#fde8e8',
-  cz: '#6B7280', cz2: '#F3F4F6',
-  nv: '#1A2030', bd: '#E5E7EB', bg: '#F4F5FB', br: '#FFFFFF',
-} as const;
+import { R as I } from '@/styles/tokens';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtDt = (iso: string) =>
@@ -51,10 +40,8 @@ function FichaHeader({ candidatura }: { candidatura: CandidaturaOrcamento }) {
       </div>
 
       {/* paddingRight reserva espaço para o botão × do Radix Sheet (absolute right-4 top-4) */}
-      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: '#fff', lineHeight: 1.3, marginBottom: 10, paddingRight: 44 }}>
-        {candidatura.necessidade.length > 80
-          ? candidatura.necessidade.slice(0, 80) + '…'
-          : candidatura.necessidade}
+      <div className="r100-clamp-2" style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: '#fff', lineHeight: 1.4, marginBottom: 10, paddingRight: 44 }}>
+        {candidatura.necessidade}
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -88,6 +75,7 @@ function FichaHeader({ candidatura }: { candidatura: CandidaturaOrcamento }) {
 
 // ── Seção: resultado final ────────────────────────────────────────────────────
 function SecaoResultado({ s }: { s: string | null }) {
+  const navigate = useNavigate();
   if (s === 'negocio_fechado') {
     return (
       <div style={{ borderRadius: 10, background: I.vd2, border: `1.5px solid ${I.vd}`, padding: '14px 16px', marginBottom: 16 }}>
@@ -100,7 +88,17 @@ function SecaoResultado({ s }: { s: string | null }) {
     return (
       <div style={{ borderRadius: 10, background: I.cz2, border: `1.5px solid ${I.bd}`, padding: '14px 16px', marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: I.cz, marginBottom: 2 }}>Proposta não selecionada</div>
-        <div style={{ fontSize: 12, color: I.cz, lineHeight: 1.5 }}>Este processo foi encerrado. Continue acompanhando novas oportunidades.</div>
+        <div style={{ fontSize: 12, color: I.cz, lineHeight: 1.5, marginBottom: 12 }}>Este processo foi encerrado. Explore novas oportunidades para continuar crescendo.</div>
+        <button
+          onClick={() => navigate('/dashboard?view=disponiveis')}
+          style={{
+            background: I.azul, color: '#fff', border: 'none', borderRadius: 8,
+            padding: '10px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 6, lineHeight: 1,
+          }}
+        >
+          Explorar novos orçamentos →
+        </button>
       </div>
     );
   }
@@ -276,13 +274,9 @@ function SecaoDadosOrcamento({ candidatura }: { candidatura: CandidaturaOrcament
             <div style={{ fontSize: 10, color: I.cz, fontWeight: 600, marginBottom: 2 }}>Prazo desejado</div>
             <div style={{ fontSize: 12, color: I.nv, fontWeight: 600 }}>{prazo}</div>
           </div>
-          <div>
-            <div style={{ fontSize: 10, color: I.cz, fontWeight: 600, marginBottom: 2 }}>Empresas inscritas</div>
-            <div style={{ fontSize: 12, color: I.nv, fontWeight: 600 }}>{candidatura.quantidadeEmpresas}</div>
-          </div>
           {candidatura.conciergeResponsavel && (
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div style={{ fontSize: 10, color: I.cz, fontWeight: 600, marginBottom: 2 }}>Concierge responsável</div>
+            <div>
+              <div style={{ fontSize: 10, color: I.cz, fontWeight: 600, marginBottom: 2 }}>Concierge</div>
               <div style={{ fontSize: 12, color: I.nv, fontWeight: 600 }}>👤 {candidatura.conciergeResponsavel.nome}</div>
             </div>
           )}
@@ -528,22 +522,34 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 32px' }}>
               <SecaoResultado s={candidatura.statusAcompanhamento} />
 
+              {/* Proposta sobe quando a ação principal é enviar proposta */}
+              {candidatura.statusAcompanhamento === 'em_orcamento' && (
+                <SecaoProposta
+                  candidatura={candidatura}
+                  statusLabel={candidatura.statusAcompanhamento}
+                />
+              )}
+
               <SecaoAtendimento
                 candidatura={candidatura}
                 preConfirmadoEm={preConfirmadoEm ?? confirmedAt}
                 onPreConfirmar={handlePreConfirmar}
               />
 
-              <SecaoProposta
-                candidatura={candidatura}
-                statusLabel={candidatura.statusAcompanhamento}
-              />
+              {/* Proposta na posição normal para todos os outros estados */}
+              {candidatura.statusAcompanhamento !== 'em_orcamento' && (
+                <SecaoProposta
+                  candidatura={candidatura}
+                  statusLabel={candidatura.statusAcompanhamento}
+                />
+              )}
 
               <SecaoDadosOrcamento candidatura={candidatura} />
 
-              <SecaoAnexosOrcamento candidatura={candidatura} />
-
+              {/* Mensagem antes de anexos — mais acionável */}
               <SecaoMensagem candidatura={candidatura} />
+
+              <SecaoAnexosOrcamento candidatura={candidatura} />
             </div>
           </>
         )}
