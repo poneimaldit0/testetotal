@@ -67,7 +67,7 @@ export const OrcamentoCRMCard = ({
     : '#E5E7EB';
 
   const cardClassName = cn(
-    "p-4 hover:shadow-lg transition-all cursor-pointer relative",
+    "r100-card p-3 transition-all cursor-pointer relative",
     orcamento.congelado && "opacity-60 bg-blue-50 border-blue-200 border-dashed border-2",
     modoSelecao && isSelected && "border-2 border-primary bg-primary/5",
     !modoSelecao && !orcamento.congelado && estaEmAtraso && (configEtapa?.cor_atraso || "bg-red-100 border-red-500 border-2"),
@@ -76,7 +76,7 @@ export const OrcamentoCRMCard = ({
   );
 
   return (
-    <Card className={cardClassName} style={{ borderTop: `3px solid ${etapaBorderColor}` }}>
+    <Card className={cardClassName} style={{ borderTop: `3px solid ${etapaBorderColor}`, borderRadius: 12 }}>
       {onToggleSelect && (
         <div className="absolute top-3 right-3 z-10 hover:scale-110 transition-transform" onClick={(e) => e.stopPropagation()}>
           <Checkbox
@@ -87,104 +87,66 @@ export const OrcamentoCRMCard = ({
       )}
       
       <div onClick={onClick}>
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              <h3 className="font-semibold text-lg">
-                {orcamento.dados_contato?.nome || 'Cliente sem nome'}
-              </h3>
-              
-              {orcamento.valor_lead_estimado && (
-                <Badge variant="secondary" className="gap-1">
-                  <DollarSign className="w-3 h-3" />
-                  {formatarMoeda(orcamento.valor_lead_estimado)}
-                </Badge>
-              )}
-              
-              {/* Badge de Congelado */}
-              {orcamento.congelado && orcamento.data_reativacao_prevista && (
-                <Badge variant="secondary" className="bg-blue-100 text-blue-700 gap-1">
-                  <Snowflake className="w-3 h-3" />
-                  Até {format(new Date(orcamento.data_reativacao_prevista), 'dd/MM', { locale: ptBR })}
-                </Badge>
-              )}
-              
-              <StatusChecklistBadge 
-                total={orcamento.total_itens_checklist}
-                concluidos={orcamento.itens_checklist_concluidos}
-                temAlertas={orcamento.tem_alertas}
-              />
-              
-              <Badge variant="outline" className="gap-1">
-                <Clock className="w-3 h-3" />
-                {orcamento.tempo_na_etapa_dias}d
-              </Badge>
-              
-              {/* Badge de Lead Time Excedido */}
-              {estaEmAtraso && (
-                <Badge variant="destructive" className="gap-1 text-xs">
-                  <AlertTriangle className="w-3 h-3" />
-                  Lead time excedido ({orcamento.tempo_na_etapa_dias}/{configEtapa.dias_limite}d)
-                </Badge>
-              )}
-              
-              {/* Badges de Tarefas */}
-              {/* Badge SEM tarefas - novo */}
-              {orcamento.total_tarefas === 0 && (
-                <Badge variant="outline" className="text-xs gap-1 bg-orange-100 border-orange-400 text-orange-700">
-                  <AlertTriangle className="h-3 w-3" />
-                  Sem tarefas
-                </Badge>
-              )}
-              
-              {orcamento.tarefas_atrasadas > 0 && (
-                <Badge variant="destructive" className="gap-1 text-xs">
-                  <AlertTriangle className="w-3 h-3" />
-                  {orcamento.tarefas_atrasadas} atrasada{orcamento.tarefas_atrasadas > 1 ? 's' : ''}
-                </Badge>
-              )}
-              
-              {orcamento.tarefas_hoje > 0 && (
-                <Badge className="gap-1 text-xs bg-blue-600">
-                  <Clock className="w-3 h-3" />
-                  {orcamento.tarefas_hoje} hoje
-                </Badge>
-              )}
-              
-              {orcamento.total_tarefas > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  ✓ {orcamento.tarefas_concluidas}/{orcamento.total_tarefas}
-                </Badge>
-              )}
-              
-            </div>
-            <p className="text-sm text-muted-foreground">
-              #{orcamento.codigo_orcamento || orcamento.id.slice(0, 8)}
-            </p>
+        {/* Header: nome + badge inscritos */}
+        <div className="flex justify-between items-start mb-2 gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm leading-tight r100-clamp-2 mb-1">
+              {orcamento.dados_contato?.nome || 'Cliente sem nome'}
+            </h3>
+            <p className="text-xs text-muted-foreground">#{orcamento.codigo_orcamento || orcamento.id.slice(0, 8)}</p>
           </div>
-          <Badge variant="outline">{orcamento.fornecedores_inscritos_count ?? 0} inscritos</Badge>
+          <span className="r100-pill r100-pill-gray flex-shrink-0">{orcamento.fornecedores_inscritos_count ?? 0} inscr.</span>
         </div>
 
-        <div className="flex items-center gap-2 text-sm mb-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span>{orcamento.local}</span>
+        {/* Status badges — compact secondary row */}
+        <div className="flex flex-wrap gap-1 mb-2">
+          {orcamento.valor_estimado_ia_medio ? (
+            <span className="r100-pill r100-pill-green"><DollarSign className="w-3 h-3" />{formatarMoeda(orcamento.valor_estimado_ia_medio)}</span>
+          ) : orcamento.valor_lead_estimado ? (
+            <span className="r100-pill r100-pill-gray"><DollarSign className="w-3 h-3" />{formatarMoeda(orcamento.valor_lead_estimado)}</span>
+          ) : null}
+          {orcamento.congelado && orcamento.data_reativacao_prevista && (
+            <span className="r100-pill r100-pill-blue"><Snowflake className="w-3 h-3" />Até {format(new Date(orcamento.data_reativacao_prevista), 'dd/MM', { locale: ptBR })}</span>
+          )}
+          <span className="r100-pill r100-pill-gray"><Clock className="w-3 h-3" />{orcamento.tempo_na_etapa_dias}d</span>
+          <StatusChecklistBadge total={orcamento.total_itens_checklist} concluidos={orcamento.itens_checklist_concluidos} temAlertas={orcamento.tem_alertas} />
+          {estaEmAtraso && (
+            <span className="r100-pill r100-pill-red"><AlertTriangle className="w-3 h-3" />{orcamento.tempo_na_etapa_dias}/{configEtapa.dias_limite}d</span>
+          )}
+          {orcamento.total_tarefas === 0 && (
+            <span className="r100-pill r100-pill-orange"><AlertTriangle className="h-3 w-3" />Sem tarefas</span>
+          )}
+          {orcamento.tarefas_atrasadas > 0 && (
+            <span className="r100-pill r100-pill-red">{orcamento.tarefas_atrasadas} atrasada{orcamento.tarefas_atrasadas > 1 ? 's' : ''}</span>
+          )}
+          {orcamento.tarefas_hoje > 0 && (
+            <span className="r100-pill r100-pill-blue">{orcamento.tarefas_hoje} hoje</span>
+          )}
+          {orcamento.total_tarefas > 0 && (
+            <span className="r100-pill r100-pill-gray">✓ {orcamento.tarefas_concluidas}/{orcamento.total_tarefas}</span>
+          )}
         </div>
 
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+          <MapPin className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">{orcamento.local}</span>
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-2 line-clamp-2 leading-relaxed">
           {orcamento.necessidade}
         </p>
 
-        <div className="flex flex-wrap gap-1 mb-3">
-          {orcamento.categorias.map((cat, idx) => (
-            <Badge key={idx} variant="secondary" className="text-xs">
-              {cat}
-            </Badge>
-          ))}
-        </div>
+        {orcamento.categorias.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {orcamento.categorias.map((cat, idx) => (
+              <span key={idx} className="r100-pill r100-pill-gray">{cat}</span>
+            ))}
+          </div>
+        )}
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Calendar className="h-3 w-3" />
-          {format(new Date(orcamento.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          {format(new Date(orcamento.created_at), "dd/MM/yyyy", { locale: ptBR })}
         </div>
       </div>
 
@@ -204,144 +166,83 @@ export const OrcamentoCRMCard = ({
         />
       </div>
 
-      <div className="mt-3 pt-3 border-t flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          id={`contato-${orcamento.id}`}
-          checked={orcamento.status_contato !== 'sem_contato'}
-          onCheckedChange={(checked) => {
-            const novoStatus = checked ? 'em_contato' : 'sem_contato';
-            onAtualizarStatusContato(orcamento.id, novoStatus as StatusContato);
-          }}
-        />
-        <label 
-          htmlFor={`contato-${orcamento.id}`}
-          className="text-sm font-medium cursor-pointer"
-        >
-          Contato realizado
-        </label>
-      </div>
-
-      <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-        <label className="text-xs font-medium mb-1 block">Valor Estimado do Lead (R$)</label>
+      {/* Contato + valor — linha compacta */}
+      <div className="mt-2 pt-2 border-t flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5">
+          <Checkbox
+            id={`contato-${orcamento.id}`}
+            checked={orcamento.status_contato !== 'sem_contato'}
+            onCheckedChange={(checked) => {
+              onAtualizarStatusContato(orcamento.id, (checked ? 'em_contato' : 'sem_contato') as StatusContato);
+            }}
+          />
+          <label htmlFor={`contato-${orcamento.id}`} className="text-xs font-medium cursor-pointer">
+            Contato
+          </label>
+        </div>
         {editandoValorLead ? (
-          <div className="space-y-2">
+          <div className="flex items-center gap-1 flex-1 ml-2">
             <Input
               type="text"
               value={valorLead}
               onChange={(e) => setValorLead(e.target.value)}
               placeholder="Ex: 50000"
-              className="text-sm h-8"
+              className="text-xs h-6 px-2"
             />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleSalvarValorLead}>
-                Salvar
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => {
-                  setValorLead(orcamento.valor_lead_estimado?.toString() || '');
-                  setEditandoValorLead(false);
-                }}
-              >
-                Cancelar
-              </Button>
-            </div>
+            <Button size="sm" className="h-6 text-xs px-2" onClick={handleSalvarValorLead}>✓</Button>
+            <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => { setValorLead(orcamento.valor_lead_estimado?.toString() || ''); setEditandoValorLead(false); }}>✕</Button>
           </div>
         ) : (
-          <div className="text-sm">
-            {orcamento.valor_lead_estimado ? (
-              <p className="font-medium text-primary">
-                {formatarMoeda(orcamento.valor_lead_estimado)}
-              </p>
-            ) : (
-              <p className="text-muted-foreground italic">Não informado</p>
-            )}
-            <Button
-              size="sm"
-              variant="link"
-              className="p-0 h-auto mt-1"
-              onClick={() => setEditandoValorLead(true)}
-            >
-              {orcamento.valor_lead_estimado ? 'Editar' : 'Adicionar valor'}
-            </Button>
-          </div>
+          <button
+            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            onClick={() => setEditandoValorLead(true)}
+          >
+            {orcamento.valor_lead_estimado ? `${formatarMoeda(orcamento.valor_lead_estimado)} (edit.)` : '+ valor'}
+          </button>
         )}
       </div>
 
-      <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-        <label className="text-xs font-medium mb-1 flex items-center gap-1">
-          <MessageSquare className="h-3 w-3" />
-          Última Nota
-        </label>
-        
-        {orcamento.ultima_nota_conteudo ? (
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground line-clamp-2 bg-muted/50 p-2 rounded">
-              "{orcamento.ultima_nota_conteudo}"
-            </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <User className="h-3 w-3" />
-              {orcamento.ultima_nota_autor}
-              <span>•</span>
-              {format(new Date(orcamento.ultima_nota_data!), "dd/MM 'às' HH:mm", { locale: ptBR })}
-            </div>
+      {/* Última nota — compact */}
+      {orcamento.ultima_nota_conteudo && (
+        <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+          <p className="text-xs text-muted-foreground line-clamp-2 bg-muted/40 px-2 py-1.5 rounded-md italic leading-relaxed">
+            "{orcamento.ultima_nota_conteudo}"
+          </p>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+            <User className="h-3 w-3" />
+            {orcamento.ultima_nota_autor} · {format(new Date(orcamento.ultima_nota_data!), "dd/MM", { locale: ptBR })}
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground italic">Sem notas ainda</p>
-        )}
-        
-        <Button
-          size="sm"
-          variant="link"
-          className="p-0 h-auto mt-1 text-xs"
-          onClick={onClick}
-        >
-          {orcamento.ultima_nota_conteudo ? 'Ver todas as notas' : 'Adicionar nota'}
-        </Button>
-      </div>
-
-      {orcamento.concierge_nome && (
-        <div className="mt-3 pt-3 border-t flex items-center gap-2 text-xs text-muted-foreground">
-          <User className="h-3 w-3" />
-          <span>Concierge: {orcamento.concierge_nome}</span>
         </div>
       )}
 
-      {onCompatibilizacao && (
-        <div className="mt-3 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
+      {/* Footer: concierge + ações */}
+      <div className="mt-2 pt-2 border-t flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+        {orcamento.concierge_nome && (
+          <span className="text-xs text-muted-foreground flex items-center gap-1 flex-1 min-w-0">
+            <User className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{orcamento.concierge_nome}</span>
+          </span>
+        )}
+        {onCompatibilizacao && (
           <Button
             size="sm"
             variant="outline"
-            className="w-full text-xs gap-1.5 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+            className="h-6 text-xs gap-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 px-2"
             onClick={onCompatibilizacao}
           >
             <BarChart2 className="h-3 w-3" />
-            Compatibilização IA
+            Compat.
           </Button>
-        </div>
-      )}
-
-      {orcamento.rota100_token && (
-        <div className="mt-3 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
-          <p className="text-xs font-medium mb-2 text-muted-foreground">Rota100 — painel do cliente</p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full text-xs gap-1"
-            asChild
-          >
-            <a
-              href={`/rota100/${orcamento.rota100_token}`}
-              target="_blank"
-              rel="noreferrer"
-            >
+        )}
+        {orcamento.rota100_token && (
+          <Button size="sm" variant="outline" className="h-6 text-xs gap-1 px-2" asChild>
+            <a href={`/rota100/${orcamento.rota100_token}`} target="_blank" rel="noreferrer">
               <ExternalLink className="h-3 w-3" />
-              Abrir Rota100
+              Rota100
             </a>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Info compacta de arquivado */}
       {isEtapaArquivada(orcamento.etapa_crm) && (

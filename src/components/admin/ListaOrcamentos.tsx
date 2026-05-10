@@ -235,12 +235,12 @@ export const ListaOrcamentos: React.FC = () => {
         <div className="grid gap-4 max-w-full overflow-hidden">
           {orcamentosToShow.map((orcamento) => (
             <Card key={orcamento.id} className="r100-card w-full max-w-full box-border overflow-hidden">
-              <CardHeader className="max-w-full overflow-hidden pb-4 space-y-0">
-                <div className="flex flex-col gap-3 max-w-full overflow-hidden mb-0">
+              <CardHeader className="max-w-full overflow-hidden pb-3 space-y-0">
+                <div className="flex flex-col gap-2 max-w-full overflow-hidden mb-0">
                   <div className="min-w-0 flex-1 overflow-hidden">
-                    <CardTitle className="text-lg text-secondary break-all max-w-full">{orcamento.id}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Publicado em {format(orcamento.dataPublicacao, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    <CardTitle className="text-sm font-semibold text-secondary r100-clamp-2 leading-snug">{orcamento.necessidade || 'Sem descrição'}</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {orcamento.local} · #{orcamento.id.slice(0, 8)} · {format(orcamento.dataPublicacao, "dd/MM/yyyy", { locale: ptBR })}
                     </p>
                   </div>
                   <div className="flex gap-2 flex-wrap max-w-full overflow-hidden shrink-0">
@@ -276,27 +276,16 @@ export const ListaOrcamentos: React.FC = () => {
                 </div>
             </CardHeader>
             <CardContent className="max-w-full overflow-hidden pt-2 pb-4">
-              <div className="space-y-2 max-w-full overflow-hidden">
-                  <p className="text-sm break-words overflow-wrap-anywhere leading-relaxed">{orcamento.necessidade}</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm min-w-0 max-w-full overflow-hidden">
-                    <div className="min-w-0 overflow-hidden">
-                      <span className="font-medium">Local:</span> 
-                      <span className="ml-1 truncate block">{orcamento.local}</span>
-                    </div>
-                    <div className="min-w-0 overflow-hidden">
-                      <span className="font-medium">Tamanho:</span> 
-                      <span className="ml-1 truncate block">{orcamento.tamanhoImovel || 'N/A'} m²</span>
-                    </div>
-                    <div className="min-w-0 overflow-hidden">
-                      <span className="font-medium">Empresas interessadas:</span> 
-                      <span className="ml-1 truncate block">{orcamento.quantidadeEmpresas}/3</span>
-                    </div>
-                    <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-                      <Clock className="h-4 w-4 text-primary shrink-0" />
-                      <span className="font-medium shrink-0">Início pretendido:</span> 
-                      <span className="ml-1 truncate block">{orcamento.prazoInicioTexto || 'Não informado'}</span>
-                    </div>
+              <div className="space-y-3 max-w-full overflow-hidden">
+                  <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
+                    {orcamento.tamanhoImovel && (
+                      <span><span className="font-medium text-foreground">{orcamento.tamanhoImovel} m²</span></span>
+                    )}
+                    <span>{orcamento.quantidadeEmpresas}/3 empresas</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      {orcamento.prazoInicioTexto || 'Início não informado'}
+                    </span>
                   </div>
 
                   {/* Seção Visita Técnica */}
@@ -474,7 +463,7 @@ export const ListaOrcamentos: React.FC = () => {
                               <Button
                                 onClick={() => abrirWhatsApp(fornecedor.telefone, fornecedor.nome)}
                                 size="sm"
-                                className="goodref-button-primary"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90"
                               >
                                 <MessageCircle className="h-4 w-4 mr-1" />
                                 WhatsApp

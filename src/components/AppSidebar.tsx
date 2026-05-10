@@ -371,18 +371,19 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
         )}
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{!collapsed && group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-xs font-bold tracking-widest uppercase text-muted-foreground/60 px-2 mb-0.5">{!collapsed && group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.value}>
-                    <SidebarMenuButton 
+                    <SidebarMenuButton
                       onClick={() => onViewChange(item.value)}
-                      className={`${
-                        activeView === item.value 
-                          ? "bg-primary text-primary-foreground" 
-                          : "hover:bg-muted/50"
-                      } relative`}
+                      className={`relative transition-all ${
+                        activeView === item.value
+                          ? "bg-primary/10 text-primary font-semibold"
+                          : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                      }`}
+                      style={activeView === item.value ? { borderLeft: '2px solid #2D3395', paddingLeft: '12px' } : { borderLeft: '2px solid transparent', paddingLeft: '12px' }}
                     >
                       <item.icon className="h-4 w-4" />
                       {!collapsed && (

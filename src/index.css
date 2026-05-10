@@ -183,6 +183,54 @@
     overflow: hidden;
   }
 
+  /* ── Componentes operacionais ────────────────────────────────── */
+
+  /* Alertas contextuais */
+  .r100-alert {
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .r100-alert-blue   { background: #eef0ff; border: 1px solid #c5d0f0; border-left: 4px solid #2D3395; }
+  .r100-alert-amber  { background: #fff3cd; border: 1px solid #f0c040; border-left: 4px solid #E08B00; }
+  .r100-alert-red    { background: #fde8e8; border: 1px solid #f0c0c0; border-left: 4px solid #C0392B; }
+
+  /* Pill badges Isabella */
+  .r100-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 2px 8px;
+    white-space: nowrap;
+    line-height: 1.45;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .r100-pill-blue   { color: #2D3395; background: #eef0ff; border: 1px solid #c5d0f0; }
+  .r100-pill-amber  { color: #9A6200; background: #fff5dc; border: 1px solid #f0c040; }
+  .r100-pill-green  { color: #1B7A4A; background: #e0f5ec; border: 1px solid #a8dfc0; }
+  .r100-pill-purple { color: #534AB7; background: #ede9ff; border: 1px solid #c0b8f0; }
+  .r100-pill-gray   { color: #6B7280; background: #F3F4F6; border: 1px solid #E5E7EB; }
+  .r100-pill-red    { color: #C0392B; background: #fde8e8; border: 1px solid #f0c0c0; }
+  .r100-pill-orange { color: #E08B00; background: #fff3cd; border: 1px solid #f0c040; }
+
+  /* Toolbar padrão */
+  .r100-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 18px;
+    border-bottom: 1px solid #E5E7EB;
+    background: #FFFFFF;
+  }
+
   /* Header premium animado — usado por PremiumPageHeader */
   .r100-header-premium {
     position: relative;

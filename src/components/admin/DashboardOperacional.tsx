@@ -163,15 +163,15 @@ function MetricCard({
 }
 
 function ProgressBar({ pct, ganho }: { pct: number; ganho?: boolean }) {
-  const color = ganho ? C.green : pct >= 85 ? '#3B35B7' : C.LJ;
+  const color = ganho ? C.green : pct >= 85 ? C.blue : C.LJ;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ flex: 1, height: 5, background: C.BD, borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ flex: 1, height: 7, background: '#E8EBF4', borderRadius: 6, overflow: 'hidden' }}>
         <div style={{
           height: '100%',
           width:  `${pct}%`,
           background:    color,
-          borderRadius:  4,
+          borderRadius:  6,
           transition:    'width 0.5s ease',
         }} />
       </div>
@@ -534,33 +534,16 @@ export function DashboardOperacional() {
 
       {/* Alert: sem estimativa IA + botão de geração em batch */}
       {!leadsLoading && (semEstimativaIA > 0 || gerandoIA) && (
-        <div style={{
-          background:   '#F0F4FF',
-          border:       '1px solid #C5D0F0',
-          borderLeft:   `4px solid ${C.blue}`,
-          borderRadius:  8,
-          padding:      '12px 16px',
-          marginBottom:  18,
-          display:      'flex',
-          alignItems:   'center',
-          gap:          12,
-          flexWrap:     'wrap',
-        }}>
-          <span style={{ fontSize: 18 }}>🤖</span>
+        <div className="r100-alert r100-alert-blue">
+          <span style={{ fontSize: 18, flexShrink: 0 }}>🤖</span>
           <div style={{ flex: 1, minWidth: 200 }}>
             {gerandoIA ? (
               <>
                 <div style={{ fontWeight: 600, fontSize: 13, color: C.blue }}>
                   Gerando estimativas IA... {progressoIA.done}/{progressoIA.total}
                 </div>
-                <div style={{ marginTop: 6, height: 4, background: '#C5D0F0', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${progressoIA.percent}%`,
-                    background: C.blue,
-                    borderRadius: 4,
-                    transition: 'width 0.4s ease',
-                  }} />
+                <div style={{ marginTop: 6, height: 6, background: '#C5D0F0', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${progressoIA.percent}%`, background: C.blue, borderRadius: 4, transition: 'width 0.4s ease' }} />
                 </div>
               </>
             ) : (
@@ -569,31 +552,15 @@ export function DashboardOperacional() {
                   {semEstimativaIA} lead{semEstimativaIA > 1 ? 's' : ''} sem estimativa IA
                 </div>
                 <div style={{ fontSize: 12, color: '#5058A0', marginTop: 2 }}>
-                  O valor da carteira pode estar incompleto. Novos leads são calculados automaticamente — use o botão para os existentes.
+                  O valor da carteira pode estar incompleto. Novos leads são calculados automaticamente.
                 </div>
               </>
             )}
           </div>
           {!gerandoIA && semEstimativaIA > 0 && (
             <button
-              onClick={() => {
-                const idsSemIA = leadsAtivosParaCarteira
-                  .filter(l => !hasEstimativaIA(l))
-                  .map(l => l.id);
-                dispararBatch(idsSemIA, fetchLeads);
-              }}
-              style={{
-                background:  C.blue,
-                color:       C.white,
-                border:      'none',
-                borderRadius: 8,
-                padding:     '8px 16px',
-                fontSize:    12,
-                fontWeight:  600,
-                cursor:      'pointer',
-                fontFamily:  '"DM Sans", sans-serif',
-                whiteSpace:  'nowrap',
-              }}
+              onClick={() => { const ids = leadsAtivosParaCarteira.filter(l => !hasEstimativaIA(l)).map(l => l.id); dispararBatch(ids, fetchLeads); }}
+              style={{ background: C.blue, color: C.white, border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: '"DM Sans", sans-serif', whiteSpace: 'nowrap' }}
             >
               Gerar {semEstimativaIA} estimativa{semEstimativaIA > 1 ? 's' : ''}
             </button>
@@ -603,18 +570,8 @@ export function DashboardOperacional() {
 
       {/* Alert: leads parados */}
       {!leadsLoading && leadsStale > 0 && (
-        <div style={{
-          background:  '#FFF5DC',
-          border:      '1px solid #F0C040',
-          borderLeft:  `4px solid ${C.LJ}`,
-          borderRadius: 8,
-          padding:     '12px 16px',
-          marginBottom: 18,
-          display:     'flex',
-          alignItems:  'center',
-          gap:         10,
-        }}>
-          <span style={{ fontSize: 18 }}>⚠️</span>
+        <div className="r100-alert r100-alert-amber">
+          <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
           <div>
             <div style={{ fontWeight: 600, fontSize: 13, color: '#7A4A00' }}>
               {leadsStale} lead{leadsStale > 1 ? 's' : ''} parado{leadsStale > 1 ? 's' : ''} há mais de 8 dias
@@ -696,34 +653,14 @@ export function DashboardOperacional() {
 
       {/* Error state */}
       {fetchError && !leadsLoading && (
-        <div style={{
-          background: '#FFF0F0',
-          border: '1px solid #FFCCCC',
-          borderLeft: `4px solid #CC3333`,
-          borderRadius: 8,
-          padding: '14px 18px',
-          marginBottom: 18,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}>
-          <span style={{ fontSize: 18 }}>⚠️</span>
+        <div className="r100-alert r100-alert-red">
+          <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, color: '#CC3333' }}>{fetchError}</div>
+            <div style={{ fontWeight: 600, fontSize: 13, color: '#C0392B' }}>{fetchError}</div>
           </div>
           <button
             onClick={fetchLeads}
-            style={{
-              background: '#CC3333',
-              color: C.white,
-              border: 'none',
-              borderRadius: 8,
-              padding: '7px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: '"DM Sans", sans-serif',
-            }}
+            style={{ background: '#C0392B', color: C.white, border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: '"DM Sans", sans-serif' }}
           >
             Tentar novamente
           </button>
@@ -791,13 +728,13 @@ function LeadList({
       <div style={{
         display:       'grid',
         gridTemplateColumns: '2fr 1fr 80px 90px 100px 130px',
-        padding:       '10px 18px',
+        padding:       '9px 18px 9px 22px',
         borderBottom:  `1px solid ${C.BD}`,
         background:    C.FD,
-        fontSize:      11,
-        fontWeight:    600,
+        fontSize:      10,
+        fontWeight:    700,
         color:         C.CZ,
-        letterSpacing: '0.04em',
+        letterSpacing: '0.07em',
         textTransform: 'uppercase',
       }}>
         <span>Cliente / Lead</span>
@@ -824,18 +761,19 @@ function LeadList({
               style={{
                 display:               'grid',
                 gridTemplateColumns:   '2fr 1fr 80px 90px 100px 130px',
-                padding:               '12px 18px',
-                background:            isExpanded ? '#F8F6F2' : isStale ? '#FFFBF5' : 'transparent',
+                padding:               '12px 18px 12px 16px',
+                background:            isExpanded ? C.blueBg : isStale ? '#FFF8EC' : 'transparent',
                 width:                 '100%',
                 textAlign:             'left',
                 border:                'none',
+                borderLeft:            `3px solid ${etapaClr.clr}`,
                 borderBottom:          isLast && !isExpanded ? 'none' : `1px solid ${C.BD}`,
                 cursor:                'pointer',
                 alignItems:            'center',
                 gap:                   0,
               }}
-              onMouseEnter={e => { if (!isExpanded) (e.currentTarget as HTMLButtonElement).style.background = '#FAF9F7'; }}
-              onMouseLeave={e => { if (!isExpanded) (e.currentTarget as HTMLButtonElement).style.background = isStale ? '#FFFBF5' : 'transparent'; }}
+              onMouseEnter={e => { if (!isExpanded) (e.currentTarget as HTMLButtonElement).style.background = C.FD; }}
+              onMouseLeave={e => { if (!isExpanded) (e.currentTarget as HTMLButtonElement).style.background = isStale ? '#FFF8EC' : 'transparent'; }}
             >
               {/* Col 1: Cliente */}
               <div style={{ paddingRight: 12, minWidth: 0 }}>
@@ -916,9 +854,10 @@ function LeadList({
             {/* Expanded detail row */}
             {isExpanded && (
               <div style={{
-                padding:     '14px 18px',
+                padding:     '14px 18px 14px 22px',
                 borderBottom: isLast ? 'none' : `1px solid ${C.BD}`,
-                background:  '#F8F6F2',
+                borderLeft:  `3px solid ${etapaClr.clr}`,
+                background:  C.blueBg,
                 display:     'flex',
                 gap:         24,
                 flexWrap:    'wrap',
