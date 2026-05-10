@@ -256,6 +256,7 @@ function SecaoProposta({
       <PropostaAnexoUpload
         candidaturaId={candidatura.candidaturaId}
         orcamentoId={candidatura.id}
+        hideAnalise
       />
     </div>
   );
@@ -313,13 +314,21 @@ function SecaoDadosOrcamento({ candidatura }: { candidatura: CandidaturaOrcament
 function SecaoAnexosOrcamento({ candidatura }: { candidatura: CandidaturaOrcamento }) {
   const fotos = candidatura.fotos ?? [];
   const docs = candidatura.arquivos ?? [];
-  if (fotos.length === 0 && docs.length === 0) return null;
 
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 10 }}>
         Anexos do orçamento
       </div>
+
+      {fotos.length === 0 && docs.length === 0 && (
+        <div style={{
+          background: I.cz2, borderRadius: 8, padding: '12px 14px',
+          fontSize: 12, color: I.cz, textAlign: 'center',
+        }}>
+          Sem anexos enviados
+        </div>
+      )}
 
       {fotos.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: docs.length > 0 ? 10 : 0 }}>

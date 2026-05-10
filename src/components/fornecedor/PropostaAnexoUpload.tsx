@@ -17,12 +17,14 @@ interface PropostaAnexoUploadProps {
   candidaturaId: string;
   orcamentoId: string;
   readonly?: boolean;
+  hideAnalise?: boolean;
 }
 
 export const PropostaAnexoUpload: React.FC<PropostaAnexoUploadProps> = ({
   candidaturaId,
   orcamentoId,
   readonly = false,
+  hideAnalise = false,
 }) => {
   const {
     arquivos,
@@ -184,34 +186,34 @@ export const PropostaAnexoUpload: React.FC<PropostaAnexoUploadProps> = ({
           </div>
         )}
 
-        {/* Processando com arquivos já salvos */}
-        {temProposta && statusAnalise === 'processing' && <PropostaProcessando />}
+        {/* Análise IA — visível apenas para admin/consultor, nunca para fornecedor */}
+        {!hideAnalise && (
+          <>
+            {temProposta && statusAnalise === 'processing' && <PropostaProcessando />}
 
-        {/* Proposta sem valor total — bloqueada da compatibilização */}
-        {bloquearCompat && (
-          <PropostaIncompletaCard titulo="Proposta sem valor total. Não é possível analisar." />
-        )}
+            {bloquearCompat && (
+              <PropostaIncompletaCard titulo="Proposta sem valor total. Não é possível analisar." />
+            )}
 
-        {/* Proposta incompleta — documento sem estrutura para análise (IA conseguiu rodar mas classificou como incompleta) */}
-        {temProposta && statusAnalise === 'completed' && analise?.qualidade_leitura === 'proposta_incompleta' && (
-          <PropostaIncompletaCard />
-        )}
+            {temProposta && statusAnalise === 'completed' && analise?.qualidade_leitura === 'proposta_incompleta' && (
+              <PropostaIncompletaCard />
+            )}
 
-        {/* Análise concluída com dados */}
-        {temProposta && statusAnalise === 'completed' && analise?.qualidade_leitura !== 'proposta_incompleta' && analiseTemDados && analise && (
-          <AnalisePropostaCard analise={analise} />
-        )}
+            {temProposta && statusAnalise === 'completed' && analise?.qualidade_leitura !== 'proposta_incompleta' && analiseTemDados && analise && (
+              <AnalisePropostaCard analise={analise} />
+            )}
 
-        {/* Fallback: arquivo aguardando análise / grande / sem dados / falha genérica */}
-        {temProposta && !isProcessing && !bloquearCompat && (
-          statusAnalise === 'idle' ||
-          statusAnalise === 'failed' ||
-          (statusAnalise === 'completed' && !analiseTemDados)
-        ) && (
-          <AnaliseFallbackCard
-            estado={resolverEstadoFallback()}
-            tamanhoBytes={temArquivoGrande ? maxTamanho : null}
-          />
+            {temProposta && !isProcessing && !bloquearCompat && (
+              statusAnalise === 'idle' ||
+              statusAnalise === 'failed' ||
+              (statusAnalise === 'completed' && !analiseTemDados)
+            ) && (
+              <AnaliseFallbackCard
+                estado={resolverEstadoFallback()}
+                tamanhoBytes={temArquivoGrande ? maxTamanho : null}
+              />
+            )}
+          </>
         )}
 
         {/* ESTADO 1: Botão para upload — visível sempre que não há upload em andamento e não é readonly */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -126,6 +126,33 @@ function useCentralStyles() {
         gap:12px;
         margin-bottom:28px;
       }
+      .cop-card-title {
+        font-family:'Syne',sans-serif;
+        font-weight:700;
+        font-size:15px;
+        color:#1A2030;
+        margin-bottom:4px;
+        line-height:1.45;
+        display:-webkit-box;
+        -webkit-line-clamp:3;
+        -webkit-box-orient:vertical;
+        overflow:hidden;
+      }
+      .cop-search-input {
+        width:100%;
+        padding:11px 12px 11px 38px;
+        border-radius:10px;
+        border:1.5px solid #E5E7EB;
+        font-size:13px;
+        background:#fff;
+        color:#1A2030;
+        outline:none;
+        box-sizing:border-box;
+        font-family:'DM Sans',sans-serif;
+        transition:border-color .15s;
+        -webkit-appearance:none;
+      }
+      .cop-search-input:focus { border-color:#2D3395; }
       @media(max-width:640px) {
         .cop-kpi-row { grid-template-columns:1fr 1fr !important; gap:10px !important; margin-bottom:20px; }
         .cop-kpi { flex:unset !important; }
@@ -473,6 +500,32 @@ function ProximaAcaoBlock({
   );
 }
 
+// ── Motivo operacional por status ─────────────────────────────────────────────
+function deriveMotivoAcao(c: CandidaturaOrcamento): { label: string; color: string } | null {
+  const s  = c.statusAcompanhamento;
+  const dt = c.horarioVisitaAgendado;
+  if (s === 'visita_agendada') {
+    if (dt) {
+      const h = Math.round((new Date(dt).getTime() - Date.now()) / 3_600_000);
+      if (h > 0 && h <= 24) return { label: `Visita hoje às ${fmtTm(dt)}`, color: I.vm };
+    }
+    return { label: 'Confirmar presença na visita', color: I.am };
+  }
+  if (s === 'reuniao_agendada') {
+    if (dt) {
+      const h = Math.round((new Date(dt).getTime() - Date.now()) / 3_600_000);
+      if (h > 0 && h <= 24) return { label: `Reunião hoje às ${fmtTm(dt)}`, color: I.vm };
+    }
+    return { label: 'Acessar link da reunião', color: I.rx };
+  }
+  if (s === 'em_orcamento')     return { label: 'Enviar proposta', color: I.azul };
+  if (s === 'orcamento_enviado') return { label: 'Aguardando retorno', color: I.vd };
+  if (s === 'visita_realizada' || s === 'reuniao_realizada') return { label: 'Atendimento realizado', color: I.vd };
+  if (s === 'negocio_fechado')  return { label: 'Negócio fechado ✓', color: I.vd };
+  if (s === 'negocio_perdido')  return { label: 'Processo encerrado', color: I.cz };
+  return null;
+}
+
 // ── Card operacional por candidatura ─────────────────────────────────────────
 function CardOperacional({
   candidatura,
@@ -487,6 +540,7 @@ function CardOperacional({
   const isReu    = s === 'reuniao_agendada' || s === 'reuniao_realizada';
   const isPerdido = s === 'negocio_perdido';
   const isUrgente = s === 'visita_agendada' || s === 'reuniao_agendada' || s === 'em_orcamento';
+  const motivo   = deriveMotivoAcao(candidatura);
 
   return (
     <div
@@ -495,35 +549,39 @@ function CardOperacional({
       onClick={onClick}
     >
       <div className="cop-card-body" style={{ padding: '18px 20px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontFamily: "'Syne', sans-serif",
-              fontWeight: 700,
-              fontSize: 15,
-              color: I.nv,
-              marginBottom: 4,
-              lineHeight: 1.3,
-            }}>
-              {candidatura.necessidade.length > 70
-                ? candidatura.necessidade.slice(0, 70) + '…'
-                : candidatura.necessidade}
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              {candidatura.local && (
-                <span style={{ fontSize: 11, color: I.cz }}>📍 {candidatura.local}</span>
-              )}
-              {candidatura.tamanhoImovel > 0 && (
-                <span style={{ fontSize: 11, color: I.cz }}>· {candidatura.tamanhoImovel} m²</span>
-              )}
-            </div>
+        {/* Título + badge */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
+          <div className="cop-card-title" style={{ flex: 1, minWidth: 0 }}>
+            {candidatura.necessidade}
           </div>
-          <StatusBadge status={s} />
+          <div style={{ flexShrink: 0, paddingTop: 2 }}>
+            <StatusBadge status={s} />
+          </div>
+        </div>
+
+        {/* Local + motivo operacional */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+          {candidatura.local && (
+            <span style={{ fontSize: 11, color: I.cz }}>📍 {candidatura.local}</span>
+          )}
+          {candidatura.tamanhoImovel > 0 && (
+            <span style={{ fontSize: 11, color: I.cz }}>· {candidatura.tamanhoImovel} m²</span>
+          )}
+          {motivo && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20,
+              background: motivo.color + '18', color: motivo.color,
+              border: `1px solid ${motivo.color}33`,
+              whiteSpace: 'nowrap',
+            }}>
+              {isUrgente ? '⚡ ' : ''}{motivo.label}
+            </span>
+          )}
         </div>
 
         {!isPerdido && <Timeline activeStage={stage} isReu={isReu} />}
 
-        {/* Meta row + CTA abrir ficha */}
+        {/* Meta row */}
         <div className="cop-meta-row" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', borderTop: `1px solid ${I.bd}`, paddingTop: 12, marginTop: 4 }}>
           {candidatura.conciergeResponsavel && (
             <span style={{ fontSize: 11, color: I.cz }}>
@@ -539,8 +597,8 @@ function CardOperacional({
           <span style={{ fontSize: 11, color: I.cz }}>
             📆 {fmtDt(candidatura.dataCandidatura.toISOString())}
           </span>
-          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: isUrgente ? I.vm : I.azul, display: 'flex', alignItems: 'center', gap: 4 }}>
-            {isUrgente ? '⚡' : ''} Ver ficha →
+          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: isUrgente ? I.vm : I.azul }}>
+            Ver ficha →
           </span>
         </div>
       </div>
@@ -599,6 +657,7 @@ export function CentralOperacionalFornecedor() {
   const { candidaturas, loading } = useMeusCandidaturas(profile?.id);
   const [repKpi, setRepKpi] = useState<{ media: number; total: number } | null>(null);
   const [fichaAberta, setFichaAberta] = useState<CandidaturaOrcamento | null>(null);
+  const [busca, setBusca] = useState('');
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -613,10 +672,23 @@ export function CentralOperacionalFornecedor() {
       });
   }, [profile?.id]);
 
-  // Grupos
-  const urgentes  = candidaturas.filter(c => deriveGroup(c.statusAcompanhamento) === 'urgent');
-  const ativas    = candidaturas.filter(c => deriveGroup(c.statusAcompanhamento) === 'active');
-  const finais    = candidaturas.filter(c => deriveGroup(c.statusAcompanhamento) === 'done');
+  // Filtragem por busca (afeta apenas a lista, não os KPIs)
+  const candidaturasFiltradas = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    if (!q) return candidaturas;
+    return candidaturas.filter(c => {
+      const local     = (c.local ?? '').toLowerCase();
+      const texto     = c.necessidade.toLowerCase();
+      const codigo    = c.id.toLowerCase();
+      const cliente   = (c.dadosContato?.nome ?? '').toLowerCase();
+      return local.includes(q) || texto.includes(q) || codigo.includes(q) || cliente.includes(q);
+    });
+  }, [candidaturas, busca]);
+
+  // Grupos (usam lista filtrada)
+  const urgentes  = candidaturasFiltradas.filter(c => deriveGroup(c.statusAcompanhamento) === 'urgent');
+  const ativas    = candidaturasFiltradas.filter(c => deriveGroup(c.statusAcompanhamento) === 'active');
+  const finais    = candidaturasFiltradas.filter(c => deriveGroup(c.statusAcompanhamento) === 'done');
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -699,6 +771,30 @@ export function CentralOperacionalFornecedor() {
             sub={repKpi ? `${repKpi.total} avaliação${repKpi.total !== 1 ? 'ões' : ''}` : 'Sem avaliações ainda'}
           />
         </div>
+
+        {/* Busca */}
+        {!loading && candidaturas.length > 0 && (
+          <div style={{ marginBottom: 20, position: 'relative' }}>
+            <span style={{
+              position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+              fontSize: 15, pointerEvents: 'none', lineHeight: 1,
+            }}>🔍</span>
+            <input
+              type="search"
+              className="cop-search-input"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar por local, cliente ou código…"
+            />
+          </div>
+        )}
+
+        {/* Sem resultado na busca */}
+        {!loading && busca.trim() && candidaturasFiltradas.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '24px 16px', color: I.cz, fontSize: 13 }}>
+            Nenhuma candidatura encontrada para <strong>"{busca}"</strong>.
+          </div>
+        )}
 
         {/* Loading */}
         {loading && (
