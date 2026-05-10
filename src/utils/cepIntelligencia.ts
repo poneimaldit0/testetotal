@@ -23,6 +23,7 @@ export interface RegiaoInfo {
   faixa_valor_min: number | null;
   faixa_valor_max: number | null;
   fonte: 'db_bairro' | 'db_cidade' | 'ia_cache' | 'ia_nova' | 'fallback';
+  origem_classificacao?: 'cache_manual' | 'cache_ia' | 'ia_online' | 'fallback_conservador';
   // Campos adicionais de IA — undefined em entradas manuais
   confianca?: 'alta' | 'media' | 'baixa' | 'insuficiente';
   estimado?: boolean; // true quando confiança baixa/insuficiente → exibir aviso
@@ -49,12 +50,69 @@ function deriveZona(uf: string, classificacao: string): string {
 }
 
 function deriveStatusRegiao(uf: string, classificacao: string): string {
-  if (uf === 'SP') return 'ativa';
+  if (uf === 'SP') {
+    const ATIVAS_SP = new Set(['A+', 'A', 'A-', 'B+', 'B']);
+    return ATIVAS_SP.has(classificacao) ? 'ativa' : 'fora';
+  }
   const EXPANSAO = new Set(['PR', 'GO', 'DF', 'MG', 'RJ', 'SC', 'RS']);
   if (EXPANSAO.has(uf) && ['A+', 'A', 'A-', 'B+', 'Premium A+', 'Premium A'].includes(classificacao)) {
     return 'expansão';
   }
   return 'fora';
+}
+
+// ─── Periferias guard ─────────────────────────────────────────────────────────
+
+const CLASSIFICACOES_ORDENADAS = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C/D', 'D'];
+
+// Tokens que, quando presentes no nome do bairro normalizado, indicam área periférica
+const TOKENS_PERIFERIA_SP = [
+  'guaianases', 'brasilandia', 'lajeado', 'cangaiba', 'parelheiros',
+  'grajau', 'capao redondo', 'jardim angela', 'jardim helena',
+  'sao miguel paulista', 'cidade tiradentes', 'itaquera',
+  'jose bonifacio', 'sao mateus', 'ermelino matarazzo',
+  'ponte rasa', 'itaim paulista', 'conjunto habitacional',
+];
+
+// Cidades satélites periféricas da Grande SP
+const CIDADES_SATELITE_PERIFERICAS = new Set([
+  'ferraz de vasconcelos', 'itaquaquecetuba', 'suzano', 'poa', 'maua',
+  'ribeirao pires', 'franco da rocha', 'francisco morato',
+  'biritiba-mirim', 'guararema', 'salesopolis', 'aruja', 'santa isabel', 'jacarei',
+]);
+
+function isClassificacaoAcimaDeC(classificacao: string): boolean {
+  const idx = CLASSIFICACOES_ORDENADAS.indexOf(classificacao);
+  const limiteIdx = CLASSIFICACOES_ORDENADAS.indexOf('C+');
+  return idx !== -1 && idx < limiteIdx;
+}
+
+// Garante que áreas periféricas não ultrapassem C+ (aplica a todas fontes IA)
+function applyPeriferiaGuard(regiao: RegiaoInfo): RegiaoInfo {
+  if (regiao.fonte === 'db_bairro' || regiao.fonte === 'db_cidade') return regiao;
+
+  const bairroNorm = normalizeGeo(regiao.bairro);
+  const cidadeNorm = normalizeGeo(regiao.cidade);
+
+  const isSatelite   = CIDADES_SATELITE_PERIFERICAS.has(cidadeNorm);
+  const hasPerifToken = TOKENS_PERIFERIA_SP.some(t => bairroNorm.includes(t));
+
+  if ((isSatelite || hasPerifToken) && isClassificacaoAcimaDeC(regiao.classificacao)) {
+    console.warn(
+      '[cepIntelligencia] periferiaGuard:', regiao.bairro, '/', regiao.cidade,
+      '→', regiao.classificacao, 'rebaixada para C+',
+    );
+    return {
+      ...regiao,
+      classificacao:   'C+',
+      potencial:       'médio-baixo',
+      status_regiao:   'fora',
+      faixa_valor_min: null,
+      faixa_valor_max: null,
+    };
+  }
+
+  return regiao;
 }
 
 // ─── consultarCep ─────────────────────────────────────────────────────────────
@@ -99,14 +157,15 @@ export async function consultarCep(
     if (data) {
       regiao = {
         bairro, cidade, uf, ibge,
-        classificacao:   data.classificacao,
-        potencial:       data.potencial,
-        zona:            data.zona,
-        status_regiao:   data.status_regiao,
-        descricao:       data.descricao || '',
-        faixa_valor_min: data.faixa_valor_min,
-        faixa_valor_max: data.faixa_valor_max,
-        fonte: 'db_bairro',
+        classificacao:        data.classificacao,
+        potencial:            data.potencial,
+        zona:                 data.zona,
+        status_regiao:        data.status_regiao,
+        descricao:            data.descricao || '',
+        faixa_valor_min:      data.faixa_valor_min,
+        faixa_valor_max:      data.faixa_valor_max,
+        fonte:                'db_bairro',
+        origem_classificacao: 'cache_manual',
       };
     }
   }
@@ -125,14 +184,15 @@ export async function consultarCep(
     if (data) {
       regiao = {
         bairro, cidade, uf, ibge,
-        classificacao:   data.classificacao,
-        potencial:       data.potencial,
-        zona:            data.zona,
-        status_regiao:   data.status_regiao,
-        descricao:       data.descricao || '',
-        faixa_valor_min: data.faixa_valor_min,
-        faixa_valor_max: data.faixa_valor_max,
-        fonte: 'db_cidade',
+        classificacao:        data.classificacao,
+        potencial:            data.potencial,
+        zona:                 data.zona,
+        status_regiao:        data.status_regiao,
+        descricao:            data.descricao || '',
+        faixa_valor_min:      data.faixa_valor_min,
+        faixa_valor_max:      data.faixa_valor_max,
+        fonte:                'db_cidade',
+        origem_classificacao: 'cache_manual',
       };
     }
   }
@@ -153,19 +213,20 @@ export async function consultarCep(
     if (cached) {
       const estimado = cached.revisao_manual || cached.inferencia_conservadora ||
         cached.confianca === 'baixa' || cached.confianca === 'insuficiente';
-      regiao = {
+      regiao = applyPeriferiaGuard({
         bairro, cidade, uf, ibge,
-        classificacao:   cached.classificacao,
-        potencial:       cached.potencial,
-        zona:            deriveZona(uf, cached.classificacao),
-        status_regiao:   deriveStatusRegiao(uf, cached.classificacao),
-        descricao:       cached.justificativa || '',
-        faixa_valor_min: cached.ticket_min ?? null,
-        faixa_valor_max: cached.ticket_max ?? null,
-        fonte:           'ia_cache',
-        confianca:       cached.confianca,
+        classificacao:        cached.classificacao,
+        potencial:            cached.potencial,
+        zona:                 deriveZona(uf, cached.classificacao),
+        status_regiao:        deriveStatusRegiao(uf, cached.classificacao),
+        descricao:            cached.justificativa || '',
+        faixa_valor_min:      cached.ticket_min ?? null,
+        faixa_valor_max:      cached.ticket_max ?? null,
+        fonte:                'ia_cache',
+        origem_classificacao: 'cache_ia',
+        confianca:            cached.confianca,
         estimado,
-      };
+      });
     }
   }
 
@@ -181,19 +242,20 @@ export async function consultarCep(
         const c = fnData.classificacao;
         const estimado = c.revisao_manual || c.inferencia_conservadora ||
           c.confianca === 'baixa' || c.confianca === 'insuficiente';
-        regiao = {
+        regiao = applyPeriferiaGuard({
           bairro, cidade, uf, ibge,
-          classificacao:   c.classificacao,
-          potencial:       c.potencial,
-          zona:            deriveZona(uf, c.classificacao),
-          status_regiao:   deriveStatusRegiao(uf, c.classificacao),
-          descricao:       c.justificativa || '',
-          faixa_valor_min: c.ticket_min ?? null,
-          faixa_valor_max: c.ticket_max ?? null,
-          fonte:           'ia_nova',
-          confianca:       c.confianca,
+          classificacao:        c.classificacao,
+          potencial:            c.potencial,
+          zona:                 deriveZona(uf, c.classificacao),
+          status_regiao:        deriveStatusRegiao(uf, c.classificacao),
+          descricao:            c.justificativa || '',
+          faixa_valor_min:      c.ticket_min ?? null,
+          faixa_valor_max:      c.ticket_max ?? null,
+          fonte:                'ia_nova',
+          origem_classificacao: 'ia_online',
+          confianca:            c.confianca,
           estimado,
-        };
+        });
       } else if (fnErr) {
         console.warn('[cepIntelligencia] edge function error:', fnErr);
       }
@@ -206,16 +268,17 @@ export async function consultarCep(
   if (!regiao) {
     regiao = {
       bairro, cidade, uf, ibge,
-      zona:            'fora',
-      classificacao:   'B-',
-      potencial:       'médio-baixo',
-      status_regiao:   'fora',
-      descricao:       'Classificação não disponível. Qualifique o lead manualmente antes de iniciar cadência.',
-      faixa_valor_min: null,
-      faixa_valor_max: null,
-      fonte:           'fallback',
-      confianca:       'insuficiente',
-      estimado:        true,
+      zona:                 'fora',
+      classificacao:        'C+',
+      potencial:            'médio-baixo',
+      status_regiao:        'fora',
+      descricao:            'Classificação não disponível. Qualifique o lead manualmente antes de iniciar cadência.',
+      faixa_valor_min:      null,
+      faixa_valor_max:      null,
+      fonte:                'fallback',
+      origem_classificacao: 'fallback_conservador',
+      confianca:            'insuficiente',
+      estimado:             true,
     };
   }
 

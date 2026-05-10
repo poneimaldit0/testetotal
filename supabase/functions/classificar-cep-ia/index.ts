@@ -25,6 +25,30 @@ function normalize(s: string): string {
   return (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
+// ─── Periferias guard ─────────────────────────────────────────────────────────
+
+const CLASSIFICACOES_ORDENADAS = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C/D", "D"];
+
+const TOKENS_PERIFERIA_SP = [
+  "guaianases", "brasilandia", "lajeado", "cangaiba", "parelheiros",
+  "grajau", "capao redondo", "jardim angela", "jardim helena",
+  "sao miguel paulista", "cidade tiradentes", "itaquera",
+  "jose bonifacio", "sao mateus", "ermelino matarazzo",
+  "ponte rasa", "itaim paulista", "conjunto habitacional",
+];
+
+const CIDADES_SATELITE_PERIFERICAS = new Set([
+  "ferraz de vasconcelos", "itaquaquecetuba", "suzano", "poa", "maua",
+  "ribeirao pires", "franco da rocha", "francisco morato",
+  "biritiba-mirim", "guararema", "salesopolis", "aruja", "santa isabel", "jacarei",
+]);
+
+function isAcimaDeC(classificacao: string): boolean {
+  const idx = CLASSIFICACOES_ORDENADAS.indexOf(classificacao);
+  const limiteIdx = CLASSIFICACOES_ORDENADAS.indexOf("C+");
+  return idx !== -1 && idx < limiteIdx;
+}
+
 // ─── Tool schema ──────────────────────────────────────────────────────────────
 
 const TOOL_CLASSIFICAR = {
@@ -218,6 +242,28 @@ serve(async (req) => {
 
     console.log("[classificar-cep] resultado:", bairro, "/", cidade, "→", r.classificacao, r.confianca);
 
+    // Aplicar guard de periferia antes de persistir no cache
+    let classificacaoFinal = r.classificacao;
+    let potencialFinal = r.potencial;
+    let ticketMinFinal = r.ticket_min_estimado ?? null;
+    let ticketMaxFinal = r.ticket_max_estimado ?? null;
+
+    if (isAcimaDeC(r.classificacao)) {
+      const isSatelite    = CIDADES_SATELITE_PERIFERICAS.has(normalize(cidade));
+      const hasPerifToken = TOKENS_PERIFERIA_SP.some(t => normalize(bairro || "").includes(t));
+
+      if (isSatelite || hasPerifToken) {
+        console.warn(
+          "[classificar-cep] periferiaGuard:", bairro, "/", cidade,
+          "→", r.classificacao, "rebaixada para C+",
+        );
+        classificacaoFinal = "C+";
+        potencialFinal     = "médio-baixo";
+        ticketMinFinal     = null;
+        ticketMaxFinal     = null;
+      }
+    }
+
     const now = new Date().toISOString();
     const revisao = r.confianca === "baixa" || r.confianca === "insuficiente";
 
@@ -229,10 +275,10 @@ serve(async (req) => {
           bairro_norm:             bairroNorm,
           cidade_norm:             cidadeNorm,
           uf:                      ufUpper,
-          classificacao:           r.classificacao,
-          potencial:               r.potencial,
-          ticket_min:              r.ticket_min_estimado ?? null,
-          ticket_max:              r.ticket_max_estimado ?? null,
+          classificacao:           classificacaoFinal,
+          potencial:               potencialFinal,
+          ticket_min:              ticketMinFinal,
+          ticket_max:              ticketMaxFinal,
           justificativa:           r.justificativa,
           confianca:               r.confianca,
           fontes:                  r.fontes ?? [],
@@ -258,10 +304,10 @@ serve(async (req) => {
         bairro_norm:             bairroNorm,
         cidade_norm:             cidadeNorm,
         uf:                      ufUpper,
-        classificacao:           r.classificacao,
-        potencial:               r.potencial,
-        ticket_min:              r.ticket_min_estimado ?? null,
-        ticket_max:              r.ticket_max_estimado ?? null,
+        classificacao:           classificacaoFinal,
+        potencial:               potencialFinal,
+        ticket_min:              ticketMinFinal,
+        ticket_max:              ticketMaxFinal,
         justificativa:           r.justificativa,
         confianca:               r.confianca,
         fontes:                  r.fontes ?? [],
