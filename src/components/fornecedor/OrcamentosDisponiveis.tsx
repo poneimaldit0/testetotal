@@ -33,13 +33,6 @@ const D = {
 // ── CSS injection ─────────────────────────────────────────────────────────────
 function useDisponivelStyles() {
   useEffect(() => {
-    const fontId = 'rota100-fonts';
-    if (!document.getElementById(fontId)) {
-      const link = document.createElement('link');
-      link.id = fontId; link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap';
-      document.head.appendChild(link);
-    }
     const id = 'disp-styles';
     if (document.getElementById(id)) return;
     const s = document.createElement('style');

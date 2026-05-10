@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useIsMaster } from '@/hooks/useIsMaster';
 import { useAdminNotifications } from '@/hooks/useAdminNotifications';
 import { type UserRole, type ViewType } from '@/utils/accessControl';
@@ -34,17 +34,6 @@ export function NovoLayout({ activeView, onViewChange, userRole, userName, onSig
   const [collapsed, setCollapsed] = useState(false);
   const isMaster = useIsMaster();
   const { notifications } = useAdminNotifications();
-
-  useEffect(() => {
-    const existing = document.getElementById('novo-layout-fonts');
-    if (!existing) {
-      const link = document.createElement('link');
-      link.id = 'novo-layout-fonts';
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap';
-      document.head.appendChild(link);
-    }
-  }, []);
 
   const buildMenuGroups = (): MenuGroup[] => {
     const isAdmin = userRole === 'admin' || userRole === 'master';
