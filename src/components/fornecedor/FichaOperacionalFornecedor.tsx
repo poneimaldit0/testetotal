@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
@@ -34,12 +34,7 @@ function fmtBytes(bytes: number): string {
 }
 
 // ── Seção header ──────────────────────────────────────────────────────────────
-function FichaHeader({
-  candidatura, onClose,
-}: {
-  candidatura: CandidaturaOrcamento;
-  onClose: () => void;
-}) {
+function FichaHeader({ candidatura }: { candidatura: CandidaturaOrcamento }) {
   const s = candidatura.statusAcompanhamento;
   const isReu = s === 'reuniao_agendada' || s === 'reuniao_realizada';
   const isVis = s === 'visita_agendada' || s === 'visita_realizada';
@@ -490,7 +485,11 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
   const [preConfirmadoEm, setPreConfirmadoEm] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
-  // Sync preConfirmadoEm when candidatura changes
+  // Reseta estado local de confirmação cada vez que uma candidatura diferente abre
+  useEffect(() => {
+    setPreConfirmadoEm(null);
+  }, [candidatura?.candidaturaId]);
+
   const confirmedAt = candidatura?.preConfirmadoEm ?? null;
 
   const handlePreConfirmar = async (via: string) => {
@@ -523,7 +522,7 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
 
         {candidatura && (
           <>
-            <FichaHeader candidatura={candidatura} onClose={onClose} />
+            <FichaHeader candidatura={candidatura} />
 
             {/* Corpo rolável */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 32px' }}>
