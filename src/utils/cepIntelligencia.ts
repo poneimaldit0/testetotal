@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import dadosNacionais from '../data/dadosNacionaisReforma100.json';
 
 export interface ViaCepData {
   cep: string;
@@ -23,7 +22,10 @@ export interface RegiaoInfo {
   descricao: string;
   faixa_valor_min: number | null;
   faixa_valor_max: number | null;
-  fonte: 'db_bairro' | 'db_cidade' | 'json_nacional' | 'desconhecida';
+  fonte: 'db_bairro' | 'db_cidade' | 'ia_cache' | 'ia_nova' | 'fallback';
+  // Campos adicionais de IA — undefined em entradas manuais
+  confianca?: 'alta' | 'media' | 'baixa' | 'insuficiente';
+  estimado?: boolean; // true quando confiança baixa/insuficiente → exibir aviso
 }
 
 export interface CepResultado {
@@ -31,65 +33,31 @@ export interface CepResultado {
   regiao: RegiaoInfo;
 }
 
-// Mapeamento dos tiers do JSON nacional para as classificações do sistema
-// ATENÇÃO: o JSON classifica algumas cidades da Grande SP como "litoral" (erro de metodologia).
-// Essas cidades são resolvidas pelo seed do banco (db_bairro / db_cidade) antes de chegar aqui.
-type JsonTier = 'prime' | 'alta' | 'media-a' | 'media-b' | 'opp' | 'litoral-prime' | 'litoral-alta' | 'litoral-b';
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const JSON_TIER: Record<JsonTier, { classificacao: string; potencial: string; litoral: boolean }> = {
-  'prime':         { classificacao: 'Premium A+',            potencial: 'alto',  litoral: false },
-  'alta':          { classificacao: 'Premium A',             potencial: 'alto',  litoral: false },
-  'media-a':       { classificacao: 'A-',                    potencial: 'médio', litoral: false },
-  'media-b':       { classificacao: 'B+',                    potencial: 'médio', litoral: false },
-  'opp':           { classificacao: 'Oportunidade',          potencial: 'médio', litoral: false },
-  'litoral-prime': { classificacao: 'Premium A+',            potencial: 'alto',  litoral: true  },
-  'litoral-alta':  { classificacao: 'Premium A',             potencial: 'alto',  litoral: true  },
-  'litoral-b':     { classificacao: 'B+',                    potencial: 'médio', litoral: true  },
-};
-
-// Capitais de expansão confirmadas (prime/alta fora de SP)
-const EXPANSAO_UFS = new Set(['PR', 'GO', 'DF', 'MG', 'RJ', 'SC', 'RS']);
-
-const DESCRICOES: Record<string, string> = {
-  'Premium A+':               'Região de altíssimo padrão, com forte presença de imóveis de luxo, alto poder aquisitivo e alta propensão a reformas completas. Ticket médio acima de R$300k.',
-  'Premium A':                'Região de alta renda consolidada com demanda consistente por reformas de alto padrão. Ticket entre R$150k e R$300k. Boa taxa de conversão com abordagem consultiva.',
-  'A-':                       'Região de média-alta renda com boa propensão a reformas de qualidade. Ticket entre R$80k e R$150k. Clientes exigentes que priorizam qualidade e referências.',
-  'B+':                       'Região de classe média consolidada com demanda crescente por reformas. Ticket entre R$50k e R$80k. Volume bom com abordagem adequada ao perfil.',
-  'B':                        'Região em monitoramento com potencial emergente. Ticket entre R$30k e R$50k. Qualificação cuidadosa recomendada antes de iniciar cadência.',
-  'Oportunidade':             'Região com oportunidades pontuais — alta variação de perfil. Priorizar leads com projeto definido e orçamento acima de R$40k antes de iniciar cadência.',
-  'Periférico com potencial': 'Região em crescimento e valorização recente. Pode gerar oportunidades, mas requer qualificação criteriosa do perfil e orçamento disponível.',
-};
-
-const tierMap = dadosNacionais.municipioTierMap as Record<string, string>;
-
-function resolverPorIbge(ibge: string, uf: string): Pick<RegiaoInfo, 'classificacao' | 'potencial' | 'zona' | 'status_regiao'> | null {
-  const tier = tierMap[ibge] as JsonTier | undefined;
-  if (!tier || !JSON_TIER[tier]) return null;
-
-  const { classificacao, potencial, litoral } = JSON_TIER[tier];
-
-  let zona: string;
-  let status_regiao: string;
-
-  if (litoral) {
-    // O JSON diz litoral — aceitamos para cidades que não estão no banco.
-    // Cidades da Grande SP que o JSON classifica erroneamente como litoral
-    // já foram resolvidas pelo banco antes de chegar aqui.
-    zona          = 'litoral';
-    status_regiao = 'expansão';
-  } else if (uf === 'SP') {
-    zona          = 'metropolitana';
-    status_regiao = 'ativa';
-  } else if (EXPANSAO_UFS.has(uf) && (tier === 'prime' || tier === 'alta')) {
-    zona          = 'expansão';
-    status_regiao = 'expansão';
-  } else {
-    zona          = 'fora';
-    status_regiao = 'fora';
-  }
-
-  return { classificacao, potencial, zona, status_regiao };
+function normalizeGeo(s: string): string {
+  return (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
+
+function deriveZona(uf: string, classificacao: string): string {
+  if (uf === 'SP') return 'metropolitana';
+  const EXPANSAO = new Set(['PR', 'GO', 'DF', 'MG', 'RJ', 'SC', 'RS']);
+  if (EXPANSAO.has(uf) && ['A+', 'A', 'A-', 'B+', 'Premium A+', 'Premium A'].includes(classificacao)) {
+    return 'expansão';
+  }
+  return 'fora';
+}
+
+function deriveStatusRegiao(uf: string, classificacao: string): string {
+  if (uf === 'SP') return 'ativa';
+  const EXPANSAO = new Set(['PR', 'GO', 'DF', 'MG', 'RJ', 'SC', 'RS']);
+  if (EXPANSAO.has(uf) && ['A+', 'A', 'A-', 'B+', 'Premium A+', 'Premium A'].includes(classificacao)) {
+    return 'expansão';
+  }
+  return 'fora';
+}
+
+// ─── consultarCep ─────────────────────────────────────────────────────────────
 
 export async function consultarCep(
   cep: string,
@@ -110,14 +78,14 @@ export async function consultarCep(
     return null;
   }
 
-  const bairro = (viaCep.bairro    || '').trim();
+  const bairro = (viaCep.bairro     || '').trim();
   const cidade = (viaCep.localidade || '').trim();
   const uf     = (viaCep.uf         || '').trim();
   const ibge   = (viaCep.ibge       || '').trim();
 
   let regiao: RegiaoInfo | null = null;
 
-  // 2. Match exato: bairro + cidade na tabela
+  // 2. Match manual: bairro + cidade em regioes_estrategicas (maior autoridade — não sobrescrever)
   if (bairro && cidade) {
     const { data } = await (supabase as any)
       .from('regioes_estrategicas')
@@ -135,7 +103,7 @@ export async function consultarCep(
         potencial:       data.potencial,
         zona:            data.zona,
         status_regiao:   data.status_regiao,
-        descricao:       data.descricao || DESCRICOES[data.classificacao] || '',
+        descricao:       data.descricao || '',
         faixa_valor_min: data.faixa_valor_min,
         faixa_valor_max: data.faixa_valor_max,
         fonte: 'db_bairro',
@@ -143,7 +111,7 @@ export async function consultarCep(
     }
   }
 
-  // 3. Fallback: só cidade (entrada city-level sem bairro no banco)
+  // 3. Match manual: só cidade (entrada city-level)
   if (!regiao && cidade) {
     const { data } = await (supabase as any)
       .from('regioes_estrategicas')
@@ -161,7 +129,7 @@ export async function consultarCep(
         potencial:       data.potencial,
         zona:            data.zona,
         status_regiao:   data.status_regiao,
-        descricao:       data.descricao || DESCRICOES[data.classificacao] || '',
+        descricao:       data.descricao || '',
         faixa_valor_min: data.faixa_valor_min,
         faixa_valor_max: data.faixa_valor_max,
         fonte: 'db_cidade',
@@ -169,45 +137,89 @@ export async function consultarCep(
     }
   }
 
-  // 4. Fallback: JSON nacional por código IBGE
-  // Safety cap: sem match exato de bairro no banco, nunca classificar acima de A-.
-  // Premium A+ e Premium A exigem confirmação explícita via seed (db_bairro / db_cidade).
-  if (!regiao && ibge) {
-    const tier = resolverPorIbge(ibge, uf);
-    if (tier) {
-      const CAP: Record<string, string> = { 'Premium A+': 'A-', 'Premium A': 'A-' };
-      const classificacaoFinal = CAP[tier.classificacao] ?? tier.classificacao;
-      const potencialFinal     = classificacaoFinal === 'A-' ? 'médio' : tier.potencial;
+  // 4. Cache IA: bairro+cidade+UF em cep_classificacoes_ia
+  if (!regiao && cidade) {
+    const bairroNorm = normalizeGeo(bairro);
+    const cidadeNorm = normalizeGeo(cidade);
+
+    const { data: cached } = await (supabase as any)
+      .from('cep_classificacoes_ia')
+      .select('classificacao, potencial, ticket_min, ticket_max, justificativa, confianca, revisao_manual, inferencia_conservadora')
+      .eq('bairro_norm', bairroNorm)
+      .eq('cidade_norm', cidadeNorm)
+      .eq('uf', uf.toUpperCase())
+      .maybeSingle();
+
+    if (cached) {
+      const estimado = cached.revisao_manual || cached.inferencia_conservadora ||
+        cached.confianca === 'baixa' || cached.confianca === 'insuficiente';
       regiao = {
         bairro, cidade, uf, ibge,
-        classificacao:   classificacaoFinal,
-        potencial:       potencialFinal,
-        zona:            tier.zona,
-        status_regiao:   tier.status_regiao,
-        descricao:       DESCRICOES[classificacaoFinal] || '',
-        faixa_valor_min: null,
-        faixa_valor_max: null,
-        fonte: 'json_nacional',
+        classificacao:   cached.classificacao,
+        potencial:       cached.potencial,
+        zona:            deriveZona(uf, cached.classificacao),
+        status_regiao:   deriveStatusRegiao(uf, cached.classificacao),
+        descricao:       cached.justificativa || '',
+        faixa_valor_min: cached.ticket_min ?? null,
+        faixa_valor_max: cached.ticket_max ?? null,
+        fonte:           'ia_cache',
+        confianca:       cached.confianca,
+        estimado,
       };
     }
   }
 
-  // 5. Fora de área (nenhum match)
+  // 5. Cache miss → chamar edge function classificar-cep-ia
+  if (!regiao && cidade) {
+    try {
+      const { data: fnData, error: fnErr } = await (supabase as any).functions.invoke(
+        'classificar-cep-ia',
+        { body: { bairro, cidade, uf } },
+      );
+
+      if (!fnErr && fnData?.classificacao) {
+        const c = fnData.classificacao;
+        const estimado = c.revisao_manual || c.inferencia_conservadora ||
+          c.confianca === 'baixa' || c.confianca === 'insuficiente';
+        regiao = {
+          bairro, cidade, uf, ibge,
+          classificacao:   c.classificacao,
+          potencial:       c.potencial,
+          zona:            deriveZona(uf, c.classificacao),
+          status_regiao:   deriveStatusRegiao(uf, c.classificacao),
+          descricao:       c.justificativa || '',
+          faixa_valor_min: c.ticket_min ?? null,
+          faixa_valor_max: c.ticket_max ?? null,
+          fonte:           'ia_nova',
+          confianca:       c.confianca,
+          estimado,
+        };
+      } else if (fnErr) {
+        console.warn('[cepIntelligencia] edge function error:', fnErr);
+      }
+    } catch (e) {
+      console.warn('[cepIntelligencia] edge function exception:', e);
+    }
+  }
+
+  // 6. Fallback conservador (edge function indisponível)
   if (!regiao) {
     regiao = {
       bairro, cidade, uf, ibge,
       zona:            'fora',
-      classificacao:   'B',
-      potencial:       'baixo',
+      classificacao:   'B-',
+      potencial:       'médio-baixo',
       status_regiao:   'fora',
-      descricao:       'Região fora das áreas de atuação mapeadas. Avalie caso a caso se vale iniciar cadência.',
+      descricao:       'Classificação não disponível. Qualifique o lead manualmente antes de iniciar cadência.',
       faixa_valor_min: null,
       faixa_valor_max: null,
-      fonte:           'desconhecida',
+      fonte:           'fallback',
+      confianca:       'insuficiente',
+      estimado:        true,
     };
   }
 
-  // 6. Persistir pesquisa (fire-and-forget)
+  // 7. Persistir pesquisa (fire-and-forget)
   (supabase as any)
     .from('cep_pesquisas')
     .insert({
