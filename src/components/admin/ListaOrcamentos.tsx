@@ -22,6 +22,7 @@ import { Orcamento } from '@/types';
 import { AnexosOrcamento } from '../fornecedor/AnexosOrcamento';
 import { supabase } from '@/integrations/supabase/client';
 import { ModalCompatibilizacaoConsultor } from './consultor/ModalCompatibilizacaoConsultor';
+import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 
 // ── Badge de status de compatibilização ──────────────────────────────────────
 function CompatStatusBadge({ status }: { status: string | undefined }) {
@@ -197,14 +198,16 @@ export const ListaOrcamentos: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-secondary">
-        Orçamentos Cadastrados
-        {totalCount > 0 && (
-          <Badge variant="outline" className="ml-3 text-sm font-normal">
+      <PremiumPageHeader
+        title="Orçamentos Cadastrados"
+        subtitle="Gerencie e acompanhe todos os orçamentos"
+        style={{ marginBottom: 0 }}
+        right={totalCount > 0 ? (
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
             {orcamentosToShow.length} de {totalCount}
-          </Badge>
-        )}
-      </h2>
+          </span>
+        ) : undefined}
+      />
       
       <FiltroAvancadoOrcamentos 
         onFilteredResults={handleFilteredResults}
@@ -220,7 +223,7 @@ export const ListaOrcamentos: React.FC = () => {
       )}
       
       {orcamentosToShow.length === 0 ? (
-        <Card className="goodref-card">
+        <Card className="r100-card">
           <CardContent className="p-6 text-center text-muted-foreground">
             {isFiltered ? 
               "Nenhum orçamento encontrado para o filtro aplicado." :
@@ -231,7 +234,7 @@ export const ListaOrcamentos: React.FC = () => {
       ) : (
         <div className="grid gap-4 max-w-full overflow-hidden">
           {orcamentosToShow.map((orcamento) => (
-            <Card key={orcamento.id} className="goodref-card w-full max-w-full box-border overflow-hidden">
+            <Card key={orcamento.id} className="r100-card w-full max-w-full box-border overflow-hidden">
               <CardHeader className="max-w-full overflow-hidden pb-4 space-y-0">
                 <div className="flex flex-col gap-3 max-w-full overflow-hidden mb-0">
                   <div className="min-w-0 flex-1 overflow-hidden">

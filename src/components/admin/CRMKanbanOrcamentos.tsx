@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEtapasConfig } from '@/hooks/useEtapasConfig';
+import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 
 export const CRMKanbanOrcamentos = () => {
   const { profile } = useAuth();
@@ -532,115 +533,111 @@ export const CRMKanbanOrcamentos = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b bg-background">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">CRM de Acompanhamento</h2>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Popover open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <Filter className="h-4 w-4" />
-                    Filtros
-                    {contarFiltrosAtivos() > 0 && (
-                      <Badge variant="secondary">{contarFiltrosAtivos()}</Badge>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <FiltrosAvancadosCRM
-                    filtros={filtros}
-                    onFiltrosChange={setFiltros}
-                    onClose={() => setFiltrosAbertos(false)}
-                    concierges={concierges}
-                  />
-                </PopoverContent>
-              </Popover>
+      <PremiumPageHeader
+        title="CRM de Acompanhamento"
+        subtitle="Acompanhe e mova os leads pelo pipeline"
+        style={{ borderRadius: 0, marginBottom: 0 }}
+      />
 
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={() => {
-                  refetch();
-                  toast({
-                    title: "🔄 Atualizando...",
-                    description: "Recarregando orçamentos do CRM"
-                  });
-                }}
-                title="Atualizar orçamentos"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant={exibirArquivadas ? 'default' : 'outline'}
-                onClick={() => setExibirArquivadas(!exibirArquivadas)}
-                className="gap-2"
-              >
-                {exibirArquivadas ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                {exibirArquivadas ? 'Ocultar' : 'Exibir'} Arquivadas
-                {orcamentosArquivados.length > 0 && (
-                  <Badge variant="secondary">{orcamentosArquivados.length}</Badge>
-                )}
-              </Button>
-
-              <Button
-                variant={filtros.temAlerta ? "destructive" : "outline"}
-                onClick={toggleFiltroAlerta}
-                className="gap-2"
-              >
-                <AlertTriangle className={orcamentosComAlerta > 0 && !filtros.temAlerta ? "h-4 w-4 text-orange-500" : "h-4 w-4"} />
-                <span>Tarefas Atrasadas</span>
-                {orcamentosComAlerta > 0 && (
-                  <Badge variant={filtros.temAlerta ? "secondary" : "destructive"}>
-                    {orcamentosComAlerta}
-                  </Badge>
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={async () => await exportarLeadsCRMExcel(orcamentosFiltrados)}
-                className="gap-2"
-                title="Exportar leads filtrados para Excel"
-              >
-                <Download className="h-4 w-4" />
-                Exportar
-              </Button>
-
-              {isAdminOrMaster && (
-                <Button
-                  variant="outline"
-                  onClick={() => setModalApropriar(true)}
-                  disabled={cardsSelecionados.size === 0}
-                  className="gap-2"
-                >
-                  <UserCheck className="h-4 w-4" />
-                  Apropriar Selecionados
-                </Button>
+      <div className="flex items-center gap-3 flex-wrap px-4 py-3 border-b bg-background">
+        <Popover open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Filter className="h-4 w-4" />
+              Filtros
+              {contarFiltrosAtivos() > 0 && (
+                <Badge variant="secondary">{contarFiltrosAtivos()}</Badge>
               )}
-              
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-muted-foreground">
-                  {orcamentosAtivos.length} orçamento(s) em andamento
-                  {contarFiltrosAtivos() > 0 && (
-                    <span className="ml-2 text-primary">
-                      • {contarFiltrosAtivos()} filtro(s) ativo(s)
-                    </span>
-                  )}
-                </p>
-                {isFiltrandoFornecedores && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Aplicando filtros...</span>
-                  </div>
-                )}
-              </div>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <FiltrosAvancadosCRM
+              filtros={filtros}
+              onFiltrosChange={setFiltros}
+              onClose={() => setFiltrosAbertos(false)}
+              concierges={concierges}
+            />
+          </PopoverContent>
+        </Popover>
+
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => {
+            refetch();
+            toast({
+              title: "🔄 Atualizando...",
+              description: "Recarregando orçamentos do CRM"
+            });
+          }}
+          title="Atualizar orçamentos"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant={exibirArquivadas ? 'default' : 'outline'}
+          onClick={() => setExibirArquivadas(!exibirArquivadas)}
+          className="gap-2"
+        >
+          {exibirArquivadas ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          {exibirArquivadas ? 'Ocultar' : 'Exibir'} Arquivadas
+          {orcamentosArquivados.length > 0 && (
+            <Badge variant="secondary">{orcamentosArquivados.length}</Badge>
+          )}
+        </Button>
+
+        <Button
+          variant={filtros.temAlerta ? "destructive" : "outline"}
+          onClick={toggleFiltroAlerta}
+          className="gap-2"
+        >
+          <AlertTriangle className={orcamentosComAlerta > 0 && !filtros.temAlerta ? "h-4 w-4 text-orange-500" : "h-4 w-4"} />
+          <span>Tarefas Atrasadas</span>
+          {orcamentosComAlerta > 0 && (
+            <Badge variant={filtros.temAlerta ? "secondary" : "destructive"}>
+              {orcamentosComAlerta}
+            </Badge>
+          )}
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={async () => await exportarLeadsCRMExcel(orcamentosFiltrados)}
+          className="gap-2"
+          title="Exportar leads filtrados para Excel"
+        >
+          <Download className="h-4 w-4" />
+          Exportar
+        </Button>
+
+        {isAdminOrMaster && (
+          <Button
+            variant="outline"
+            onClick={() => setModalApropriar(true)}
+            disabled={cardsSelecionados.size === 0}
+            className="gap-2"
+          >
+            <UserCheck className="h-4 w-4" />
+            Apropriar Selecionados
+          </Button>
+        )}
+
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-muted-foreground">
+            {orcamentosAtivos.length} orçamento(s) em andamento
+            {contarFiltrosAtivos() > 0 && (
+              <span className="ml-2 text-primary">
+                • {contarFiltrosAtivos()} filtro(s) ativo(s)
+              </span>
+            )}
+          </p>
+          {isFiltrandoFornecedores && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Aplicando filtros...</span>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

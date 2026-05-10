@@ -6,20 +6,22 @@ import { useGerarEstimativaIA } from '@/hooks/useGerarEstimativaIA';
 import { sortLeads, SORT_LABELS } from '@/utils/sortLeads';
 import type { SortMode, SortDir } from '@/utils/sortLeads';
 import type { OrcamentoCRMComChecklist, EtapaCRM, StatusContato } from '@/types/crm';
+import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 
+// Tokens Isabella mapeados para variáveis locais
 const C = {
-  NV:      '#0D1B2A',
+  NV:      '#1A2030',
   NV2:     '#1A2E42',
-  LJ:      '#E8510A',
-  FD:      '#F5F3EF',
-  BD:      '#E0DDD7',
-  CZ:      '#6B6760',
-  text:    '#1A1A1A',
+  LJ:      '#E08B00',  // amber — stale badges, progress bar
+  FD:      '#F4F5FB',
+  BD:      '#E5E7EB',
+  CZ:      '#6B7280',
+  text:    '#1A2030',
   white:   '#FFFFFF',
-  green:   '#1A7A4A',
-  greenBg: '#E8F5EE',
-  blue:    '#3B35B7',
-  blueBg:  '#EEF0FF',
+  green:   '#1B7A4A',
+  greenBg: '#e0f5ec',
+  blue:    '#2D3395',
+  blueBg:  '#eef0ff',
 };
 
 // ─── Progress calculation ────────────────────────────────────────────────────
@@ -115,12 +117,13 @@ function MetricCard({
 }) {
   return (
     <div style={{
-      background:   highlight ? C.LJ : C.white,
+      background:   C.white,
       borderRadius: 12,
       padding:      '20px 22px',
-      border:       `1px solid ${highlight ? 'transparent' : C.BD}`,
+      border:       `1px solid ${C.BD}`,
+      borderTop:    `3px solid ${highlight ? C.blue : C.BD}`,
       boxShadow:    highlight
-        ? '0 4px 20px rgba(232,81,10,0.22)'
+        ? '0 2px 12px rgba(45,51,149,0.12)'
         : '0 1px 4px rgba(0,0,0,0.06)',
       display:       'flex',
       flexDirection: 'column',
@@ -132,9 +135,8 @@ function MetricCard({
       {loading ? (
         <div style={{
           width: 70, height: 38,
-          background:    highlight ? 'rgba(255,255,255,0.22)' : C.BD,
-          borderRadius:  6,
-          animation:     'none',
+          background:   C.BD,
+          borderRadius: 6,
         }} />
       ) : (
         <div style={{
@@ -142,17 +144,17 @@ function MetricCard({
           fontWeight:   800,
           fontSize:     34,
           lineHeight:   1,
-          color:        highlight ? C.white : C.NV,
+          color:        highlight ? C.blue : C.NV,
           letterSpacing: '-1px',
         }}>
           {value}
         </div>
       )}
-      <div style={{ fontWeight: 600, fontSize: 13, color: highlight ? 'rgba(255,255,255,0.92)' : C.text }}>
+      <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>
         {label}
       </div>
       {sub && (
-        <div style={{ fontSize: 11, color: highlight ? 'rgba(255,255,255,0.62)' : C.CZ }}>
+        <div style={{ fontSize: 11, color: C.CZ }}>
           {sub}
         </div>
       )}
@@ -258,15 +260,15 @@ const ETAPA_LABEL: Record<string, string> = {
 };
 
 const ETAPA_CLR: Record<string, { clr: string; bg: string }> = {
-  orcamento_postado:    { clr: C.blue,  bg: C.blueBg },
+  orcamento_postado:    { clr: C.blue,    bg: C.blueBg  },
   contato_agendamento:  { clr: '#9A6200', bg: '#FFF5DC' },
-  em_orcamento:         { clr: C.LJ,    bg: '#FFF0E8' },
-  propostas_enviadas:   { clr: '#5940C0', bg: '#F0EEFF' },
-  compatibilizacao:     { clr: '#1A7A4A', bg: '#E8F5EE' },
-  fechamento_contrato:  { clr: C.NV,    bg: '#E8EEF5' },
-  pos_venda_feedback:   { clr: C.green, bg: C.greenBg },
-  ganho:                { clr: C.green, bg: C.greenBg },
-  perdido:              { clr: '#888',  bg: C.FD },
+  em_orcamento:         { clr: '#E08B00', bg: '#fff3cd' },
+  propostas_enviadas:   { clr: '#534AB7', bg: '#ede9ff' },
+  compatibilizacao:     { clr: C.green,   bg: C.greenBg },
+  fechamento_contrato:  { clr: C.NV,      bg: '#E8EEF5' },
+  pos_venda_feedback:   { clr: C.green,   bg: C.greenBg },
+  ganho:                { clr: C.green,   bg: C.greenBg },
+  perdido:              { clr: C.CZ,      bg: C.FD      },
 };
 
 // ─── Consultor filter ─────────────────────────────────────────────────────────
@@ -464,40 +466,32 @@ export function DashboardOperacional() {
     <div style={{ fontFamily: '"DM Sans", sans-serif', color: C.text }}>
 
       {/* Page header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22, gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 22, color: C.NV, margin: 0, letterSpacing: '-0.3px' }}>
-            Dashboard Operacional
-          </h1>
-          <p style={{ fontSize: 13, color: C.CZ, marginTop: 4, margin: 0 }}>
-            {isGestor ? 'Sua carteira de leads e orçamentos' : 'Visão geral da operação Reforma100'}
-          </p>
-        </div>
-
-        {/* Consultor filter (admin/master) */}
-        {isAdmin && (
+      <PremiumPageHeader
+        title="Dashboard Operacional"
+        subtitle={isGestor ? 'Sua carteira de leads e orçamentos' : 'Visão geral da operação Reforma100'}
+        right={isAdmin ? (
           <select
             value={filtroConsultor}
             onChange={e => setFiltroConsultor(e.target.value)}
             style={{
               fontSize:     13,
               padding:      '7px 12px',
-              border:       `1px solid ${C.BD}`,
+              border:       '1px solid rgba(255,255,255,0.3)',
               borderRadius:  8,
-              background:   C.white,
-              color:        C.text,
+              background:   'rgba(255,255,255,0.15)',
+              color:        '#fff',
               fontFamily:   '"DM Sans", sans-serif',
               cursor:       'pointer',
               minWidth:     180,
             }}
           >
-            <option value="">Todos os consultores</option>
+            <option value="" style={{ background: '#2D3395' }}>Todos os consultores</option>
             {consultores.map(c => (
-              <option key={c.id} value={c.id}>{c.nome}</option>
+              <option key={c.id} value={c.id} style={{ background: '#2D3395' }}>{c.nome}</option>
             ))}
           </select>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Metric cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 22 }}>

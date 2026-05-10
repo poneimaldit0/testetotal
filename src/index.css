@@ -182,6 +182,72 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* Header premium animado — usado por PremiumPageHeader */
+  .r100-header-premium {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(150deg, #2D3395 0%, #3d4ab5 100%);
+    border-radius: 14px;
+    margin-bottom: 22px;
+  }
+  .r100-hdr-glow {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(247,162,38,0.25) 0%, transparent 70%);
+    top: -100px;
+    right: 20px;
+    animation: r100GlowPulse 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .r100-hdr-glow2 {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(83,74,183,0.4) 0%, transparent 70%);
+    bottom: -70px;
+    left: 10px;
+    animation: r100GlowPulse 6s ease-in-out infinite reverse;
+    pointer-events: none;
+  }
+  .r100-hdr-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.07) 50%, transparent 60%);
+    animation: r100Shine 5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .r100-hdr-dots {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+  .r100-hdr-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 24px 18px;
+    flex-wrap: wrap;
+  }
+}
+
+@keyframes r100GlowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+@keyframes r100Shine {
+  0% { left: -100%; }
+  60%, 100% { left: 110%; }
 }
 
 /* Utilitário para scroll horizontal global */
