@@ -95,6 +95,7 @@ function SecaoResultado({ s }: { s: string | null }) {
             background: I.azul, color: '#fff', border: 'none', borderRadius: 8,
             padding: '10px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 6, lineHeight: 1,
+            minHeight: 44,
           }}
         >
           Explorar novos orçamentos →
