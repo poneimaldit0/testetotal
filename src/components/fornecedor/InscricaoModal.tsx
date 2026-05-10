@@ -26,6 +26,7 @@ interface InscricaoModalProps {
   isSubmitting: boolean;
   hasProfile: boolean;
   horarioSelecionado?: { id: string; data_hora: string } | null;
+  isFilaEspera?: boolean;
 }
 
 export const InscricaoModal: React.FC<InscricaoModalProps> = ({
@@ -37,6 +38,7 @@ export const InscricaoModal: React.FC<InscricaoModalProps> = ({
   isSubmitting,
   hasProfile,
   horarioSelecionado,
+  isFilaEspera = false,
 }) => {
   const { toast } = useToast();
 
@@ -70,8 +72,8 @@ export const InscricaoModal: React.FC<InscricaoModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Horário de visita selecionado */}
-        {horarioSelecionado && (
+        {/* Contexto da inscrição */}
+        {horarioSelecionado ? (
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
             <CalendarClock className="h-4 w-4 text-green-600 flex-shrink-0" />
             <div>
@@ -81,7 +83,14 @@ export const InscricaoModal: React.FC<InscricaoModalProps> = ({
               </p>
             </div>
           </div>
-        )}
+        ) : isFilaEspera ? (
+          <div className="p-3 rounded-lg" style={{ background: '#F3F4F6', border: '1.5px solid #E5E7EB' }}>
+            <p className="text-sm font-semibold" style={{ color: '#6B7280', marginBottom: 4 }}>⏳ Fila de espera</p>
+            <p className="text-xs" style={{ color: '#6B7280', lineHeight: 1.55 }}>
+              Você entrará na fila de espera caso uma empresa falte, desista ou não confirme.
+            </p>
+          </div>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -136,7 +145,7 @@ export const InscricaoModal: React.FC<InscricaoModalProps> = ({
                 Inscrevendo...
               </>
             ) : (
-              horarioSelecionado ? 'Confirmar Inscrição e Agendar Visita' : 'Confirmar Inscrição'
+              horarioSelecionado ? 'Confirmar Inscrição e Agendar Visita' : isFilaEspera ? 'Entrar na fila de espera' : 'Confirmar Inscrição'
             )}
           </Button>
         </form>

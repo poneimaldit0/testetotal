@@ -41,14 +41,14 @@ function useDisponivelStyles() {
       .disp { font-family:'DM Sans',sans-serif; background:${D.bg}; min-height:100vh; }
       .disp-serif { font-family:'DM Serif Display',serif; }
       .disp-syne  { font-family:'Syne',sans-serif; }
-      .disp-content { padding:20px 16px 48px; }
+      .disp-content { padding:10px 16px 48px; }
       .disp-card {
         background:#fff; border-radius:14px;
         box-shadow:0 1px 6px rgba(0,0,0,.07),0 0 1px rgba(0,0,0,.04);
-        padding:16px 18px; margin-bottom:12px;
+        padding:16px 18px; margin-bottom:10px;
         transition:box-shadow .18s,transform .18s;
       }
-      .disp-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.10); transform:translateY(-1px); }
+      .disp-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.10),0 1px 4px rgba(0,0,0,.05); transform:translateY(-2px); }
       .disp-chip {
         font-size:10px; font-weight:700; padding:3px 10px;
         border-radius:20px; white-space:nowrap; display:inline-flex;
@@ -95,6 +95,47 @@ function useDisponivelStyles() {
       }
       @keyframes disp-spin { to { transform:rotate(360deg); } }
       .disp-spinner { animation:disp-spin 1s linear infinite; }
+      @keyframes disp-glow-pulse {
+        0%,100% { opacity:0.18; transform:scale(1); }
+        50%      { opacity:0.40; transform:scale(1.2); }
+      }
+      @keyframes disp-shine-sweep {
+        0%   { transform:translateX(-100%) skewX(-15deg); opacity:0; }
+        15%  { opacity:1; }
+        85%  { opacity:1; }
+        100% { transform:translateX(320%) skewX(-15deg); opacity:0; }
+      }
+      .disp-header {
+        position:relative; overflow:hidden;
+        background:linear-gradient(150deg,#1A2030 0%,#252f5a 50%,${D.azul} 100%);
+        padding:16px 20px 14px; color:#fff;
+      }
+      .disp-header-glow {
+        position:absolute; width:200px; height:200px; border-radius:50%;
+        background:radial-gradient(circle,${D.lj} 0%,transparent 68%);
+        opacity:0.18; top:-80px; right:-50px;
+        animation:disp-glow-pulse 3.5s ease-in-out infinite; pointer-events:none;
+      }
+      .disp-header-glow2 {
+        position:absolute; width:110px; height:110px; border-radius:50%;
+        background:radial-gradient(circle,${D.lj} 0%,transparent 65%);
+        opacity:0.11; bottom:-40px; left:22%;
+        animation:disp-glow-pulse 4.8s ease-in-out infinite reverse; pointer-events:none;
+      }
+      .disp-header-shine {
+        position:absolute; inset:0;
+        background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,0.05) 50%,transparent 70%);
+        animation:disp-shine-sweep 9s ease-in-out infinite; pointer-events:none;
+      }
+      .disp-header-dots {
+        position:absolute; inset:0;
+        background-image:radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px);
+        background-size:32px 32px; pointer-events:none;
+      }
+      .disp-fila-box {
+        border-radius:10px; padding:12px 14px; margin-top:8px;
+        background:#F3F4F6; border:1.5px solid #E5E7EB;
+      }
     `;
     document.head.appendChild(s);
   }, []);
@@ -120,7 +161,7 @@ function CardDisponivel({
   onOpenModal,
 }: {
   orcamento: OrcamentoGlobal;
-  onOpenModal: (id: string, horarioId?: string) => void;
+  onOpenModal: (id: string, horarioId?: string, filaEspera?: boolean) => void;
 }) {
   const [showTodos, setShowTodos] = useState(false);
 
@@ -255,12 +296,27 @@ function CardDisponivel({
               </div>
             </div>
           )}
-          <button
-            className="disp-btn-participar"
-            onClick={() => onOpenModal(orcamento.id)}
-          >
-            {temHorarios ? 'Participar sem horário específico' : 'Participar'}
-          </button>
+          {temHorarios ? (
+            <div className="disp-fila-box">
+              <div style={{ fontSize: 11, color: D.cz, lineHeight: 1.55, marginBottom: 10 }}>
+                Você entrará na fila de espera caso uma empresa falte, desista ou não confirme.
+              </div>
+              <button
+                className="disp-btn-participar"
+                style={{ background: D.cz, fontSize: 13 }}
+                onClick={() => onOpenModal(orcamento.id, undefined, true)}
+              >
+                Entrar na fila de espera
+              </button>
+            </div>
+          ) : (
+            <button
+              className="disp-btn-participar"
+              onClick={() => onOpenModal(orcamento.id)}
+            >
+              Participar
+            </button>
+          )}
         </div>
       ) : (
         <div style={{
@@ -296,6 +352,7 @@ export const OrcamentosDisponiveis: React.FC = () => {
 
   const [selectedOrcamento,     setSelectedOrcamento]     = useState<string>('');
   const [selectedHorarioVisitaId, setSelectedHorarioVisitaId] = useState<string | undefined>(undefined);
+  const [isFilaEspera,          setIsFilaEspera]          = useState(false);
   const [isOpen,       setIsOpen]       = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -349,31 +406,33 @@ export const OrcamentosDisponiveis: React.FC = () => {
   const contarFiltrosAtivos = () => Object.entries(filtros).filter(([k, v]) => v && k !== 'ordenacao' && v !== 'recentes').length;
 
   // ── Inscrição ────────────────────────────────────────────────────────────
-  const procederComInscricao = (orcamentoId: string, horarioVisitaId?: string) => {
+  const procederComInscricao = (orcamentoId: string, horarioVisitaId?: string, filaEspera?: boolean) => {
     setSelectedOrcamento(orcamentoId);
     setSelectedHorarioVisitaId(horarioVisitaId);
+    setIsFilaEspera(filaEspera ?? false);
     if (profile) setFormData({ nome: profile.nome || '', email: profile.email || '', telefone: profile.telefone || '', empresa: profile.empresa || '' });
     setIsOpen(true);
   };
 
-  const openModal = async (orcamentoId: string, horarioVisitaId?: string) => {
-    if (!user) { procederComInscricao(orcamentoId, horarioVisitaId); return; }
+  const openModal = async (orcamentoId: string, horarioVisitaId?: string, filaEspera?: boolean) => {
+    if (!user) { procederComInscricao(orcamentoId, horarioVisitaId, filaEspera); return; }
     try {
       const resultado = await verificar(user.id);
-      if (resultado.jaAtualizou) { procederComInscricao(orcamentoId, horarioVisitaId); return; }
+      if (resultado.jaAtualizou) { procederComInscricao(orcamentoId, horarioVisitaId, filaEspera); return; }
       if (resultado.pendencias.length === 0) {
         await marcarDiaComoAtualizado(user.id, 'individual');
-        procederComInscricao(orcamentoId, horarioVisitaId);
+        procederComInscricao(orcamentoId, horarioVisitaId, filaEspera);
         return;
       }
       setOrcamentoDesejado(orcamentoId);
       setSelectedHorarioVisitaId(horarioVisitaId);
+      setIsFilaEspera(filaEspera ?? false);
       setPendenciasAtualizacao(resultado.pendencias);
       setPodeUsarConfirmacaoRapida(resultado.podeUsarConfirmacaoRapida);
       setDiasConsecutivos(resultado.diasConsecutivos);
       setShowAtualizacaoModal(true);
     } catch {
-      procederComInscricao(orcamentoId, horarioVisitaId);
+      procederComInscricao(orcamentoId, horarioVisitaId, filaEspera);
     }
   };
 
@@ -409,32 +468,34 @@ export const OrcamentosDisponiveis: React.FC = () => {
   return (
     <div className="disp">
 
-      {/* Banner Isabella */}
-      <div style={{
-        background: `linear-gradient(150deg, ${D.azul} 0%, ${D.azul2} 100%)`,
-        padding: '28px 20px 22px',
-        color: '#fff',
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65, marginBottom: 6 }}>
-          Reforma100 · Oportunidades
-        </div>
-        <div className="disp-serif" style={{ fontSize: 22, fontWeight: 400, lineHeight: 1.3, marginBottom: 8 }}>
-          Orçamentos Disponíveis
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          {!loading && (
-            <>
-              <span style={{ fontSize: 12, background: 'rgba(255,255,255,.18)', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>
-                {orcamentosAbertos.length} abertos
-              </span>
-              {orcamentosFechados.length > 0 && (
-                <span style={{ fontSize: 12, background: 'rgba(255,255,255,.1)', padding: '3px 10px', borderRadius: 20, color: 'rgba(255,255,255,.75)' }}>
-                  {orcamentosFechados.length} fechados
+      {/* Header animado Isabella */}
+      <div className="disp-header">
+        <div className="disp-header-dots" />
+        <div className="disp-header-glow" />
+        <div className="disp-header-glow2" />
+        <div className="disp-header-shine" />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div className="disp-syne" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: D.lj, opacity: .85, marginBottom: 5 }}>
+            Reforma100 · Oportunidades
+          </div>
+          <div className="disp-syne" style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.25, marginBottom: 10, letterSpacing: '-.2px' }}>
+            Orçamentos Disponíveis
+          </div>
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
+            {!loading && (
+              <>
+                <span style={{ fontSize: 11, background: 'rgba(255,255,255,.18)', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>
+                  {orcamentosAbertos.length} abertos
                 </span>
-              )}
-              <span style={{ fontSize: 11, opacity: .65 }}>últimos {diasFechados} dias</span>
-            </>
-          )}
+                {orcamentosFechados.length > 0 && (
+                  <span style={{ fontSize: 11, background: 'rgba(255,255,255,.1)', padding: '3px 10px', borderRadius: 20, color: 'rgba(255,255,255,.7)' }}>
+                    {orcamentosFechados.length} fechados
+                  </span>
+                )}
+                <span style={{ fontSize: 10, opacity: .5 }}>últimos {diasFechados} dias</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -452,7 +513,7 @@ export const OrcamentosDisponiveis: React.FC = () => {
           <>
             <PenalidadesAtivas />
 
-            <div style={{ marginBottom: 14 }}>
+            <div style={{ marginBottom: 10 }}>
               <OrcamentoFilters
                 filtros={filtros}
                 onFiltroChange={handleFiltroChange}
@@ -509,6 +570,7 @@ export const OrcamentosDisponiveis: React.FC = () => {
                   onSubmit={handleInscricao}
                   isSubmitting={isSubmitting}
                   hasProfile={!!profile}
+                  isFilaEspera={isFilaEspera}
                   horarioSelecionado={selectedHorarioVisitaId ? (() => {
                     const orc = orcamentos.find(o => o.id === selectedOrcamento);
                     const hor = orc?.horariosVisita?.find((h: any) => h.id === selectedHorarioVisitaId);

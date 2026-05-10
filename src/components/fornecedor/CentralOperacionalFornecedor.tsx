@@ -486,10 +486,10 @@ function deriveMotivoAcao(c: CandidaturaOrcamento): { label: string; color: stri
       const h = Math.round((new Date(dt).getTime() - Date.now()) / 3_600_000);
       if (h > 0 && h <= 24) return { label: `Reunião hoje às ${fmtTm(dt)}`, color: I.vm };
     }
-    return { label: 'Acessar link da reunião', color: I.rx };
+    return { label: 'Entrar na reunião', color: I.rx };
   }
   if (s === 'em_orcamento')     return { label: 'Enviar proposta', color: I.azul };
-  if (s === 'orcamento_enviado') return { label: 'Aguardando retorno', color: I.vd };
+  if (s === 'orcamento_enviado') return { label: 'Aguardando retorno da Reforma100', color: I.vd };
   if (s === 'visita_realizada' || s === 'reuniao_realizada') return { label: 'Atendimento realizado', color: I.vd };
   if (s === 'negocio_fechado')  return { label: 'Negócio fechado ✓', color: I.vd };
   if (s === 'negocio_perdido')  return { label: 'Processo encerrado', color: I.cz };
@@ -529,23 +529,27 @@ function CardOperacional({
           </div>
         </div>
 
-        {/* Local + motivo operacional */}
+        {/* Próxima ação — bloco explícito */}
+        {motivo && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+            borderRadius: 8, padding: '9px 12px',
+            background: motivo.color + '12',
+            borderLeft: `3px solid ${motivo.color}`,
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: motivo.color, lineHeight: 1.3 }}>
+              {isUrgente ? '⚡ ' : ''}{motivo.label}
+            </span>
+          </div>
+        )}
+
+        {/* Local */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
           {candidatura.local && (
             <span style={{ fontSize: 11, color: I.cz }}>📍 {candidatura.local}</span>
           )}
           {candidatura.tamanhoImovel > 0 && (
             <span style={{ fontSize: 11, color: I.cz }}>· {candidatura.tamanhoImovel} m²</span>
-          )}
-          {motivo && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20,
-              background: motivo.color + '18', color: motivo.color,
-              border: `1px solid ${motivo.color}33`,
-              whiteSpace: 'nowrap',
-            }}>
-              {isUrgente ? '⚡ ' : ''}{motivo.label}
-            </span>
           )}
         </div>
 
