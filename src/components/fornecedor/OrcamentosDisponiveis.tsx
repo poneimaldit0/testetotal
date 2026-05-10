@@ -1,402 +1,533 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { Loader2, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useOrcamentosGlobal } from '@/hooks/useOrcamentosGlobal';
+import { useNavigate } from 'react-router-dom';
+import { useOrcamentosGlobal, OrcamentoGlobal } from '@/hooks/useOrcamentosGlobal';
 import { OrcamentoFilters } from './OrcamentoFilters';
-import { OrcamentoCardGlobal } from './OrcamentoCardGlobal';
 import { InscricaoModal } from './InscricaoModal';
 import { AtualizacaoObrigatoriaModal } from './AtualizacaoObrigatoriaModal';
 import { PenalidadesAtivas } from './PenalidadesAtivas';
 import { useFornecedorInscricao } from '@/hooks/useFornecedorInscricao';
 import { useVerificacaoAtualizacaoDiaria, OrcamentoPendente } from '@/hooks/useVerificacaoAtualizacaoDiaria';
 
+// ── Tokens Isabella ───────────────────────────────────────────────────────────
+const D = {
+  azul:  '#2D3395',
+  azul2: '#1E2882',
+  azul3: '#eef0ff',
+  vd:    '#1B7A4A',
+  vd2:   '#e0f5ec',
+  lj:    '#F7A226',
+  lj2:   '#fff5e6',
+  rx:    '#534AB7',
+  rx2:   '#ede9ff',
+  cz:    '#6B7280',
+  cz2:   '#F3F4F6',
+  nv:    '#1A2030',
+  bd:    '#E5E7EB',
+  bg:    '#F4F5FB',
+  br:    '#FFFFFF',
+} as const;
+
+// ── CSS injection ─────────────────────────────────────────────────────────────
+function useDisponivelStyles() {
+  useEffect(() => {
+    const fontId = 'rota100-fonts';
+    if (!document.getElementById(fontId)) {
+      const link = document.createElement('link');
+      link.id = fontId; link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap';
+      document.head.appendChild(link);
+    }
+    const id = 'disp-styles';
+    if (document.getElementById(id)) return;
+    const s = document.createElement('style');
+    s.id = id;
+    s.textContent = `
+      .disp { font-family:'DM Sans',sans-serif; background:${D.bg}; min-height:100vh; }
+      .disp-serif { font-family:'DM Serif Display',serif; }
+      .disp-syne  { font-family:'Syne',sans-serif; }
+      .disp-content { padding:20px 16px 48px; }
+      .disp-card {
+        background:#fff; border-radius:14px;
+        box-shadow:0 1px 6px rgba(0,0,0,.07),0 0 1px rgba(0,0,0,.04);
+        padding:16px 18px; margin-bottom:12px;
+        transition:box-shadow .18s,transform .18s;
+      }
+      .disp-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.10); transform:translateY(-1px); }
+      .disp-chip {
+        font-size:10px; font-weight:700; padding:3px 10px;
+        border-radius:20px; white-space:nowrap; display:inline-flex;
+        align-items:center; gap:4px;
+      }
+      .disp-chip-horario {
+        font-size:11px; font-weight:600; padding:8px 12px;
+        border-radius:8px; cursor:pointer; border:1.5px solid ${D.azul}44;
+        background:${D.azul3}; color:${D.azul}; min-height:40px;
+        transition:background .15s,transform .1s; white-space:nowrap;
+      }
+      .disp-chip-horario:hover { background:${D.azul}15; transform:scale(1.02); }
+      .disp-btn-participar {
+        width:100%; padding:14px 0; border-radius:10px;
+        background:${D.azul}; color:#fff; border:none;
+        font-size:15px; font-weight:700; cursor:pointer;
+        min-height:48px; font-family:'Syne',sans-serif;
+        transition:opacity .15s,transform .1s; letter-spacing:.02em;
+      }
+      .disp-btn-participar:hover { opacity:.9; transform:translateY(-1px); }
+      .disp-btn-participar:active { transform:translateY(0); }
+      .disp-btn-participar:disabled { opacity:.5; cursor:default; transform:none; }
+      .disp-sep {
+        display:flex; align-items:center; gap:12px; padding:4px 0; margin:4px 0;
+      }
+      .disp-sep-line { flex:1; height:1px; background:${D.bd}; }
+      .disp-sep-label {
+        font-size:11px; font-weight:600; color:${D.cz};
+        font-family:'Syne',sans-serif; letter-spacing:.06em;
+        text-transform:uppercase; white-space:nowrap;
+      }
+      .disp-load-more {
+        width:100%; padding:13px; border-radius:10px;
+        border:1.5px solid ${D.bd}; background:${D.br};
+        color:${D.cz}; font-size:13px; font-weight:600; cursor:pointer;
+        display:flex; align-items:center; justify-content:center; gap:8px;
+        transition:background .15s; margin-top:4px; min-height:48px;
+      }
+      .disp-load-more:hover { background:${D.cz2}; }
+      .disp-empty {
+        background:${D.br}; border-radius:14px;
+        box-shadow:0 1px 6px rgba(0,0,0,.07);
+        padding:48px 24px; text-align:center; color:${D.cz};
+      }
+      @keyframes disp-spin { to { transform:rotate(360deg); } }
+      .disp-spinner { animation:disp-spin 1s linear infinite; }
+    `;
+    document.head.appendChild(s);
+  }, []);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtChip(iso: string): string {
+  const d = new Date(iso);
+  return (
+    d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+    + ' · '
+    + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  );
+}
+
+function fmtInscrito(dt: Date): string {
+  return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+// ── CardDisponivel ────────────────────────────────────────────────────────────
+function CardDisponivel({
+  orcamento,
+  onOpenModal,
+}: {
+  orcamento: OrcamentoGlobal;
+  onOpenModal: (id: string, horarioId?: string) => void;
+}) {
+  const [showTodos, setShowTodos] = useState(false);
+
+  const horariosLivres = (orcamento.horariosVisita || []).filter(h => !h.fornecedor_id);
+  const temHorarios    = horariosLivres.length > 0;
+  const aberto         = orcamento.status === 'aberto';
+  const inscrito       = orcamento.estaInscrito;
+
+  // Chips visiveis (máx 3, expandível)
+  const chipsVisiveis  = showTodos ? horariosLivres : horariosLivres.slice(0, 3);
+  const temMaisChips   = horariosLivres.length > 3 && !showTodos;
+
+  const tipoInfo = orcamento.tipoAtendimento === 'presencial'
+    ? { label: 'Presencial', bg: D.lj2,  fg: '#9A6200', icon: '📍' }
+    : orcamento.tipoAtendimento === 'online'
+    ? { label: 'Online',     bg: D.rx2,  fg: D.rx,      icon: '🎥' }
+    : null;
+
+  const borderColor = inscrito ? D.vd : aberto ? D.azul : D.cz;
+
+  const descTrunc = orcamento.necessidade.length > 110
+    ? orcamento.necessidade.slice(0, 110) + '…'
+    : orcamento.necessidade;
+
+  const localTrunc = (orcamento.local || '').length > 45
+    ? orcamento.local.slice(0, 45) + '…'
+    : orcamento.local;
+
+  return (
+    <div className="disp-card" style={{ borderTop: `4px solid ${borderColor}` }}>
+
+      {/* ── Linha de chips superiores ── */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+        {tipoInfo && (
+          <span className="disp-chip" style={{ background: tipoInfo.bg, color: tipoInfo.fg }}>
+            {tipoInfo.icon} {tipoInfo.label}
+          </span>
+        )}
+        {orcamento.categorias.slice(0, 2).map(c => (
+          <span key={c} className="disp-chip" style={{ background: D.azul3, color: D.azul }}>
+            {c}
+          </span>
+        ))}
+        {orcamento.categorias.length > 2 && (
+          <span style={{ fontSize: 10, color: D.cz }}>+{orcamento.categorias.length - 2}</span>
+        )}
+        {orcamento.tamanhoImovel > 0 && (
+          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: D.nv }}>
+            {orcamento.tamanhoImovel} m²
+          </span>
+        )}
+      </div>
+
+      {/* ── Local ── */}
+      {localTrunc && (
+        <div style={{ fontSize: 12, color: D.cz, marginBottom: 7, display: 'flex', alignItems: 'center', gap: 4 }}>
+          📍 {localTrunc}
+        </div>
+      )}
+
+      {/* ── Descrição ── */}
+      <div style={{
+        fontSize: 14, fontWeight: 600, color: D.nv,
+        lineHeight: 1.45, marginBottom: 10,
+        fontFamily: "'Syne', sans-serif",
+      }}>
+        {descTrunc}
+      </div>
+
+      {/* ── Prazo + empresas ── */}
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
+        {orcamento.prazoInicioTexto && (
+          <span style={{ fontSize: 11, color: D.cz }}>⏱ {orcamento.prazoInicioTexto}</span>
+        )}
+        {orcamento.quantidadeEmpresas > 0 && (
+          <span style={{ fontSize: 11, color: D.cz }}>
+            👥 {orcamento.quantidadeEmpresas}/{orcamento.quantidadeEmpresas} inscrita(s)
+          </span>
+        )}
+      </div>
+
+      {/* ── Ação ── */}
+      {inscrito ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          borderTop: `1px solid ${D.bd}`, paddingTop: 12,
+        }}>
+          <span style={{
+            fontSize: 12, fontWeight: 700, color: D.vd,
+            background: D.vd2, padding: '4px 12px', borderRadius: 20,
+          }}>
+            ✓ Inscrito
+          </span>
+          {orcamento.inscritoEm && (
+            <span style={{ fontSize: 11, color: D.cz }}>
+              em {fmtInscrito(orcamento.inscritoEm)}
+            </span>
+          )}
+          <span style={{
+            marginLeft: 'auto', fontSize: 11, color: D.azul,
+            fontWeight: 600, cursor: 'pointer',
+          }}>
+            Ver na Central →
+          </span>
+        </div>
+      ) : aberto ? (
+        <div>
+          {temHorarios && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: D.cz, marginBottom: 8, fontFamily: "'Syne',sans-serif" }}>
+                Escolha um horário disponível:
+              </div>
+              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 4 }}>
+                {chipsVisiveis.map(h => (
+                  <button
+                    key={h.id}
+                    className="disp-chip-horario"
+                    onClick={() => onOpenModal(orcamento.id, h.id)}
+                  >
+                    {fmtChip(h.data_hora)}
+                  </button>
+                ))}
+                {temMaisChips && (
+                  <button
+                    className="disp-chip-horario"
+                    style={{ background: D.cz2, color: D.cz, border: `1.5px solid ${D.bd}` }}
+                    onClick={() => setShowTodos(true)}
+                  >
+                    +{horariosLivres.length - 3} mais…
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          <button
+            className="disp-btn-participar"
+            onClick={() => onOpenModal(orcamento.id)}
+          >
+            {temHorarios ? 'Participar sem horário específico' : 'Participar'}
+          </button>
+        </div>
+      ) : (
+        <div style={{
+          borderTop: `1px solid ${D.bd}`, paddingTop: 10,
+          fontSize: 11, color: D.cz,
+        }}>
+          Orçamento encerrado — novas inscrições não disponíveis
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
 export const OrcamentosDisponiveis: React.FC = () => {
+  useDisponivelStyles();
+  const navigate = useNavigate();
   const { profile, user } = useAuth();
   const { verificar, marcarDiaComoAtualizado } = useVerificacaoAtualizacaoDiaria();
-  
+
   const [filtros, setFiltros] = useState({
-    local: '',
-    categoria: '',
-    prazoInicio: '',
-    metragemMin: '',
-    metragemMax: '',
-    dataInicio: '',
-    dataFim: '',
-    ordenacao: 'recentes',
+    local: '', categoria: '', prazoInicio: '',
+    metragemMin: '', metragemMax: '', dataInicio: '',
+    dataFim: '', ordenacao: 'recentes',
   });
 
-  const { 
-    orcamentos, 
-    loading, 
-    loadingMais,
-    recarregar, 
-    carregarMaisFechados,
-    diasFechados,
-    podeCarregarMais 
+  const {
+    orcamentos, loading, loadingMais, recarregar,
+    carregarMaisFechados, diasFechados, podeCarregarMais,
   } = useOrcamentosGlobal();
-  
-  const { inscreverFornecedor } = useFornecedorInscricao(recarregar);
-  
-  const [selectedOrcamento, setSelectedOrcamento] = useState<string>('');
-  const [selectedHorarioVisitaId, setSelectedHorarioVisitaId] = useState<string | undefined>(undefined);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Estados para modal de atualização obrigatória
-  const [showAtualizacaoModal, setShowAtualizacaoModal] = useState(false);
-  const [pendenciasAtualizacao, setPendenciasAtualizacao] = useState<OrcamentoPendente[]>([]);
-  const [orcamentoDesejado, setOrcamentoDesejado] = useState<string | null>(null);
-  const [podeUsarConfirmacaoRapida, setPodeUsarConfirmacaoRapida] = useState(true);
-  const [diasConsecutivos, setDiasConsecutivos] = useState(0);
-  
-  const [formData, setFormData] = useState({
-    nome: '',
-    email: '',
-    telefone: '',
-    empresa: '',
-  });
 
-  // Função para obter prioridade do prazo para ordenação
+  const { inscreverFornecedor } = useFornecedorInscricao(recarregar);
+
+  const [selectedOrcamento,     setSelectedOrcamento]     = useState<string>('');
+  const [selectedHorarioVisitaId, setSelectedHorarioVisitaId] = useState<string | undefined>(undefined);
+  const [isOpen,       setIsOpen]       = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [showAtualizacaoModal,    setShowAtualizacaoModal]    = useState(false);
+  const [pendenciasAtualizacao,   setPendenciasAtualizacao]   = useState<OrcamentoPendente[]>([]);
+  const [orcamentoDesejado,       setOrcamentoDesejado]       = useState<string | null>(null);
+  const [podeUsarConfirmacaoRapida, setPodeUsarConfirmacaoRapida] = useState(true);
+  const [diasConsecutivos,        setDiasConsecutivos]        = useState(0);
+  const [formData, setFormData] = useState({ nome: '', email: '', telefone: '', empresa: '' });
+
+  // ── Filtros ───────────────────────────────────────────────────────────────
   const obterPrioridadePrazo = (prazo: string | Date) => {
     if (typeof prazo !== 'string') return 999;
-    
-    const prioridades: Record<string, number> = {
-      'Imediatamente': 1,
-      'Em até 1 semana': 2,
-      'Em até 1 mês': 3,
-      'Em até 3 meses': 4,
-      'Em até 6 meses': 5,
-      'Flexível': 6
+    const p: Record<string, number> = {
+      'Imediatamente': 1, 'Em até 1 semana': 2, 'Em até 1 mês': 3,
+      'Em até 3 meses': 4, 'Em até 6 meses': 5, 'Flexível': 6,
     };
-    
-    return prioridades[prazo] || 999;
+    return p[prazo] ?? 999;
   };
 
-  // Aplicar filtros locais
   const orcamentosFiltrados = useMemo(() => {
-    let filtrados = orcamentos.filter(orcamento => {
-      // Filtro por categoria
-      if (filtros.categoria && filtros.categoria !== 'todas' && !orcamento.categorias.includes(filtros.categoria)) return false;
-      
-      // Filtro por prazo de início
-      if (filtros.prazoInicio && filtros.prazoInicio !== 'todos' && orcamento.prazoInicioTexto !== filtros.prazoInicio) return false;
-      
-      // Filtro de local
-      if (filtros.local && !orcamento.local.toLowerCase().includes(filtros.local.toLowerCase())) return false;
-      
-      // Filtro de metragem
-      if (filtros.metragemMin && orcamento.tamanhoImovel < parseInt(filtros.metragemMin)) return false;
-      if (filtros.metragemMax && orcamento.tamanhoImovel > parseInt(filtros.metragemMax)) return false;
-      
-      // Filtro de data
-      if (filtros.dataInicio) {
-        const dataFiltro = new Date(filtros.dataInicio);
-        if (orcamento.dataPublicacao < dataFiltro) return false;
-      }
-      if (filtros.dataFim) {
-        const dataFiltro = new Date(filtros.dataFim);
-        if (orcamento.dataPublicacao > dataFiltro) return false;
-      }
-      
+    let f = orcamentos.filter(o => {
+      if (filtros.categoria   && filtros.categoria   !== 'todas' && !o.categorias.includes(filtros.categoria))             return false;
+      if (filtros.prazoInicio && filtros.prazoInicio !== 'todos' && o.prazoInicioTexto !== filtros.prazoInicio)             return false;
+      if (filtros.local       && !o.local.toLowerCase().includes(filtros.local.toLowerCase()))                             return false;
+      if (filtros.metragemMin && o.tamanhoImovel < parseInt(filtros.metragemMin))                                          return false;
+      if (filtros.metragemMax && o.tamanhoImovel > parseInt(filtros.metragemMax))                                          return false;
+      if (filtros.dataInicio  && o.dataPublicacao < new Date(filtros.dataInicio))                                          return false;
+      if (filtros.dataFim     && o.dataPublicacao > new Date(filtros.dataFim))                                             return false;
       return true;
     });
-
-    // Aplicar ordenação
     switch (filtros.ordenacao) {
-      case 'antigos':
-        filtrados.sort((a, b) => a.dataPublicacao.getTime() - b.dataPublicacao.getTime());
-        break;
-      case 'prazo_urgente':
-        filtrados.sort((a, b) => {
-          const prioridadeA = obterPrioridadePrazo(a.dataInicio);
-          const prioridadeB = obterPrioridadePrazo(b.dataInicio);
-          return prioridadeA - prioridadeB;
-        });
-        break;
-      case 'maior_metragem':
-        filtrados.sort((a, b) => b.tamanhoImovel - a.tamanhoImovel);
-        break;
-      case 'menor_metragem':
-        filtrados.sort((a, b) => a.tamanhoImovel - b.tamanhoImovel);
-        break;
-      case 'recentes':
+      case 'antigos':        f.sort((a, b) => a.dataPublicacao.getTime() - b.dataPublicacao.getTime()); break;
+      case 'prazo_urgente':  f.sort((a, b) => obterPrioridadePrazo(a.dataInicio) - obterPrioridadePrazo(b.dataInicio)); break;
+      case 'maior_metragem': f.sort((a, b) => b.tamanhoImovel - a.tamanhoImovel); break;
+      case 'menor_metragem': f.sort((a, b) => a.tamanhoImovel - b.tamanhoImovel); break;
       default:
-        // Abertos primeiro, depois fechados, ambos ordenados por data
-        filtrados.sort((a, b) => {
-          if (a.status !== b.status) {
-            return a.status === 'aberto' ? -1 : 1;
-          }
+        f.sort((a, b) => {
+          if (a.status !== b.status) return a.status === 'aberto' ? -1 : 1;
           return b.dataPublicacao.getTime() - a.dataPublicacao.getTime();
         });
-        break;
     }
-    
-    return filtrados;
+    return f;
   }, [orcamentos, filtros]);
 
-  // Separar orçamentos
-  const orcamentosAbertos = useMemo(() => 
-    orcamentosFiltrados.filter(o => o.status === 'aberto'), 
-    [orcamentosFiltrados]
-  );
-  
-  const orcamentosFechados = useMemo(() => 
-    orcamentosFiltrados.filter(o => o.status === 'fechado'), 
-    [orcamentosFiltrados]
-  );
+  const orcamentosAbertos  = useMemo(() => orcamentosFiltrados.filter(o => o.status === 'aberto'),  [orcamentosFiltrados]);
+  const orcamentosFechados = useMemo(() => orcamentosFiltrados.filter(o => o.status === 'fechado'), [orcamentosFiltrados]);
 
-  const handleFiltroChange = (field: string, value: string) => {
-    setFiltros(prev => ({ ...prev, [field]: value }));
-  };
+  const handleFiltroChange  = (field: string, value: string) => setFiltros(prev => ({ ...prev, [field]: value }));
+  const handleLimparFiltros = () => setFiltros({ local: '', categoria: '', prazoInicio: '', metragemMin: '', metragemMax: '', dataInicio: '', dataFim: '', ordenacao: 'recentes' });
+  const contarFiltrosAtivos = () => Object.entries(filtros).filter(([k, v]) => v && k !== 'ordenacao' && v !== 'recentes').length;
 
-  const handleLimparFiltros = () => {
-    setFiltros({
-      local: '',
-      categoria: '',
-      prazoInicio: '',
-      metragemMin: '',
-      metragemMax: '',
-      dataInicio: '',
-      dataFim: '',
-      ordenacao: 'recentes',
-    });
-  };
-
-  const contarFiltrosAtivos = () => {
-    return Object.entries(filtros).filter(([key, value]) => 
-      value && key !== 'ordenacao' && value !== 'recentes'
-    ).length;
-  };
-
-  const handleInscricao = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const sucesso = await inscreverFornecedor(selectedOrcamento, formData, selectedHorarioVisitaId);
-      
-      if (sucesso) {
-        setFormData({
-          nome: '',
-          email: '',
-          telefone: '',
-          empresa: '',
-        });
-        setIsOpen(false);
-      }
-    } catch (error) {
-      console.error('Erro na inscrição:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Preencher dados e abrir modal de inscrição
+  // ── Inscrição ────────────────────────────────────────────────────────────
   const procederComInscricao = (orcamentoId: string, horarioVisitaId?: string) => {
     setSelectedOrcamento(orcamentoId);
     setSelectedHorarioVisitaId(horarioVisitaId);
-    
-    if (profile) {
-      setFormData({
-        nome: profile.nome || '',
-        email: profile.email || '',
-        telefone: profile.telefone || '',
-        empresa: profile.empresa || '',
-      });
-    }
-    
+    if (profile) setFormData({ nome: profile.nome || '', email: profile.email || '', telefone: profile.telefone || '', empresa: profile.empresa || '' });
     setIsOpen(true);
   };
 
-  // Função principal chamada ao clicar em "Quero Participar"
   const openModal = async (orcamentoId: string, horarioVisitaId?: string) => {
-    if (!user) {
-      procederComInscricao(orcamentoId, horarioVisitaId);
-      return;
-    }
-
+    if (!user) { procederComInscricao(orcamentoId, horarioVisitaId); return; }
     try {
       const resultado = await verificar(user.id);
-
-      if (resultado.jaAtualizou) {
-        procederComInscricao(orcamentoId, horarioVisitaId);
-        return;
-      }
-
+      if (resultado.jaAtualizou) { procederComInscricao(orcamentoId, horarioVisitaId); return; }
       if (resultado.pendencias.length === 0) {
         await marcarDiaComoAtualizado(user.id, 'individual');
         procederComInscricao(orcamentoId, horarioVisitaId);
         return;
       }
-
       setOrcamentoDesejado(orcamentoId);
       setSelectedHorarioVisitaId(horarioVisitaId);
       setPendenciasAtualizacao(resultado.pendencias);
       setPodeUsarConfirmacaoRapida(resultado.podeUsarConfirmacaoRapida);
       setDiasConsecutivos(resultado.diasConsecutivos);
       setShowAtualizacaoModal(true);
-    } catch (error) {
-      console.error('Erro ao verificar pendências:', error);
+    } catch {
       procederComInscricao(orcamentoId, horarioVisitaId);
     }
   };
 
-  // Confirmação rápida (todos atualizados)
+  const handleInscricao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const sucesso = await inscreverFornecedor(selectedOrcamento, formData, selectedHorarioVisitaId);
+      if (sucesso) {
+        setFormData({ nome: '', email: '', telefone: '', empresa: '' });
+        setIsOpen(false);
+        // Após inscrição bem-sucedida → ir para Central Operacional
+        setTimeout(() => navigate('/dashboard?view=central'), 300);
+      }
+    } catch { /* silent */ } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleConfirmacaoRapida = async () => {
     if (!user) return;
-    
     const sucesso = await marcarDiaComoAtualizado(user.id, 'rapida');
-    
-    if (sucesso && orcamentoDesejado) {
-      setShowAtualizacaoModal(false);
-      procederComInscricao(orcamentoDesejado, selectedHorarioVisitaId);
-    }
+    if (sucesso && orcamentoDesejado) { setShowAtualizacaoModal(false); procederComInscricao(orcamentoDesejado, selectedHorarioVisitaId); }
   };
 
-  // Concluir após atualização individual
   const handleConcluirAtualizacao = async () => {
     if (!user) return;
-    
     await marcarDiaComoAtualizado(user.id, 'individual');
-    
-    if (orcamentoDesejado) {
-      setShowAtualizacaoModal(false);
-      procederComInscricao(orcamentoDesejado, selectedHorarioVisitaId);
-    }
+    if (orcamentoDesejado) { setShowAtualizacaoModal(false); procederComInscricao(orcamentoDesejado, selectedHorarioVisitaId); }
   };
 
-  // WhatsApp is now handled inside ContatoSection with profile data
-  const abrirWhatsApp = (_telefone: string, _nomeCliente: string, _orcamentoId: string) => {
-    // no-op: kept for interface compatibility with OrcamentoCard props
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-800">Orçamentos Disponíveis</h2>
-        <Card className="bg-white shadow-lg border border-gray-100 rounded-xl">
-          <CardContent className="p-6 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Carregando orçamentos...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-3 md:space-y-4 max-w-full overflow-hidden">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
-        <div className="min-w-0">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Orçamentos Disponíveis</h2>
-          <p className="text-xs md:text-sm text-gray-600 mt-1">
-            Orçamentos abertos para candidatura + fechados dos últimos {diasFechados} dias
-          </p>
+    <div className="disp">
+
+      {/* Banner Isabella */}
+      <div style={{
+        background: `linear-gradient(150deg, ${D.azul} 0%, ${D.azul2} 100%)`,
+        padding: '28px 20px 22px',
+        color: '#fff',
+      }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65, marginBottom: 6 }}>
+          Reforma100 · Oportunidades
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
-            {orcamentosAbertos.length} abertos
-          </Badge>
-          <Badge variant="outline" className="text-gray-600 border-gray-200 text-xs">
-            {orcamentosFechados.length} fechados
-          </Badge>
+        <div className="disp-serif" style={{ fontSize: 22, fontWeight: 400, lineHeight: 1.3, marginBottom: 8 }}>
+          Orçamentos Disponíveis
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {!loading && (
+            <>
+              <span style={{ fontSize: 12, background: 'rgba(255,255,255,.18)', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>
+                {orcamentosAbertos.length} abertos
+              </span>
+              {orcamentosFechados.length > 0 && (
+                <span style={{ fontSize: 12, background: 'rgba(255,255,255,.1)', padding: '3px 10px', borderRadius: 20, color: 'rgba(255,255,255,.75)' }}>
+                  {orcamentosFechados.length} fechados
+                </span>
+              )}
+              <span style={{ fontSize: 11, opacity: .65 }}>últimos {diasFechados} dias</span>
+            </>
+          )}
         </div>
       </div>
 
-      <PenalidadesAtivas />
-      
-      <OrcamentoFilters 
-        filtros={filtros} 
-        onFiltroChange={handleFiltroChange}
-        onLimparFiltros={handleLimparFiltros}
-        filtrosAtivos={contarFiltrosAtivos()}
-      />
-      
-      {orcamentosFiltrados.length === 0 ? (
-        <Card className="bg-white shadow-lg border border-gray-100 rounded-xl">
-          <CardContent className="p-6 text-center text-gray-600">
-            Nenhum orçamento encontrado com os filtros aplicados.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 max-w-full overflow-hidden">
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            {/* Orçamentos Abertos */}
-            {orcamentosAbertos.map((orcamento) => (
-              <OrcamentoCardGlobal
-                key={orcamento.id}
-                orcamento={orcamento}
-                onOpenModal={openModal}
-                onAbrirWhatsApp={abrirWhatsApp}
-              />
-            ))}
-            
-            {/* Separador visual - só mostra se há fechados */}
-            {orcamentosFechados.length > 0 && (
-              <div className="flex items-center gap-3 py-2">
-                <div className="h-px flex-1 bg-gray-200" />
-                <span className="text-gray-500 text-sm font-medium px-2">
-                  Orçamentos Fechados (últimos {diasFechados} dias)
-                </span>
-                <div className="h-px flex-1 bg-gray-200" />
-              </div>
-            )}
-            
-            {/* Orçamentos Fechados */}
-            {orcamentosFechados.map((orcamento) => (
-              <OrcamentoCardGlobal
-                key={orcamento.id}
-                orcamento={orcamento}
-                onOpenModal={openModal}
-                onAbrirWhatsApp={abrirWhatsApp}
-              />
-            ))}
-            
-            {/* Botão Exibir Mais */}
-            {podeCarregarMais && (
-              <Button 
-                onClick={carregarMaisFechados}
-                variant="outline"
-                className="w-full mt-2"
-                disabled={loadingMais}
-              >
-                {loadingMais ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Carregando...
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                    Exibir mais orçamentos fechados
-                  </>
-                )}
-              </Button>
-            )}
-            
-            <InscricaoModal
-              isOpen={isOpen}
-              onOpenChange={setIsOpen}
-              formData={formData}
-              onFormDataChange={(field, value) => setFormData(prev => ({ ...prev, [field]: value }))}
-              onSubmit={handleInscricao}
-              isSubmitting={isSubmitting}
-              hasProfile={!!profile}
-              horarioSelecionado={selectedHorarioVisitaId ? (() => {
-                const orcamento = orcamentos.find(o => o.id === selectedOrcamento);
-                const horario = orcamento?.horariosVisita?.find((h: any) => h.id === selectedHorarioVisitaId);
-                return horario ? { id: horario.id, data_hora: horario.data_hora } : null;
-              })() : null}
-            />
-          </Dialog>
-        </div>
-      )}
+      <div className="disp-content">
 
-      {/* Modal de atualização obrigatória */}
+        {/* Loading */}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '56px 0', color: D.cz }}>
+            <Loader2 className="disp-spinner" style={{ width: 28, height: 28, margin: '0 auto 10px', display: 'block' }} />
+            <div style={{ fontSize: 13 }}>Carregando oportunidades…</div>
+          </div>
+        )}
+
+        {!loading && (
+          <>
+            <PenalidadesAtivas />
+
+            <div style={{ marginBottom: 14 }}>
+              <OrcamentoFilters
+                filtros={filtros}
+                onFiltroChange={handleFiltroChange}
+                onLimparFiltros={handleLimparFiltros}
+                filtrosAtivos={contarFiltrosAtivos()}
+              />
+            </div>
+
+            {orcamentosFiltrados.length === 0 ? (
+              <div className="disp-empty">
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+                <div style={{ fontWeight: 700, color: D.nv, fontSize: 15, marginBottom: 6, fontFamily: "'Syne',sans-serif" }}>
+                  Nenhum orçamento encontrado
+                </div>
+                <div style={{ fontSize: 13 }}>Ajuste os filtros para ver mais resultados.</div>
+              </div>
+            ) : (
+              <Dialog open={isOpen} onOpenChange={setIsOpen}>
+
+                {/* Abertos */}
+                {orcamentosAbertos.map(o => (
+                  <CardDisponivel key={o.id} orcamento={o} onOpenModal={openModal} />
+                ))}
+
+                {/* Separador fechados */}
+                {orcamentosFechados.length > 0 && (
+                  <div className="disp-sep">
+                    <div className="disp-sep-line" />
+                    <span className="disp-sep-label">Encerrados · últimos {diasFechados} dias</span>
+                    <div className="disp-sep-line" />
+                  </div>
+                )}
+
+                {/* Fechados */}
+                {orcamentosFechados.map(o => (
+                  <CardDisponivel key={o.id} orcamento={o} onOpenModal={openModal} />
+                ))}
+
+                {/* Carregar mais */}
+                {podeCarregarMais && (
+                  <button className="disp-load-more" onClick={carregarMaisFechados} disabled={loadingMais}>
+                    {loadingMais
+                      ? <><Loader2 className="disp-spinner" style={{ width: 14, height: 14 }} /> Carregando…</>
+                      : <><ChevronDown style={{ width: 14, height: 14 }} /> Carregar mais encerrados</>
+                    }
+                  </button>
+                )}
+
+                <InscricaoModal
+                  isOpen={isOpen}
+                  onOpenChange={setIsOpen}
+                  formData={formData}
+                  onFormDataChange={(field, value) => setFormData(prev => ({ ...prev, [field]: value }))}
+                  onSubmit={handleInscricao}
+                  isSubmitting={isSubmitting}
+                  hasProfile={!!profile}
+                  horarioSelecionado={selectedHorarioVisitaId ? (() => {
+                    const orc = orcamentos.find(o => o.id === selectedOrcamento);
+                    const hor = orc?.horariosVisita?.find((h: any) => h.id === selectedHorarioVisitaId);
+                    return hor ? { id: hor.id, data_hora: hor.data_hora } : null;
+                  })() : null}
+                />
+              </Dialog>
+            )}
+          </>
+        )}
+      </div>
+
       <AtualizacaoObrigatoriaModal
         isOpen={showAtualizacaoModal}
         onOpenChange={setShowAtualizacaoModal}
@@ -406,15 +537,11 @@ export const OrcamentosDisponiveis: React.FC = () => {
         onConfirmacaoRapida={handleConfirmacaoRapida}
         onConcluir={handleConcluirAtualizacao}
         recarregarOrcamentos={recarregar}
-        onStatusUpdated={(inscricaoId, novoStatus) => {
-          setPendenciasAtualizacao(prev => 
-            prev.map(p => 
-              p.inscricao_id === inscricaoId 
-                ? { ...p, status_acompanhamento: novoStatus }
-                : p
-            )
-          );
-        }}
+        onStatusUpdated={(inscricaoId, novoStatus) =>
+          setPendenciasAtualizacao(prev =>
+            prev.map(p => p.inscricao_id === inscricaoId ? { ...p, status_acompanhamento: novoStatus } : p)
+          )
+        }
       />
     </div>
   );

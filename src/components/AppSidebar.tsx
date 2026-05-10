@@ -13,7 +13,6 @@ import {
   HelpCircle,
   Briefcase,
   Bell,
-  FileEdit,
   Database,
   Wrench,
   Megaphone,
@@ -75,33 +74,10 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
   // Menu para Fornecedores
   const fornecedorMenuGroups: MenuGroup[] = [
     {
-      label: "Orçamentos",
+      label: "Operacional",
       items: [
+        { title: "Central", icon: Briefcase, value: "central" },
         { title: "Disponíveis", icon: FileText, value: "disponiveis" },
-        { title: "Minhas Candidaturas", icon: Briefcase, value: "meus" },
-        { 
-          title: "Revisões", 
-          icon: FileEdit, 
-          value: "revisoes",
-          badge: totalRevisoesPendentes > 0 ? totalRevisoesPendentes : undefined
-        },
-        { title: "Minhas Solicitações", icon: HelpCircle, value: "suporte" }
-      ]
-    },
-    {
-      label: "Contratos e Obras",
-      items: [
-        { title: "Contratos Ativos", icon: FileText, value: "contratos" },
-        { title: "Diário de Obra", icon: FileText, value: "diario" },
-        { title: "Medições", icon: CheckCircle, value: "medicoes" },
-        { title: "Cronograma", icon: Briefcase, value: "cronograma" },
-        { title: "Materiais", icon: Wrench, value: "materiais" }
-      ]
-    },
-    {
-      label: "Ferramentas",
-      items: [
-        { title: "Calculadora ReformaCred", icon: Calculator, value: "calculadora-financiamento" }
       ]
     },
     {

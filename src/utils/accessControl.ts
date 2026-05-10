@@ -16,7 +16,7 @@ const roleViewAccess: Record<UserRole, ViewType[]> = {
   customer_success: ['cs-dashboard', 'lista', 'cadastro', 'relatorios', 'reputacao', 'suporte', 'usuarios', 'aprovacoes', 'crm-marcenaria', 'crm-orcamentos', 'cs-pipeline'], // CS - foco em fornecedores e marcenaria + CRM Kanban
   gestor_marcenaria: ['crm-marcenaria', 'calculadora-financiamento'], // Gestor Marcenaria - CRM Marcenaria + Calculadora
   consultor_marcenaria: ['crm-marcenaria', 'calculadora-financiamento'], // Consultor Marcenaria - seus leads + Calculadora
-  fornecedor: ['central', 'disponiveis', 'meus', 'suporte', 'revisoes', 'perfil', 'contratos', 'diario', 'medicoes', 'cronograma', 'materiais', 'calculadora-financiamento'],
+  fornecedor: ['central', 'disponiveis', 'perfil', 'revisoes'],
   cliente: [] // Clientes não têm acesso ao dashboard principal
 };
 
