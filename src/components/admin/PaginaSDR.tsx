@@ -3054,13 +3054,35 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
                   }}>
                     {r.status_regiao === 'ativa' ? '✓ Área ativa' : r.status_regiao === 'expansão' ? '→ Expansão futura' : '✗ Fora de cobertura'}
                   </span>
+                  {/* Badge de confiança/tipo */}
+                  {r.tipo_resultado && r.tipo_resultado !== 'validado' && (() => {
+                    const tipoMap: Record<string, { label: string; bg: string; clr: string }> = {
+                      contextual:         { label: '~ Contextual',        bg: '#EEF0FF', clr: '#2D3395' },
+                      fallback:           { label: '⚠ Estimado',          bg: '#FFF5DC', clr: '#9A6200' },
+                      necessita_validacao:{ label: '! Sem dados',         bg: '#FDE8E8', clr: '#C0392B' },
+                    };
+                    const t = tipoMap[r.tipo_resultado];
+                    if (!t) return null;
+                    return (
+                      <span style={{ fontSize: 10, fontWeight: 700, background: t.bg, color: t.clr, borderRadius: 999, padding: '2px 9px', border: `1px solid ${t.clr}22` }}>
+                        {t.label}
+                      </span>
+                    );
+                  })()}
                 </div>
 
-                {/* Linha 2: potencial + zona + faixa */}
+                {/* Linha 2: potencial + zona + faixa + origem */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontSize: 12, color: C.CZ }}>
                   <span>{potencialEmoji[r.potencial] || '○'} Potencial <strong style={{ color: C.NV }}>{r.potencial}</strong></span>
                   <span>🗺 <strong style={{ color: C.NV, textTransform: 'capitalize' }}>{r.zona}</strong></span>
                   {faixaLabel && <span>💰 Ticket ref. <strong style={{ color: C.NV }}>{faixaLabel}</strong></span>}
+                  {r.origem_classificacao && (() => {
+                    const origemLabel: Record<string, string> = {
+                      cache_manual: 'Base manual', cache_ia: 'IA cache',
+                      ia_online: 'IA nova', fallback_conservador: 'Fallback',
+                    };
+                    return <span style={{ opacity: 0.6, fontSize: 10 }}>· {origemLabel[r.origem_classificacao] ?? r.origem_classificacao}</span>;
+                  })()}
                 </div>
 
                 {/* Linha 3: descrição */}

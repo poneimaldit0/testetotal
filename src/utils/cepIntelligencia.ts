@@ -24,6 +24,7 @@ export interface RegiaoInfo {
   faixa_valor_max: number | null;
   fonte: 'db_bairro' | 'db_cidade' | 'ia_cache' | 'ia_nova' | 'fallback';
   origem_classificacao?: 'cache_manual' | 'cache_ia' | 'ia_online' | 'fallback_conservador';
+  tipo_resultado?: 'validado' | 'contextual' | 'fallback' | 'necessita_validacao';
   // Campos adicionais de IA — undefined em entradas manuais
   confianca?: 'alta' | 'media' | 'baixa' | 'insuficiente';
   estimado?: boolean; // true quando confiança baixa/insuficiente → exibir aviso
@@ -59,6 +60,23 @@ function deriveStatusRegiao(uf: string, classificacao: string): string {
     return 'expansão';
   }
   return 'fora';
+}
+
+// ─── Helpers de tipo/resultado ───────────────────────────────────────────────
+
+type TipoResultado = 'validado' | 'contextual' | 'fallback' | 'necessita_validacao';
+
+function deriveTipoResultado(
+  confianca: string | undefined,
+  inferencia_conservadora: boolean | undefined,
+  fonte: string,
+): TipoResultado {
+  if (fonte === 'db_bairro' || fonte === 'db_cidade') return 'validado';
+  if (fonte === 'fallback') return 'fallback';
+  if (confianca === 'insuficiente') return 'necessita_validacao';
+  if (confianca === 'baixa') return 'fallback';
+  if (inferencia_conservadora || confianca === 'media') return 'contextual';
+  return 'validado';
 }
 
 // ─── Periferias guard ─────────────────────────────────────────────────────────
@@ -166,6 +184,7 @@ export async function consultarCep(
         faixa_valor_max:      data.faixa_valor_max,
         fonte:                'db_bairro',
         origem_classificacao: 'cache_manual',
+        tipo_resultado:       'validado',
       };
     }
   }
@@ -193,6 +212,7 @@ export async function consultarCep(
         faixa_valor_max:      data.faixa_valor_max,
         fonte:                'db_cidade',
         origem_classificacao: 'cache_manual',
+        tipo_resultado:       'validado',
       };
     }
   }
@@ -224,6 +244,7 @@ export async function consultarCep(
         faixa_valor_max:      cached.ticket_max ?? null,
         fonte:                'ia_cache',
         origem_classificacao: 'cache_ia',
+        tipo_resultado:       cached.tipo_resultado ?? deriveTipoResultado(cached.confianca, cached.inferencia_conservadora, 'ia_cache'),
         confianca:            cached.confianca,
         estimado,
       });
@@ -253,6 +274,7 @@ export async function consultarCep(
           faixa_valor_max:      c.ticket_max ?? null,
           fonte:                'ia_nova',
           origem_classificacao: 'ia_online',
+          tipo_resultado:       c.tipo_resultado ?? deriveTipoResultado(c.confianca, c.inferencia_conservadora, 'ia_nova'),
           confianca:            c.confianca,
           estimado,
         });
@@ -277,6 +299,7 @@ export async function consultarCep(
       faixa_valor_max:      null,
       fonte:                'fallback',
       origem_classificacao: 'fallback_conservador',
+      tipo_resultado:       'fallback',
       confianca:            'insuficiente',
       estimado:             true,
     };

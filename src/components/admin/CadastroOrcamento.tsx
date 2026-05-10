@@ -304,6 +304,16 @@ export const CadastroOrcamento: React.FC = () => {
                       <Badge variant="outline" className={`text-xs ${CLASSIF_CORES[cepResultado.regiao.classificacao] ?? 'bg-gray-100 text-gray-700 border-gray-200'}`}>
                         {cepResultado.regiao.classificacao}
                       </Badge>
+                      {/* Badge tipo/confiança */}
+                      {cepResultado.regiao.tipo_resultado && cepResultado.regiao.tipo_resultado !== 'validado' && (() => {
+                        const tipoMap: Record<string, { label: string; cls: string }> = {
+                          contextual:          { label: '~ Contextual', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+                          fallback:            { label: '⚠ Estimado',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+                          necessita_validacao: { label: '! Sem dados',  cls: 'bg-red-50 text-red-700 border-red-200' },
+                        };
+                        const t = tipoMap[cepResultado.regiao.tipo_resultado];
+                        return t ? <Badge variant="outline" className={`text-xs ${t.cls}`}>{t.label}</Badge> : null;
+                      })()}
                       {(cepResultado.regiao.faixa_valor_min || cepResultado.regiao.faixa_valor_max) && (
                         <span className="text-xs text-slate-500">
                           Ticket: R$ {cepResultado.regiao.faixa_valor_min ? Math.round(cepResultado.regiao.faixa_valor_min / 1000) + 'k' : '?'}
