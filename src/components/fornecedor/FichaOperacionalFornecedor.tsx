@@ -441,7 +441,7 @@ function SecaoMensagem({
         rows={3}
         style={{
           width: '100%', borderRadius: 8, border: `1.5px solid ${I.bd}`,
-          padding: '10px 12px', fontSize: 12, color: I.nv, resize: 'vertical',
+          padding: '10px 12px', fontSize: 16, color: I.nv, resize: 'vertical',
           fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, boxSizing: 'border-box',
           outline: 'none',
         }}

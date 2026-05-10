@@ -143,7 +143,7 @@ function useCentralStyles() {
         padding:11px 12px 11px 38px;
         border-radius:10px;
         border:1.5px solid #E5E7EB;
-        font-size:13px;
+        font-size:16px; /* ≥16px evita auto-zoom no iOS */
         background:#fff;
         color:#1A2030;
         outline:none;
