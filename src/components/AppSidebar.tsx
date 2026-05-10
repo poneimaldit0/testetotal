@@ -327,7 +327,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
 
   return (
     <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="p-0">
         <div style={{
           padding: collapsed ? '14px 0' : '16px 20px 14px',
           display: 'flex',
