@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMeusCandidaturas, CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
+import { FichaOperacionalFornecedor } from './FichaOperacionalFornecedor';
 
 // ── Design tokens Isabella ────────────────────────────────────────────────────
 const I = {
@@ -119,8 +120,14 @@ function useCentralStyles() {
         font-size:13px;
         line-height:1.7;
       }
+      .cop-kpi-row {
+        display:grid;
+        grid-template-columns:repeat(4,1fr);
+        gap:12px;
+        margin-bottom:28px;
+      }
       @media(max-width:640px) {
-        .cop-kpi-row { flex-direction:column !important; gap:10px !important; }
+        .cop-kpi-row { grid-template-columns:1fr 1fr !important; gap:10px !important; margin-bottom:20px; }
         .cop-kpi { flex:unset !important; }
         .cop-card-body { padding:16px !important; }
         .cop-meta-row { flex-direction:column !important; gap:6px !important; }
@@ -293,6 +300,7 @@ function AtendimentoBlock({
   candidatura: CandidaturaOrcamento;
   onPreConfirmar: (via: string) => Promise<void>;
 }) {
+  const navigate = useNavigate();
   const s  = candidatura.statusAcompanhamento;
   const dt = candidatura.horarioVisitaAgendado;
 
@@ -340,20 +348,30 @@ function AtendimentoBlock({
 
       {/* Ações por tipo */}
       {!feito && isPresencial && (
-        <div>
+        <div style={{ marginTop: 4 }}>
           {candidatura.preConfirmadoEm ? (
-            <div style={{ fontSize: 11, color: I.vd, fontWeight: 600 }}>
-              ✓ Presença confirmada
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: I.vd2, borderRadius: 8, padding: '10px 14px',
+            }}>
+              <span style={{ fontSize: 16 }}>✅</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: I.vd }}>Presença confirmada</span>
             </div>
           ) : (
-            <div className="cop-action-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="cop-btn" style={{ background: I.am, color: '#fff', fontSize: 11 }}
-                onClick={() => onPreConfirmar('whatsapp')}>
-                Confirmar via WhatsApp
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                className="cop-btn"
+                style={{ background: I.am, color: '#fff', fontSize: 13, width: '100%', justifyContent: 'center', padding: '13px 0', minHeight: 48 }}
+                onClick={() => onPreConfirmar('whatsapp')}
+              >
+                ✓ Confirmar presença via WhatsApp
               </button>
-              <button className="cop-btn cop-btn-ghost" style={{ fontSize: 11 }}
-                onClick={() => onPreConfirmar('plataforma')}>
-                Confirmar aqui
+              <button
+                className="cop-btn cop-btn-ghost"
+                style={{ fontSize: 12, width: '100%', justifyContent: 'center', padding: '11px 0', minHeight: 44 }}
+                onClick={() => onPreConfirmar('plataforma')}
+              >
+                Confirmar aqui na plataforma
               </button>
             </div>
           )}
@@ -361,18 +379,18 @@ function AtendimentoBlock({
       )}
 
       {!feito && isRA && (
-        <div>
+        <div style={{ marginTop: 4 }}>
           {candidatura.linkReuniao && candidatura.tokenVisita ? (
             <button
               className="cop-btn cop-btn-primary"
-              style={{ fontSize: 12, marginTop: 2 }}
+              style={{ fontSize: 14, width: '100%', justifyContent: 'center', padding: '13px 0', minHeight: 48 }}
               onClick={() => navigate(`/entrar-reuniao/${candidatura.candidaturaId}/${candidatura.tokenVisita}`)}
             >
-              🔗 Entrar na reunião
+              🔗 Entrar na reunião agora
             </button>
           ) : (
-            <div style={{ fontSize: 11, color: I.rx, background: I.rx2, borderRadius: 8, padding: '7px 12px', lineHeight: 1.5 }}>
-              🔗 Link de acesso será enviado pela Reforma100 antes da reunião.
+            <div style={{ fontSize: 12, color: I.rx, background: I.rx2, borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
+              🔗 O link de acesso será enviado pela Reforma100 antes da reunião.
             </div>
           )}
         </div>
@@ -401,36 +419,56 @@ function ProximaAcaoBlock({
   let showCta = false;
 
   if (s === 'em_orcamento') {
-    text   = 'Elaborar e enviar sua proposta';
-    detail = 'A Reforma100 aguarda sua proposta comercial para avançar neste processo.';
-    color  = I.azul;
-    showCta = true;
-  } else if (s === 'orcamento_enviado') {
-    text   = 'Proposta enviada com sucesso';
-    detail = 'Aguardando análise da Reforma100. Você será notificado sobre o resultado.';
-    color  = I.vd;
-  } else {
-    text   = 'Aguardando contato da Reforma100';
-    detail = 'Nossa equipe entrará em contato para agendar o atendimento técnico.';
-    color  = I.azul;
+    return (
+      <div style={{ borderRadius: 10, background: I.azul3, border: `1.5px solid ${I.azul}33`, padding: '14px 16px', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: I.azul, marginBottom: 4, fontFamily: "'Syne',sans-serif" }}>
+          ▶ Envie sua proposta
+        </div>
+        <div style={{ fontSize: 11, color: I.cz, lineHeight: 1.6, marginBottom: 12 }}>
+          A Reforma100 aguarda sua proposta comercial para avançar neste processo.
+        </div>
+        <button
+          className="cop-btn cop-btn-primary"
+          style={{ width: '100%', justifyContent: 'center', padding: '13px 0', fontSize: 14, minHeight: 48, fontFamily: "'Syne',sans-serif" }}
+          onClick={onGoToProposta}
+        >
+          Enviar proposta →
+        </button>
+      </div>
+    );
+  }
+
+  if (s === 'orcamento_enviado') {
+    return (
+      <div style={{ borderRadius: 10, background: I.vd2, border: `1.5px solid ${I.vd}33`, padding: '14px 16px', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 16 }}>📋</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: I.vd, fontFamily: "'Syne',sans-serif" }}>
+            Proposta enviada
+          </span>
+        </div>
+        <div style={{ fontSize: 11, color: I.cz, lineHeight: 1.6, marginBottom: 10 }}>
+          Aguardando análise da Reforma100. Você será notificado sobre o resultado.
+        </div>
+        <button
+          className="cop-btn cop-btn-ghost"
+          style={{ fontSize: 12, padding: '8px 16px' }}
+          onClick={onGoToProposta}
+        >
+          Substituir / gerenciar proposta
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="cop-next-action" style={{
-      borderLeftColor: color,
-      background: color === I.vd ? I.vd2 : color === I.azul ? I.azul3 : I.lj2,
-      marginBottom: 12,
-    }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: color, marginBottom: 4 }}>
-        ▶ {text}
+    <div className="cop-next-action" style={{ borderLeftColor: I.azul, background: I.azul3, marginBottom: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: I.azul, marginBottom: 4 }}>
+        ▶ Aguardando contato da Reforma100
       </div>
-      {detail && <div style={{ fontSize: 11, color: I.cz, lineHeight: 1.6 }}>{detail}</div>}
-      {showCta && (
-        <button className="cop-btn cop-btn-primary" style={{ marginTop: 10, fontSize: 11 }}
-          onClick={onGoToProposta}>
-          Acessar proposta →
-        </button>
-      )}
+      <div style={{ fontSize: 11, color: I.cz, lineHeight: 1.6 }}>
+        Nossa equipe entrará em contato para agendar o atendimento técnico.
+      </div>
     </div>
   );
 }
@@ -438,46 +476,24 @@ function ProximaAcaoBlock({
 // ── Card operacional por candidatura ─────────────────────────────────────────
 function CardOperacional({
   candidatura,
-  onGoToProposta,
-  onGoToMeus,
+  onClick,
 }: {
   candidatura: CandidaturaOrcamento;
-  onGoToProposta: () => void;
-  onGoToMeus: () => void;
+  onClick: () => void;
 }) {
-  const [preConfirmadoEm, setPreConfirmadoEm] = useState<string | null>(
-    candidatura.preConfirmadoEm ?? null
-  );
-  const [salvando, setSalvando] = useState(false);
-
-  const handlePreConfirmar = async (via: string) => {
-    if (preConfirmadoEm || salvando) return;
-    setSalvando(true);
-    try {
-      const agora = new Date().toISOString();
-      await (supabase as any)
-        .from('candidaturas_fornecedores')
-        .update({ pre_confirmado_em: agora, pre_confirmado_via: via })
-        .eq('id', candidatura.candidaturaId)
-        .is('pre_confirmado_em', null);
-      setPreConfirmadoEm(agora);
-    } catch { /* silent */ } finally {
-      setSalvando(false);
-    }
-  };
-
   const s        = candidatura.statusAcompanhamento;
   const stage    = deriveStage(s);
   const stageClr = deriveStageColor(s);
   const isReu    = s === 'reuniao_agendada' || s === 'reuniao_realizada';
   const isPerdido = s === 'negocio_perdido';
-  const isFechado = s === 'negocio_fechado';
-
-  const enrichedCandidatura = { ...candidatura, preConfirmadoEm };
+  const isUrgente = s === 'visita_agendada' || s === 'reuniao_agendada' || s === 'em_orcamento';
 
   return (
-    <div className="cop-card" style={{ borderTop: `4px solid ${stageClr}` }}>
-      {/* Header do card */}
+    <div
+      className="cop-card"
+      style={{ borderTop: `4px solid ${stageClr}`, cursor: 'pointer' }}
+      onClick={onClick}
+    >
       <div className="cop-card-body" style={{ padding: '18px 20px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -495,58 +511,19 @@ function CardOperacional({
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {candidatura.local && (
-                <span style={{ fontSize: 11, color: I.cz }}>
-                  📍 {candidatura.local}
-                </span>
+                <span style={{ fontSize: 11, color: I.cz }}>📍 {candidatura.local}</span>
               )}
               {candidatura.tamanhoImovel > 0 && (
-                <span style={{ fontSize: 11, color: I.cz }}>
-                  · {candidatura.tamanhoImovel} m²
-                </span>
+                <span style={{ fontSize: 11, color: I.cz }}>· {candidatura.tamanhoImovel} m²</span>
               )}
             </div>
           </div>
           <StatusBadge status={s} />
         </div>
 
-        {/* Timeline */}
-        {!isPerdido && (
-          <Timeline activeStage={stage} isReu={isReu} />
-        )}
+        {!isPerdido && <Timeline activeStage={stage} isReu={isReu} />}
 
-        {/* Resultado final */}
-        {isFechado && (
-          <div style={{ borderRadius: 8, background: I.vd2, border: `1.5px solid ${I.vd}`, padding: '10px 14px', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: I.vd }}>🎉 Negócio fechado</div>
-            <div style={{ fontSize: 11, color: I.cz, marginTop: 2 }}>
-              Parabéns! Contrato em preparação pela Reforma100.
-            </div>
-          </div>
-        )}
-
-        {isPerdido && (
-          <div style={{ borderRadius: 8, background: I.cz2, padding: '10px 14px', marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: I.cz }}>Proposta não selecionada neste processo.</div>
-          </div>
-        )}
-
-        {/* Bloco de visita/reunião */}
-        {!isFechado && !isPerdido && (
-          <AtendimentoBlock
-            candidatura={enrichedCandidatura}
-            onPreConfirmar={handlePreConfirmar}
-          />
-        )}
-
-        {/* Próxima ação */}
-        {!isFechado && !isPerdido && (
-          <ProximaAcaoBlock
-            candidatura={enrichedCandidatura}
-            onGoToProposta={onGoToProposta}
-          />
-        )}
-
-        {/* Meta row */}
+        {/* Meta row + CTA abrir ficha */}
         <div className="cop-meta-row" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', borderTop: `1px solid ${I.bd}`, paddingTop: 12, marginTop: 4 }}>
           {candidatura.conciergeResponsavel && (
             <span style={{ fontSize: 11, color: I.cz }}>
@@ -560,15 +537,11 @@ function CardOperacional({
             </span>
           )}
           <span style={{ fontSize: 11, color: I.cz }}>
-            📆 Inscrito em {fmtDt(candidatura.dataCandidatura.toISOString())}
+            📆 {fmtDt(candidatura.dataCandidatura.toISOString())}
           </span>
-          <button
-            className="cop-btn cop-btn-ghost"
-            style={{ fontSize: 10, padding: '4px 10px', marginLeft: 'auto' }}
-            onClick={onGoToMeus}
-          >
-            Ver detalhes
-          </button>
+          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: isUrgente ? I.vm : I.azul, display: 'flex', alignItems: 'center', gap: 4 }}>
+            {isUrgente ? '⚡' : ''} Ver ficha →
+          </span>
         </div>
       </div>
     </div>
@@ -577,13 +550,12 @@ function CardOperacional({
 
 // ── Section de grupo ──────────────────────────────────────────────────────────
 function CandidaturaSection({
-  title, dot, items, onGoToProposta, onGoToMeus, collapsible,
+  title, dot, items, onCardClick, collapsible,
 }: {
   title: string;
   dot: string;
   items: CandidaturaOrcamento[];
-  onGoToProposta: () => void;
-  onGoToMeus: () => void;
+  onCardClick: (c: CandidaturaOrcamento) => void;
   collapsible?: boolean;
 }) {
   const [open, setOpen] = useState(!collapsible);
@@ -612,8 +584,7 @@ function CandidaturaSection({
         <CardOperacional
           key={c.candidaturaId}
           candidatura={c}
-          onGoToProposta={onGoToProposta}
-          onGoToMeus={onGoToMeus}
+          onClick={() => onCardClick(c)}
         />
       ))}
     </div>
@@ -627,6 +598,7 @@ export function CentralOperacionalFornecedor() {
   const navigate = useNavigate();
   const { candidaturas, loading } = useMeusCandidaturas(profile?.id);
   const [repKpi, setRepKpi] = useState<{ media: number; total: number } | null>(null);
+  const [fichaAberta, setFichaAberta] = useState<CandidaturaOrcamento | null>(null);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -645,14 +617,15 @@ export function CentralOperacionalFornecedor() {
   const urgentes  = candidaturas.filter(c => deriveGroup(c.statusAcompanhamento) === 'urgent');
   const ativas    = candidaturas.filter(c => deriveGroup(c.statusAcompanhamento) === 'active');
   const finais    = candidaturas.filter(c => deriveGroup(c.statusAcompanhamento) === 'done');
-  const fechadas  = finais.filter(c => c.statusAcompanhamento === 'negocio_fechado');
-
-  const onGoToProposta = () => navigate('/dashboard?view=revisoes');
-  const onGoToMeus     = () => navigate('/dashboard?view=meus');
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="cop" style={{ padding: '0 0 40px' }}>
+
+      <FichaOperacionalFornecedor
+        candidatura={fichaAberta}
+        onClose={() => setFichaAberta(null)}
+      />
 
       {/* Header premium */}
       <div style={{
@@ -674,8 +647,29 @@ export function CentralOperacionalFornecedor() {
 
       <div style={{ padding: '0 16px' }}>
 
+        {/* Banner de urgência */}
+        {!loading && urgentes.length > 0 && (
+          <div style={{
+            background: I.vm2, border: `1.5px solid ${I.vm}44`,
+            borderLeft: `4px solid ${I.vm}`,
+            borderRadius: 10, padding: '12px 16px',
+            marginBottom: 18,
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+          }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>⚡</span>
+            <div>
+              <div style={{ fontWeight: 700, color: I.vm, fontSize: 13, fontFamily: "'Syne',sans-serif", marginBottom: 2 }}>
+                {urgentes.length} processo{urgentes.length > 1 ? 's' : ''} requer{urgentes.length === 1 ? '' : 'em'} ação agora
+              </div>
+              <div style={{ fontSize: 11, color: I.cz }}>
+                Veja os cards abaixo e execute as ações pendentes.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* KPI cards */}
-        <div className="cop-kpi-row" style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+        <div className="cop-kpi-row">
           <KpiCard
             borderColor={urgentes.length > 0 ? I.vm : I.vd}
             icon={urgentes.length > 0 ? '⚡' : '✅'}
@@ -741,22 +735,19 @@ export function CentralOperacionalFornecedor() {
               title="Requer ação agora"
               dot={I.vm}
               items={urgentes}
-              onGoToProposta={onGoToProposta}
-              onGoToMeus={onGoToMeus}
+              onCardClick={setFichaAberta}
             />
             <CandidaturaSection
               title="Em andamento"
               dot={I.azul}
               items={ativas}
-              onGoToProposta={onGoToProposta}
-              onGoToMeus={onGoToMeus}
+              onCardClick={setFichaAberta}
             />
             <CandidaturaSection
               title="Finalizadas"
               dot={I.cz}
               items={finais}
-              onGoToProposta={onGoToProposta}
-              onGoToMeus={onGoToMeus}
+              onCardClick={setFichaAberta}
               collapsible
             />
           </>
