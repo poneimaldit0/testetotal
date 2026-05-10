@@ -1,9 +1,9 @@
 /**
  * classificar-cep-ia
  *
- * Classifica socioeconômicamente um bairro/cidade usando Claude Sonnet 4.6.
- * Fluxo: cache-first → IA → upsert cache.
- * Entradas com validado_manualmente = true são protegidas pelo cache-first.
+ * Classifica socioeconômicamente um bairro usando Claude Sonnet 4.6.
+ * Fluxo: cache-first → geocode BrasilAPI → IA contextual → upsert cache.
+ * Resultados com confiança "insuficiente" não são salvos em cache.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -87,21 +87,21 @@ const TOOL_CLASSIFICAR = {
       },
       justificativa: {
         type: "string",
-        description: "Justificativa em 2-3 frases para a classificação atribuída.",
+        description: "Justificativa em 2-3 frases citando os dados usados (logradouro, CEP, coordenadas, bairros adjacentes).",
       },
       confianca: {
         type: "string",
         enum: ["alta", "media", "baixa", "insuficiente"],
-        description: "alta = dados sólidos do bairro específico; insuficiente = bairro desconhecido, inferência por cidade/UF.",
+        description: "alta = dados sólidos do bairro específico; insuficiente = bairro desconhecido mesmo com contexto geográfico.",
       },
       fontes: {
         type: "array",
         items: { type: "string" },
-        description: "Evidências ou referências consideradas para a classificação.",
+        description: "Dados efetivamente usados: logradouro, CEP, coordenadas GPS, bairros adjacentes conhecidos, etc.",
       },
       inferencia_conservadora: {
         type: "boolean",
-        description: "true quando a classificação é conservadoramente inferida por ausência de dados específicos do bairro.",
+        description: "true quando a classificação é inferida por contexto geográfico sem dados diretos do bairro.",
       },
     },
   },
@@ -121,7 +121,19 @@ REGRAS OBRIGATÓRIAS — NUNCA VIOLE:
 
 4. SEMPRE diferencie o bairro específico da cidade inteira. São Paulo capital tem bairros A+ (Jardins) e bairros D (Grajaú). Ferraz de Vasconcelos é uma cidade satélite periférica — não classifique como bairro nobre de SP capital.
 
-5. Sem evidência forte do bairro específico → fallback CONSERVADOR: classifique um patamar abaixo da cidade, confiança "baixa" ou "insuficiente", inferencia_conservadora = true.
+5. NUNCA use a cidade inteira como referência de classificação para bairros desconhecidos.
+   Use o logradouro, CEP completo e coordenadas GPS fornecidos para determinar a zona urbana real:
+
+   São Paulo capital — referência por prefixo CEP:
+   • 01xxx–02xxx → Centro histórico e Norte próximo: Consolação, República, Santana, Perdizes (A-/B+)
+   • 03xxx–04xxx → Sul central: Moema, Vila Mariana, Indianópolis, Jabaquara, Saúde, Ibirapuera (A-/B+/B)
+   • 05xxx → Oeste: Pinheiros, Vila Madalena, Lapa, Alto de Pinheiros (A/A-)
+   • 08xxx → Zona Leste (heterogênea): Tatuapé/Mooca (B+), Penha (C+/B-), Itaquera (C+), Guaianazes (C/D)
+   • 09xxx → ABC Paulista e Zona Sul extrema (ver Regra 6 — não confundir com SP nobre)
+
+   Se coordenadas GPS estiverem disponíveis, use-as para calcular proximidade com bairros de referência.
+   Se o logradouro for uma avenida ou rua conhecida, use para localização precisa.
+   Se mesmo com contexto completo a classificação for incerta → confiança "insuficiente". NUNCA retorne B genérico.
 
 6. Cidades satélites periféricas da Grande SP (Ferraz de Vasconcelos, Itaquaquecetuba, Suzano, Poá, Mauá, Ribeirão Pires, Franco da Rocha, Francisco Morato, etc.) → padrão C ou C/D salvo bairro comprovadamente diferente.
 
@@ -134,7 +146,7 @@ REGRAS OBRIGATÓRIAS — NUNCA VIOLE:
 REFERÊNCIA DE CLASSES PARA CALIBRAÇÃO:
 - A+: Jardins (SP), Itaim Bibi, Alto de Pinheiros, Morumbi (partes altas), Barra da Tijuca (RJ), Leblon (RJ)
 - A:  Pinheiros, Vila Nova Conceição, Brooklin, Moema, Perdizes
-- A-: Lapa, Aclimação, Vila Mariana, Alphaville, Tatuapé (partes), Bela Vista, Consolação
+- A-: Lapa, Aclimação, Vila Mariana, Alphaville, Tatuapé (partes), Bela Vista, Consolação, Indianópolis
 - B+: Santo André centro, São Bernardo centro, Campinas (partes), Ribeirão Preto (partes), Osasco centro
 - B:  Classe média consolidada, subúrbio com infraestrutura razoável
 - B-: Classe média-baixa, periferia próxima com alguma infraestrutura
@@ -143,6 +155,7 @@ REFERÊNCIA DE CLASSES PARA CALIBRAÇÃO:
 - C/D: Periferia distante, baixa renda, infraestrutura precária
 - D:  Alta vulnerabilidade social, risco social elevado
 
+Na justificativa, cite EXPLICITAMENTE quais dados foram usados (logradouro, CEP, coordenadas, bairros adjacentes).
 Use sempre a tool fornecida para retornar valores estruturados.`;
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
@@ -151,10 +164,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { bairro, cidade, uf } = await req.json() as {
+    const { bairro, cidade, uf, cep, logradouro } = await req.json() as {
       bairro?: string;
       cidade: string;
       uf: string;
+      cep?: string;
+      logradouro?: string;
     };
 
     if (!cidade || !uf) {
@@ -169,8 +184,9 @@ serve(async (req) => {
     const bairroNorm = normalize(bairro || "");
     const cidadeNorm = normalize(cidade);
     const ufUpper    = uf.toUpperCase();
+    const cepClean   = (cep || "").replace(/\D/g, "");
 
-    // 1. Cache-first — inclui entradas validadas_manualmente (proteção implícita)
+    // 1. Cache-first — entradas com validado_manualmente=true são protegidas
     const { data: cached } = await db
       .from("cep_classificacoes_ia")
       .select("*")
@@ -188,15 +204,52 @@ serve(async (req) => {
       return json({ error: "ANTHROPIC_API_KEY não configurada" }, 500);
     }
 
-    // 2. Chamar Claude Sonnet 4.6
-    const userPrompt =
-      `Classifique socioeconômicamente a seguinte localidade para qualificação de leads de reforma residencial:\n\n` +
-      `Bairro: ${bairro || "(não informado — classifique pela cidade)"}\n` +
-      `Cidade: ${cidade}\n` +
-      `UF: ${uf}\n\n` +
-      `IMPORTANTE: seja conservador. Se o bairro não tiver evidências claras de alto padrão, classifique abaixo, não acima. ` +
-      `Prefira errar para baixo a classificar indevidamente como A ou B+ uma região periférica.`;
+    // 2. Geocode via BrasilAPI (opcional — não bloqueia se falhar)
+    let coordenadas: { latitude: string; longitude: string } | null = null;
+    if (cepClean.length === 8) {
+      try {
+        const geoResp = await fetch(
+          `https://brasilapi.com.br/api/cep/v2/${cepClean}`,
+          { signal: AbortSignal.timeout(3000) },
+        );
+        if (geoResp.ok) {
+          const geoData = await geoResp.json();
+          if (geoData?.location?.coordinates?.latitude) {
+            coordenadas = geoData.location.coordinates;
+            console.log("[classificar-cep] geocode:", coordenadas);
+          }
+        }
+      } catch {
+        console.log("[classificar-cep] geocode indisponível, continuando sem coordenadas");
+      }
+    }
 
+    // 3. Construir prompt contextual completo
+    const cepPrefix = cepClean.slice(0, 3);
+    const linhasPrompt: string[] = [
+      `Classifique socioeconômicamente para qualificação de leads de reforma residencial:`,
+      ``,
+      `Bairro: ${bairro || "(não informado)"}`,
+      `Logradouro: ${logradouro || "(não informado)"}`,
+      `CEP: ${cepClean ? `${cepClean.slice(0,5)}-${cepClean.slice(5)}` : "(não informado)"}${cepPrefix ? ` — prefixo ${cepPrefix}` : ""}`,
+      `Cidade: ${cidade}`,
+      `UF: ${uf}`,
+    ];
+
+    if (coordenadas) {
+      linhasPrompt.push(`Coordenadas GPS: lat ${coordenadas.latitude}, lng ${coordenadas.longitude}`);
+    }
+
+    linhasPrompt.push(
+      ``,
+      `Use TODOS os dados acima — logradouro, CEP, coordenadas — para classificação precisa.`,
+      `NUNCA use "São Paulo" como referência genérica. Identifique a zona urbana específica pelo CEP e logradouro.`,
+      `Se a confiança for insuficiente após análise contextual, declare isso — NÃO invente B genérico.`,
+    );
+
+    const userPrompt = linhasPrompt.join("\n");
+
+    // 4. Chamar Claude Sonnet 4.6
     const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -240,23 +293,20 @@ serve(async (req) => {
       inferencia_conservadora: boolean;
     };
 
-    console.log("[classificar-cep] resultado:", bairro, "/", cidade, "→", r.classificacao, r.confianca);
+    console.log("[classificar-cep] resultado:", bairro, "/", cidade, "→", r.classificacao, r.confianca, coordenadas ? "(geocode)" : "(sem coords)");
 
-    // Aplicar guard de periferia antes de persistir no cache
+    // 5. Guard de periferia antes de persistir
     let classificacaoFinal = r.classificacao;
-    let potencialFinal = r.potencial;
-    let ticketMinFinal = r.ticket_min_estimado ?? null;
-    let ticketMaxFinal = r.ticket_max_estimado ?? null;
+    let potencialFinal     = r.potencial;
+    let ticketMinFinal     = r.ticket_min_estimado ?? null;
+    let ticketMaxFinal     = r.ticket_max_estimado ?? null;
 
     if (isAcimaDeC(r.classificacao)) {
       const isSatelite    = CIDADES_SATELITE_PERIFERICAS.has(normalize(cidade));
       const hasPerifToken = TOKENS_PERIFERIA_SP.some(t => normalize(bairro || "").includes(t));
 
       if (isSatelite || hasPerifToken) {
-        console.warn(
-          "[classificar-cep] periferiaGuard:", bairro, "/", cidade,
-          "→", r.classificacao, "rebaixada para C+",
-        );
+        console.warn("[classificar-cep] periferiaGuard:", bairro, "/", cidade, "→", r.classificacao, "rebaixada para C+");
         classificacaoFinal = "C+";
         potencialFinal     = "médio-baixo";
         ticketMinFinal     = null;
@@ -264,30 +314,39 @@ serve(async (req) => {
       }
     }
 
-    const now = new Date().toISOString();
+    const now    = new Date().toISOString();
     const revisao = r.confianca === "baixa" || r.confianca === "insuficiente";
 
-    // 3. Upsert no cache (só chega aqui em cache miss)
+    // 6. Resultado base (sem salvar ainda)
+    const resultado = {
+      bairro_norm:             bairroNorm,
+      cidade_norm:             cidadeNorm,
+      uf:                      ufUpper,
+      classificacao:           classificacaoFinal,
+      potencial:               potencialFinal,
+      ticket_min:              ticketMinFinal,
+      ticket_max:              ticketMaxFinal,
+      justificativa:           r.justificativa,
+      confianca:               r.confianca,
+      fontes:                  r.fontes ?? [],
+      inferencia_ia:           true,
+      inferencia_conservadora: r.inferencia_conservadora ?? false,
+      revisao_manual:          revisao,
+      validado_manualmente:    false,
+      tem_coordenadas:         coordenadas !== null,
+    };
+
+    // Não persistir resultados insuficientes — serão reavaliados na próxima consulta
+    if (r.confianca === "insuficiente") {
+      console.log("[classificar-cep] confiança insuficiente — não salvo em cache:", bairro, "/", cidade);
+      return json({ ok: true, cached: false, classificacao: resultado });
+    }
+
+    // 7. Upsert no cache
     const { data: saved, error: saveErr } = await db
       .from("cep_classificacoes_ia")
       .upsert(
-        {
-          bairro_norm:             bairroNorm,
-          cidade_norm:             cidadeNorm,
-          uf:                      ufUpper,
-          classificacao:           classificacaoFinal,
-          potencial:               potencialFinal,
-          ticket_min:              ticketMinFinal,
-          ticket_max:              ticketMaxFinal,
-          justificativa:           r.justificativa,
-          confianca:               r.confianca,
-          fontes:                  r.fontes ?? [],
-          inferencia_ia:           true,
-          inferencia_conservadora: r.inferencia_conservadora ?? false,
-          revisao_manual:          revisao,
-          validado_manualmente:    false,
-          updated_at:              now,
-        },
+        { ...resultado, updated_at: now },
         { onConflict: "bairro_norm,cidade_norm,uf" },
       )
       .select()
@@ -297,26 +356,8 @@ serve(async (req) => {
       console.error("[classificar-cep] erro ao salvar cache:", saveErr.message);
     }
 
-    return json({
-      ok: true,
-      cached: false,
-      classificacao: saved ?? {
-        bairro_norm:             bairroNorm,
-        cidade_norm:             cidadeNorm,
-        uf:                      ufUpper,
-        classificacao:           classificacaoFinal,
-        potencial:               potencialFinal,
-        ticket_min:              ticketMinFinal,
-        ticket_max:              ticketMaxFinal,
-        justificativa:           r.justificativa,
-        confianca:               r.confianca,
-        fontes:                  r.fontes ?? [],
-        inferencia_ia:           true,
-        inferencia_conservadora: r.inferencia_conservadora ?? false,
-        revisao_manual:          revisao,
-        validado_manualmente:    false,
-      },
-    });
+    return json({ ok: true, cached: false, classificacao: saved ?? resultado });
+
   } catch (err) {
     console.error("[classificar-cep] erro geral:", err);
     return json({ error: String(err) }, 500);

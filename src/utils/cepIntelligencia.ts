@@ -230,12 +230,12 @@ export async function consultarCep(
     }
   }
 
-  // 5. Cache miss → chamar edge function classificar-cep-ia
+  // 5. Cache miss → chamar edge function classificar-cep-ia (com contexto completo)
   if (!regiao && cidade) {
     try {
       const { data: fnData, error: fnErr } = await (supabase as any).functions.invoke(
         'classificar-cep-ia',
-        { body: { bairro, cidade, uf } },
+        { body: { bairro, cidade, uf, cep: cepClean, logradouro: viaCep.logradouro || '' } },
       );
 
       if (!fnErr && fnData?.classificacao) {
