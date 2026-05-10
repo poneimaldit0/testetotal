@@ -50,26 +50,13 @@ function FichaHeader({
       background: `linear-gradient(150deg, ${I.azul} 0%, ${I.azul2} 100%)`,
       padding: '20px 20px 16px',
       flexShrink: 0,
-      position: 'relative',
     }}>
-      {/* Fechar */}
-      <button
-        onClick={onClose}
-        style={{
-          position: 'absolute', top: 14, right: 14,
-          background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8,
-          width: 32, height: 32, cursor: 'pointer', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18, lineHeight: 1,
-        }}
-        aria-label="Fechar ficha"
-      >×</button>
-
       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', opacity: .6, color: '#fff', marginBottom: 6 }}>
         Ficha Operacional
       </div>
 
-      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: '#fff', lineHeight: 1.3, marginBottom: 10, paddingRight: 40 }}>
+      {/* paddingRight reserva espaço para o botão × do Radix Sheet (absolute right-4 top-4) */}
+      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: '#fff', lineHeight: 1.3, marginBottom: 10, paddingRight: 44 }}>
         {candidatura.necessidade.length > 80
           ? candidatura.necessidade.slice(0, 80) + '…'
           : candidatura.necessidade}
@@ -434,11 +421,11 @@ function SecaoMensagem({
           <button
             key={chip.label}
             style={{
-              fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20,
+              fontSize: 11, fontWeight: 600, padding: '10px 14px', borderRadius: 10,
               background: texto === chip.texto ? I.azul3 : I.cz2,
               color: texto === chip.texto ? I.azul : I.cz,
               border: `1px solid ${texto === chip.texto ? I.azul + '44' : I.bd}`,
-              cursor: 'pointer',
+              cursor: 'pointer', minHeight: 44,
             }}
             onClick={() => setTexto(chip.texto)}
           >
@@ -528,7 +515,7 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
     <Sheet open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
       <SheetContent
         side="right"
-        className="w-full sm:w-[560px] max-w-full p-0 flex flex-col overflow-hidden"
+        className="w-full sm:w-[560px] max-w-full p-0 flex flex-col overflow-hidden [&>button]:text-white [&>button]:opacity-90 [&>button]:bg-white/20 [&>button]:rounded-lg [&>button]:w-11 [&>button]:h-11 [&>button]:top-3 [&>button]:right-3"
       >
         {/* Acessibilidade obrigatória para Radix */}
         <SheetTitle className="sr-only">Ficha Operacional</SheetTitle>
