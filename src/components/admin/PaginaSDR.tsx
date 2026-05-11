@@ -2297,12 +2297,18 @@ function FormNovoLeadSDR({
           const r = cepInicial.regiao;
           const v = cepInicial.viaCep;
           const classBg: Record<string, string> = {
-            'Premium A+': '#F5EEF8', 'Premium A': '#EEF0FF', 'A-': '#E8F5EE',
-            'B+': '#FFF5DC', 'B': '#F7F6F3', 'Oportunidade': '#FFF5E6', 'Fora de área': '#F7F6F3',
+            'A+': '#F0ECFB', 'A': '#EEF0FF', 'A-': '#E8F5EE',
+            'B+': '#FFF5DC', 'B': '#F5F3EF', 'B-': '#F5F3EF',
+            'C+': '#FFF0E8', 'C': '#F7F6F3', 'C/D': '#F7F6F3', 'D': '#FDE8E8',
+            'Premium A+': '#F0ECFB', 'Premium A': '#EEF0FF',
+            'Oportunidade': '#FFF0E8', 'Fora de área': '#F5F3EF',
           };
           const classClr: Record<string, string> = {
-            'Premium A+': '#6B21A8', 'Premium A': '#3B35B7', 'A-': '#1B7A4A',
-            'B+': '#9A6200', 'B': '#6B7280', 'Oportunidade': '#C45B10', 'Fora de área': '#6B7280',
+            'A+': '#6B21A8', 'A': '#3B35B7', 'A-': '#1A7A4A',
+            'B+': '#9A6200', 'B': '#6B6760', 'B-': '#6B6760',
+            'C+': '#C45B10', 'C': '#6B6760', 'C/D': '#9B4747', 'D': '#C0392B',
+            'Premium A+': '#6B21A8', 'Premium A': '#3B35B7',
+            'Oportunidade': C.LJ, 'Fora de área': '#6B6760',
           };
           const bg  = classBg[r.classificacao]  ?? '#F7F6F3';
           const clr = classClr[r.classificacao] ?? '#6B7280';
@@ -2327,14 +2333,25 @@ function FormNovoLeadSDR({
                 <span style={{ fontSize: 11, fontWeight: 700, color: C.CZ, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   📍 Inteligência CEP — {v.cep}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, background: C.white, color: clr, border: `1px solid ${clr}44`, borderRadius: 999, padding: '2px 9px' }}>
-                  {r.classificacao}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: C.white, color: clr, border: `1px solid ${clr}44`, borderRadius: 999, padding: '2px 9px' }}>
+                    {r.classificacao}
+                  </span>
+                  {r.tipo_resultado && r.tipo_resultado !== 'validado' && (() => {
+                    const m: Record<string, { label: string; clr2: string }> = {
+                      contextual:          { label: '~ Contextual', clr2: '#2D3395' },
+                      fallback:            { label: '⚠ Estimado',   clr2: '#9A6200' },
+                      necessita_validacao: { label: '! Sem dados',  clr2: '#C0392B' },
+                    };
+                    const t = m[r.tipo_resultado];
+                    return t ? <span style={{ fontSize: 10, fontWeight: 700, color: t.clr2, background: `${t.clr2}15`, borderRadius: 999, padding: '2px 8px', border: `1px solid ${t.clr2}30` }}>{t.label}</span> : null;
+                  })()}
+                </div>
               </div>
               <div style={{ fontSize: 12, color: C.text, fontWeight: 500 }}>
                 {[v.logradouro, v.bairro, v.localidade, v.uf].filter(Boolean).join(', ')}
               </div>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 {r.potencial && (
                   <span style={{ fontSize: 11, color: clr, fontWeight: 600 }}>
                     Potencial: {r.potencial}
@@ -2350,6 +2367,13 @@ function FormNovoLeadSDR({
                     Status: {r.status_regiao}
                   </span>
                 )}
+                {r.origem_classificacao && (() => {
+                  const origemLabel: Record<string, string> = {
+                    cache_manual: 'Base manual', cache_ia: 'IA cache',
+                    ia_online: 'IA nova', fallback_conservador: 'Fallback',
+                  };
+                  return <span style={{ opacity: 0.55, fontSize: 10 }}>· {origemLabel[r.origem_classificacao] ?? r.origem_classificacao}</span>;
+                })()}
               </div>
               {r.descricao && (
                 <div style={{ fontSize: 11, color: C.CZ, lineHeight: 1.5, borderTop: `1px solid ${clr}22`, paddingTop: 6, marginTop: 2 }}>
@@ -2936,22 +2960,20 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
           fora:     '#6B6760',
         };
         const classBg: Record<string, string> = {
-          'Premium A+': '#F5EEF8',
-          'Premium A':  '#EEF0FF',
-          'A-':         '#E8F5EE',
-          'B+':         '#FFF5DC',
-          'B':          '#F5F3EF',
-          'Oportunidade': '#FFF0E8',
-          'Fora de área': '#F5F3EF',
+          'A+': '#F0ECFB', 'A':  '#EEF0FF', 'A-': '#E8F5EE',
+          'B+': '#FFF5DC', 'B':  '#F5F3EF', 'B-': '#F5F3EF',
+          'C+': '#FFF0E8', 'C':  '#F7F6F3', 'C/D':'#F7F6F3', 'D': '#FDE8E8',
+          // legado
+          'Premium A+': '#F0ECFB', 'Premium A': '#EEF0FF',
+          'Oportunidade': '#FFF0E8', 'Fora de área': '#F5F3EF',
         };
         const classClr: Record<string, string> = {
-          'Premium A+': '#6B21A8',
-          'Premium A':  '#3B35B7',
-          'A-':         '#1A7A4A',
-          'B+':         '#9A6200',
-          'B':          '#6B6760',
-          'Oportunidade': C.LJ,
-          'Fora de área': '#6B6760',
+          'A+': '#6B21A8', 'A':  '#3B35B7', 'A-': '#1A7A4A',
+          'B+': '#9A6200', 'B':  '#6B6760', 'B-': '#6B6760',
+          'C+': '#C45B10', 'C':  '#6B6760', 'C/D':'#9B4747', 'D': '#C0392B',
+          // legado
+          'Premium A+': '#6B21A8', 'Premium A': '#3B35B7',
+          'Oportunidade': C.LJ, 'Fora de área': '#6B6760',
         };
         const potencialEmoji: Record<string, string> = {
           alto:  '🔥',

@@ -321,6 +321,14 @@ export const CadastroOrcamento: React.FC = () => {
                           R$ {cepResultado.regiao.faixa_valor_max ? Math.round(cepResultado.regiao.faixa_valor_max / 1000) + 'k' : '?'}
                         </span>
                       )}
+                      {cepResultado.regiao.origem_classificacao && (() => {
+                        const origemLabel: Record<string, string> = {
+                          cache_manual: 'Base manual', cache_ia: 'IA cache',
+                          ia_online: 'IA nova', fallback_conservador: 'Fallback',
+                        };
+                        const label = origemLabel[cepResultado.regiao.origem_classificacao] ?? cepResultado.regiao.origem_classificacao;
+                        return <span className="text-xs text-slate-400">· {label}</span>;
+                      })()}
                     </div>
                     {cepResultado.regiao.descricao && (
                       <p className="text-xs text-slate-500 leading-relaxed">{cepResultado.regiao.descricao}</p>
