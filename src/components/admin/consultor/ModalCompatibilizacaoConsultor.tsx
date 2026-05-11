@@ -954,7 +954,7 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
   const ac      = compat?.analise_completa ?? null;
   const canEdit = compat ? compat.status !== 'enviado' : false;
   const canEnviar = compat
-    ? ['completed', 'pendente_revisao', 'revisado', 'aprovado'].includes(compat.status)
+    ? ['concluida', 'completed', 'pendente_revisao', 'revisado', 'aprovado'].includes(compat.status)
     : false;
 
   const rankingAtivo = compat?.ranking_ajustado
@@ -962,7 +962,8 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
     : ac ? [...(ac.ranking ?? [])].sort((a, b) => a.posicao - b.posicao) : [];
   const rankingIA    = ac ? [...(ac.ranking ?? [])].sort((a, b) => a.posicao - b.posicao) : [];
   const rankingVisivel = rankingAtivo.filter(e => !excluidos.has(e.candidatura_id));
-  const podeReprocessar = compat != null && statusCompat !== 'pending' && !editRanking;
+  const ESTADOS_ATIVOS = ['pending', 'processando', 'compatibilizando'];
+  const podeReprocessar = compat != null && !ESTADOS_ATIVOS.includes(statusCompat) && !editRanking;
   const propostasRecebidas   = candidaturas.filter(c => c.temProposta);
   const inscritosSemProposta = candidaturas.filter(c => !c.temProposta);
   const statusCandidaturas = propostasRecebidas.map(c => ({ cand: c, ...classificarCandidatura(c, excluidos) }));
@@ -1013,7 +1014,7 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
               size="sm"
               variant="outline"
               onClick={handleAtualizar}
-              disabled={atualizando || statusCompat === 'pending'}
+              disabled={atualizando || ESTADOS_ATIVOS.includes(statusCompat)}
               className="gap-1.5 text-xs h-8"
             >
               {atualizando ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
@@ -1194,8 +1195,8 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
             </Button>
           )}
 
-          {/* ── Pending ── */}
-          {statusCompat === 'pending' && (
+          {/* ── Processando ── */}
+          {ESTADOS_ATIVOS.includes(statusCompat) && (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               <div className="text-center">
@@ -1205,8 +1206,8 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
             </div>
           )}
 
-          {/* ── Failed ── */}
-          {statusCompat === 'failed' && (
+          {/* ── Erro ── */}
+          {(statusCompat === 'erro' || statusCompat === 'failed') && (
             <div className="space-y-3">
               <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 space-y-1.5">
                 <div className="flex items-center gap-2">

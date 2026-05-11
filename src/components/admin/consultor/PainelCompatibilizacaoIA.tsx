@@ -76,7 +76,7 @@ function CompatRow({
   onAbrir: (item: CompatItem) => void;
 }) {
   const { compat, orcamentoNome } = item;
-  const needsAction = ['completed', 'pendente_revisao'].includes(compat.status);
+  const needsAction = ['concluida', 'completed', 'pendente_revisao'].includes(compat.status);
 
   return (
     <div className={`flex items-start justify-between gap-4 p-4 border rounded-lg transition-colors
@@ -109,9 +109,9 @@ function CompatRow({
         variant={needsAction ? 'default' : 'outline'}
         className="shrink-0 text-xs"
         onClick={() => onAbrir(item)}
-        disabled={compat.status === 'pending'}
+        disabled={['pending', 'processando', 'compatibilizando'].includes(compat.status)}
       >
-        {compat.status === 'pending' ? 'Processando...' : 'Revisar'}
+        {['pending', 'processando', 'compatibilizando'].includes(compat.status) ? 'Processando...' : 'Revisar'}
       </Button>
     </div>
   );
@@ -160,7 +160,7 @@ export function PainelCompatibilizacaoIA() {
   const [aberto, setAberto] = useState<CompatItem | null>(null);
 
   const pendentesRevisao = items.filter(i =>
-    ['completed', 'pendente_revisao'].includes(i.compat.status)
+    ['concluida', 'completed', 'pendente_revisao'].includes(i.compat.status)
   ).length;
 
   return (

@@ -227,11 +227,14 @@ export default function ValidarVisitaLead() {
           .in('status_acompanhamento', ['visita_realizada', 'reuniao_realizada']);
 
         if ((realizadas?.length ?? 0) >= 1) {
-          await (supabase as any).rpc('mover_orcamento_etapa', {
+          const { data: rpcData } = await (supabase as any).rpc('mover_orcamento_etapa', {
             p_orcamento_id: info.orcamentoId,
             p_nova_etapa:   'em_orcamento',
             p_usuario_id:   user.id,
           });
+          if (!rpcData?.success) {
+            console.warn('[ValidarVisitaLead] mover_orcamento_etapa retornou success:false', rpcData);
+          }
         }
       } catch { /* silent — não bloqueia confirmação */ }
 

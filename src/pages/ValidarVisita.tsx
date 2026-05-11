@@ -75,13 +75,13 @@ export default function ValidarVisita() {
         if (qErr) throw qErr;
 
         if (realizadas && realizadas.length >= 1) {
-          const { error: rpcErr } = await (supabase as any).rpc('mover_orcamento_etapa', {
+          const { data: rpcData, error: rpcErr } = await (supabase as any).rpc('mover_orcamento_etapa', {
             p_orcamento_id: candidatura.orcamento_id,
             p_nova_etapa:   'em_orcamento',
             p_usuario_id:   user.id,
           });
 
-          if (rpcErr) throw rpcErr;
+          if (rpcErr || !rpcData?.success) throw rpcErr ?? new Error(rpcData?.message ?? 'mover_orcamento_etapa falhou');
         }
       } catch (rpcEx) {
         console.error('[ValidarVisita] liberação CRM falhou:', rpcEx);

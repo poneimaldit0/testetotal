@@ -403,7 +403,8 @@ export function ModalCompatibilizacao({
   const [enviando,   setEnviando]   = useState(false);
 
   const canEdit    = !['aprovado', 'enviado'].includes(compat.status);
-  const canAprovar = ['completed', 'pendente_revisao', 'revisado'].includes(compat.status);
+  // COMPAT-003: 'concluida' é o estado terminal pós-bloco2 (antes era 'completed')
+  const canAprovar = ['concluida', 'completed', 'pendente_revisao', 'revisado'].includes(compat.status);
   const canEnviar  = compat.status === 'aprovado';
 
   // Ranking ativo para exibição: ajustado > IA original
@@ -479,7 +480,9 @@ export function ModalCompatibilizacao({
 
         {!ac ? (
           <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
-            {compat.status === 'pending' ? 'IA processando...' : 'Analise nao disponivel.'}
+            {['pending', 'processando', 'compatibilizando'].includes(compat.status)
+              ? 'IA processando...'
+              : 'Análise não disponível.'}
           </div>
         ) : (
           <div className="px-6 py-4 space-y-6">
@@ -649,13 +652,21 @@ export function ModalCompatibilizacao({
 
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    pending:          { label: 'Processando',   cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-    completed:        { label: 'Pronta',         cls: 'bg-blue-100 text-blue-800 border-blue-300' },
-    failed:           { label: 'Falha',          cls: 'bg-red-100 text-red-800 border-red-300' },
-    pendente_revisao: { label: 'Pend. revisao',  cls: 'bg-orange-100 text-orange-800 border-orange-300' },
-    revisado:         { label: 'Revisado',       cls: 'bg-purple-100 text-purple-800 border-purple-300' },
-    aprovado:         { label: 'Aprovado',       cls: 'bg-green-100 text-green-800 border-green-300' },
-    enviado:          { label: 'Enviado',        cls: 'bg-slate-100 text-slate-700 border-slate-300' },
+    // Legado
+    pending:          { label: 'Processando',     cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    completed:        { label: 'Pronta',           cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    failed:           { label: 'Falha',            cls: 'bg-red-100 text-red-800 border-red-300' },
+    // Canônicos
+    processando:      { label: 'Processando',     cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    compatibilizando: { label: 'Compatibilizando', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    concluida:        { label: 'Pronta',           cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    erro:             { label: 'Erro',             cls: 'bg-red-100 text-red-800 border-red-300' },
+    cancelada:        { label: 'Cancelada',        cls: 'bg-slate-100 text-slate-700 border-slate-300' },
+    // Workflow consultor
+    pendente_revisao: { label: 'Pend. revisão',   cls: 'bg-orange-100 text-orange-800 border-orange-300' },
+    revisado:         { label: 'Revisado',         cls: 'bg-purple-100 text-purple-800 border-purple-300' },
+    aprovado:         { label: 'Aprovado',         cls: 'bg-green-100 text-green-800 border-green-300' },
+    enviado:          { label: 'Enviado',          cls: 'bg-slate-100 text-slate-700 border-slate-300' },
   };
   const s = map[status] ?? { label: status, cls: 'bg-muted text-muted-foreground' };
   return <Badge variant="outline" className={`text-xs ${s.cls}`}>{s.label}</Badge>;

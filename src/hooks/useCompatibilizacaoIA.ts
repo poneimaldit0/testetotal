@@ -85,6 +85,9 @@ export interface CompatibilizacaoIA {
   justificativa_ajuste: string | null;
   ajuste_por:           string | null;             // user id
   ajuste_em:            string | null;             // ISO date
+  // Rastreabilidade (Bloco 2)
+  erro_detalhe?:        string | null;
+  proposta_filtros_log?: Record<string, unknown> | null;
   created_at:           string;
 }
 
@@ -150,6 +153,8 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
         justificativa_ajuste: data.justificativa_ajuste ?? null,
         ajuste_por:           data.ajuste_por ?? null,
         ajuste_em:            data.ajuste_em ?? null,
+        erro_detalhe:         data.erro_detalhe ?? null,
+        proposta_filtros_log: (data.proposta_filtros_log as Record<string, unknown>) ?? null,
         created_at:           data.created_at,
       });
 

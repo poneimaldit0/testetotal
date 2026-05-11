@@ -94,12 +94,10 @@ export const CRMKanbanOrcamentos = () => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
         // Usar ref ou callback para acessar o valor atual
-        setCardsSelecionados(prev => {
-          const todosIds = new Set<string>();
-          toast({
-            title: `Selecionando todos os orçamentos...`,
-          });
-          return todosIds;
+        setCardsSelecionados(() => {
+          const ids = new Set<string>(orcamentosAtivos.map(o => o.id));
+          toast({ title: `${ids.size} orçamento(s) selecionado(s)` });
+          return ids;
         });
       }
 
@@ -113,7 +111,7 @@ export const CRMKanbanOrcamentos = () => {
 
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [cardsSelecionados.size, toast]);
+  }, [cardsSelecionados.size, orcamentosAtivos, toast]);
 
   const calcularPeriodoFiltro = (tipo: string) => {
     const hoje = new Date();

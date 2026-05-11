@@ -599,7 +599,7 @@ export function gerarHtmlCompatibilizacaoCustom(
   compat:    CompatibilizacaoIA,
 ): string {
   const ac = compat.analise_completa;
-  if (!ac) throw new Error('Análise incompleta — sem analise_completa');
+  if (!ac) return `<!DOCTYPE html><html lang="pt-BR"><body style="font-family:sans-serif;padding:2rem"><p>Análise não disponível — status: ${compat.status}</p></body></html>`;
 
   const rankingAtivo = [...(compat.ranking_ajustado ?? ac.ranking ?? [])].sort((a, b) => a.posicao - b.posicao);
 

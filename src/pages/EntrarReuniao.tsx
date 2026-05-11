@@ -209,11 +209,14 @@ export default function EntrarReuniao() {
 
         const totalRealizado = (realizadas?.length ?? 0) + (!jaRealizada ? 1 : 0);
         if (totalRealizado >= 1) {
-          await (supabase as any).rpc('mover_orcamento_etapa', {
+          const { data: rpcData } = await (supabase as any).rpc('mover_orcamento_etapa', {
             p_orcamento_id: info.orcamentoId,
             p_nova_etapa:   'em_orcamento',
             p_usuario_id:   user.id,
           });
+          if (!rpcData?.success) {
+            console.warn('[EntrarReuniao] mover_orcamento_etapa retornou success:false', rpcData);
+          }
         }
       } catch { /* silent */ }
     } catch { /* silent — redireciona mesmo assim */ }
