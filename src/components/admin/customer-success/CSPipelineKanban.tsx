@@ -12,6 +12,7 @@ import { Plus, Users, AlertTriangle, Flag, CheckCircle2, XCircle, Search, X } fr
 import { CSCardFornecedor } from './CSCardFornecedor';
 import { CSDetalhesFornecedor } from './CSDetalhesFornecedor';
 import { CSAdicionarFornecedorModal } from './CSAdicionarFornecedorModal';
+import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 
 export function CSPipelineKanban() {
   const { data: etapas, isLoading: loadingEtapas } = useCSEtapas();
@@ -109,20 +110,20 @@ export function CSPipelineKanban() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b bg-background space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">Pipeline CS - Fornecedores</h1>
-            <Badge variant="secondary" className="text-sm">
-              <Users className="h-3 w-3 mr-1" />
-              {totalFornecedores} fornecedores ativos
-            </Badge>
-          </div>
-          <Button onClick={() => setModalAdicionar(true)}>
+      <PremiumPageHeader
+        title="Pipeline CS — Fornecedores"
+        subtitle={`${totalFornecedores} fornecedores ativos · Reforma100`}
+        right={
+          <Button
+            onClick={() => setModalAdicionar(true)}
+            style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontWeight: 600 }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Adicionar Fornecedor
           </Button>
-        </div>
+        }
+      />
+      <div className="px-4 pb-2 border-b bg-background space-y-3">
         
         {/* Campo de pesquisa */}
         <div className="flex items-center gap-4">

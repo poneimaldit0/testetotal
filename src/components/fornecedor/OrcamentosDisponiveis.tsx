@@ -299,14 +299,14 @@ function CardDisponivel({
           {temHorarios ? (
             <div className="disp-fila-box">
               <div style={{ fontSize: 11, color: D.cz, lineHeight: 1.55, marginBottom: 10 }}>
-                Você entrará na fila de espera caso uma empresa falte, desista ou não confirme.
+                Você será chamado caso haja desistência, ausência ou não confirmação de outra empresa.
               </div>
               <button
                 className="disp-btn-participar"
                 style={{ background: D.cz, fontSize: 13 }}
                 onClick={() => onOpenModal(orcamento.id, undefined, true)}
               >
-                Entrar na fila de espera
+                Entrar na lista de espera
               </button>
             </div>
           ) : (

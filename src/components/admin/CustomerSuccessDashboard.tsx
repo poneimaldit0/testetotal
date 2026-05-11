@@ -7,6 +7,7 @@ import {
   Calendar, Clock, HelpCircle, Shield, TrendingUp
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 
 interface CSMetrics {
   fornecedoresAtivos: number;
@@ -140,14 +141,10 @@ export const CustomerSuccessDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-foreground">
-          Customer Success Dashboard
-        </h2>
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          Visão Geral de Fornecedores
-        </Badge>
-      </div>
+      <PremiumPageHeader
+        title="Customer Success"
+        subtitle="Visão geral de fornecedores · Reforma100"
+      />
 
       {/* Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

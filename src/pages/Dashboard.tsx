@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { R, shadows } from '@/styles/tokens';
+import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 import { CadastroOrcamento } from '@/components/admin/CadastroOrcamento';
 import { ListaOrcamentos } from '@/components/admin/ListaOrcamentos';
 import { OrcamentosDisponiveis } from '@/components/fornecedor/OrcamentosDisponiveis';
@@ -77,6 +78,18 @@ import {
 } from '@/utils/accessControl';
 
 
+const KPI_LIST = (
+  orcamentosAbertos: number,
+  inscricoesHoje: number,
+  orcamentosPostadosMes: number,
+  acessosUnicosHoje: number,
+) => [
+  { label: 'Orçamentos em Aberto', value: orcamentosAbertos,    Icon: Building2, color: R.azul },
+  { label: 'Inscrições Hoje',       value: inscricoesHoje,        Icon: Users,     color: R.vd  },
+  { label: 'Postados no Mês',       value: orcamentosPostadosMes, Icon: Calendar,  color: R.lj  },
+  { label: 'Acessos Únicos Hoje',   value: acessosUnicosHoje,     Icon: Eye,       color: R.rx  },
+];
+
 const DashboardStats = ({ enabled = true }: { enabled?: boolean }) => {
   const { orcamentosAbertos, inscricoesHoje, orcamentosPostadosMes, acessosUnicosHoje, loading } = useDashboardStats(enabled);
 
@@ -84,71 +97,56 @@ const DashboardStats = ({ enabled = true }: { enabled?: boolean }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="bg-card shadow-lg border border-border rounded-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-2">
-                <Skeleton className="h-8 w-8 rounded" />
-                <div className="flex-1">
-                  <Skeleton className="h-8 w-16 mb-2" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={i} style={{
+            background: R.br, borderRadius: 12,
+            borderTop: `4px solid ${R.bd}`,
+            boxShadow: shadows.kpi,
+            padding: '16px 20px',
+            display: 'flex', alignItems: 'center', gap: 14,
+          }}>
+            <Skeleton className="h-10 w-10 rounded-lg flex-shrink-0" />
+            <div className="flex-1">
+              <Skeleton className="h-7 w-14 mb-1.5" />
+              <Skeleton className="h-3.5 w-28" />
+            </div>
+          </div>
         ))}
       </div>
     );
   }
 
+  const kpis = KPI_LIST(orcamentosAbertos, inscricoesHoje, orcamentosPostadosMes, acessosUnicosHoje);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <Card className="bg-card shadow-lg border border-border rounded-xl">
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-2">
-            <Building2 className="h-8 w-8 text-primary" />
-            <div>
-              <p className="text-2xl font-bold text-foreground">{orcamentosAbertos}</p>
-              <p className="text-sm text-muted-foreground">Orçamentos em Aberto</p>
+      {kpis.map(({ label, value, Icon, color }) => (
+        <div key={label} style={{
+          background: R.br,
+          borderRadius: 12,
+          borderTop: `4px solid ${color}`,
+          boxShadow: shadows.kpi,
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+            background: color + '18',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon size={20} color={color} />
+          </div>
+          <div>
+            <div style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 26, color: R.nv, lineHeight: 1 }}>
+              {value}
+            </div>
+            <div style={{ fontSize: 12, color: R.cz, marginTop: 4 }}>
+              {label}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card shadow-lg border border-border rounded-xl">
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-2">
-            <Users className="h-8 w-8 text-secondary" />
-            <div>
-              <p className="text-2xl font-bold text-foreground">{inscricoesHoje}</p>
-              <p className="text-sm text-muted-foreground">Inscrições Hoje</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card shadow-lg border border-border rounded-xl">
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-8 w-8 text-accent" />
-            <div>
-              <p className="text-2xl font-bold text-foreground">{orcamentosPostadosMes}</p>
-              <p className="text-sm text-muted-foreground">Postados no Mês</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card shadow-lg border border-border rounded-xl">
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-2">
-            <Eye className="h-8 w-8 text-primary" />
-            <div>
-              <p className="text-2xl font-bold text-foreground">{acessosUnicosHoje}</p>
-              <p className="text-sm text-muted-foreground">Acessos Únicos Hoje</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      ))}
     </div>
   );
 };

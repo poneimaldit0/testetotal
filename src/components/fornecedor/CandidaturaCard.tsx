@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Clock, Users, CheckCircle, Video,
-  MapPin, AlertCircle,
+  MapPin, AlertCircle, Paperclip,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,6 +13,7 @@ import { ContatoSection } from './ContatoSection';
 import { AnexosOrcamento } from './AnexosOrcamento';
 import { PropostaAnexoUpload } from './PropostaAnexoUpload';
 import { ConciergeInfo } from './ConciergeInfo';
+import { R, statusCor, shadows } from '@/styles/tokens';
 
 interface CandidaturaCardProps {
   candidatura: CandidaturaOrcamento;
@@ -21,40 +21,50 @@ interface CandidaturaCardProps {
   onStatusUpdate?: (candidaturaId: string, novoStatus: import('@/hooks/useStatusAcompanhamento').StatusAcompanhamento) => void;
 }
 
-const STATUS_INFO: Record<string, { label: string; color: string }> = {
-  inscrito:                      { label: 'Inscrito',               color: 'blue'   },
-  '1_contato_realizado':         { label: 'Aguardando agendamento',  color: 'blue'   },
-  '2_contato_realizado':         { label: 'Aguardando agendamento',  color: 'blue'   },
-  '3_contato_realizado':         { label: 'Aguardando agendamento',  color: 'blue'   },
-  '4_contato_realizado':         { label: 'Aguardando agendamento',  color: 'blue'   },
-  '5_contato_realizado':         { label: 'Aguardando agendamento',  color: 'blue'   },
-  cliente_respondeu_nao_agendou: { label: 'Aguardando agendamento',  color: 'blue'   },
-  nao_respondeu_mensagens:       { label: 'Aguardando agendamento',  color: 'blue'   },
-  visita_agendada:               { label: 'Visita agendada',         color: 'amber'  },
-  visita_realizada:              { label: 'Visita realizada',        color: 'green'  },
-  reuniao_agendada:              { label: 'Reunião agendada',        color: 'violet' },
-  reuniao_realizada:             { label: 'Reunião realizada',       color: 'green'  },
-  em_orcamento:                  { label: 'Em elaboração',           color: 'indigo' },
-  orcamento_enviado:             { label: 'Proposta enviada',        color: 'green'  },
-  negocio_fechado:               { label: 'Negócio fechado',         color: 'green'  },
-  negocio_perdido:               { label: 'Proposta não selecionada',color: 'gray'   },
-};
-
-const BADGE_COLORS: Record<string, string> = {
-  blue:   'bg-blue-100 text-blue-800 border-blue-200',
-  amber:  'bg-amber-100 text-amber-800 border-amber-200',
-  violet: 'bg-violet-100 text-violet-800 border-violet-200',
-  green:  'bg-green-100 text-green-800 border-green-200',
-  indigo: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  gray:   'bg-gray-100 text-gray-600 border-gray-200',
+const STATUS_INFO: Record<string, { label: string; acao: string; borderColor: string }> = {
+  inscrito:                      { label: 'Inscrito',                acao: 'Aguardando retorno',    borderColor: R.azul },
+  '1_contato_realizado':         { label: 'Em contato',              acao: 'Aguardando retorno',    borderColor: R.azul },
+  '2_contato_realizado':         { label: 'Em contato',              acao: 'Aguardando retorno',    borderColor: R.azul },
+  '3_contato_realizado':         { label: 'Em contato',              acao: 'Aguardando retorno',    borderColor: R.azul },
+  '4_contato_realizado':         { label: 'Em contato',              acao: 'Aguardando retorno',    borderColor: R.azul },
+  '5_contato_realizado':         { label: 'Em contato',              acao: 'Aguardando retorno',    borderColor: R.azul },
+  cliente_respondeu_nao_agendou: { label: 'Aguardando agendamento',  acao: 'Aguardando retorno',    borderColor: R.azul },
+  nao_respondeu_mensagens:       { label: 'Sem resposta',            acao: 'Aguardando retorno',    borderColor: R.cz  },
+  visita_agendada:               { label: 'Visita agendada',         acao: 'Confirmar visita',       borderColor: R.lj  },
+  visita_realizada:              { label: 'Visita realizada',        acao: 'Enviar proposta',        borderColor: R.vd  },
+  reuniao_agendada:              { label: 'Reunião agendada',        acao: 'Entrar na reunião',      borderColor: R.rx  },
+  reuniao_realizada:             { label: 'Reunião realizada',       acao: 'Enviar proposta',        borderColor: R.vd  },
+  em_orcamento:                  { label: 'Elaborando proposta',     acao: 'Enviar proposta',        borderColor: R.am  },
+  orcamento_enviado:             { label: 'Proposta enviada',        acao: 'Atualização enviada',    borderColor: R.vd  },
+  negocio_fechado:               { label: 'Negócio fechado',         acao: '',                       borderColor: R.vd  },
+  negocio_perdido:               { label: 'Não selecionado',         acao: '',                       borderColor: R.cz  },
 };
 
 function StatusBadge({ status }: { status: string | null }) {
-  const info = STATUS_INFO[status ?? 'inscrito'] ?? { label: 'Aguardando contato', color: 'blue' };
+  const info = STATUS_INFO[status ?? 'inscrito'] ?? { label: 'Aguardando contato', borderColor: R.azul };
+  const sc = statusCor[status ?? ''];
+  const bg = sc?.bg ?? R.azul3;
+  const fg = sc?.fg ?? R.azul;
   return (
-    <Badge variant="outline" className={`text-xs ${BADGE_COLORS[info.color] ?? BADGE_COLORS.blue}`}>
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20,
+      background: bg, color: fg, whiteSpace: 'nowrap',
+    }}>
       {info.label}
-    </Badge>
+    </span>
+  );
+}
+
+function AcaoBadge({ acao }: { acao: string }) {
+  if (!acao) return null;
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20,
+      background: R.lj2, color: R.am, border: `1px solid ${R.lj}44`,
+      whiteSpace: 'nowrap',
+    }}>
+      → {acao}
+    </span>
   );
 }
 
@@ -284,107 +294,112 @@ export const CandidaturaCard: React.FC<CandidaturaCardProps> = ({
   onStatusChange: _onStatusChange,
 }) => {
   const s = candidatura.statusAcompanhamento;
+  const info = STATUS_INFO[s ?? 'inscrito'] ?? STATUS_INFO.inscrito;
   const showUpload = s !== 'negocio_perdido' && s !== 'negocio_fechado';
   const showContato = !!candidatura.dadosContato && candidatura.status === 'fechado';
+  const temAnexos = (candidatura.arquivos?.length ?? 0) > 0 || (candidatura.fotos?.length ?? 0) > 0;
 
   return (
-    <Card className="bg-white shadow-lg border border-gray-100 rounded-xl hover:shadow-xl transition-shadow">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-base sm:text-lg text-gray-800 font-semibold">
+    <div style={{
+      background: '#fff',
+      borderRadius: 14,
+      boxShadow: shadows.card,
+      border: `1px solid ${R.bd}`,
+      borderTop: `4px solid ${info.borderColor}`,
+      overflow: 'hidden',
+      transition: 'box-shadow .18s, transform .18s',
+    }}
+    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = shadows.cardHover; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = shadows.card; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
+    >
+      {/* Header */}
+      <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${R.bd}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: '"Syne", sans-serif', fontWeight: 700, fontSize: 15, color: R.nv, marginBottom: 2 }}>
               Orçamento #{candidatura.id.slice(-8)}
-            </CardTitle>
-            <p className="text-xs sm:text-sm text-gray-500">
-              Publicado em {format(candidatura.dataPublicacao, "dd/MM/yyyy", { locale: ptBR })}
-            </p>
-            <p className="text-xs text-blue-600">
-              Candidatura em {format(candidatura.dataCandidatura, "dd/MM/yyyy", { locale: ptBR })}
-            </p>
+            </div>
+            <div style={{ fontSize: 11, color: R.cz }}>
+              Publicado {format(candidatura.dataPublicacao, "dd/MM/yyyy", { locale: ptBR })}
+              {' · '}Candidatura {format(candidatura.dataCandidatura, "dd/MM/yyyy", { locale: ptBR })}
+            </div>
           </div>
-          <div className="flex gap-1.5 sm:gap-2 flex-wrap justify-end">
-            <Badge className={candidatura.status === 'aberto' ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-500 hover:bg-gray-600'}>
-              {candidatura.status.toUpperCase()}
-            </Badge>
-            <Badge variant="outline" className="text-blue-600 border-blue-600">
-              CANDIDATO
-            </Badge>
-            <StatusBadge status={candidatura.statusAcompanhamento} />
-            {candidatura.categorias.map((categoria, index) => (
-              <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
-                {categoria}
-              </Badge>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <StatusBadge status={s} />
+            {info.acao && <AcaoBadge acao={info.acao} />}
+            {candidatura.categorias.slice(0, 2).map((cat, i) => (
+              <span key={i} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: R.azul3, color: R.azul }}>
+                {cat}
+              </span>
             ))}
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent>
-        <div className="space-y-4">
-          <p className="text-sm text-gray-700">{candidatura.necessidade}</p>
+      {/* Body */}
+      <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ fontSize: 13, color: R.nv, lineHeight: 1.55, margin: 0 }}>{candidatura.necessidade}</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <div>
-              <span className="font-medium text-gray-600">Local:</span>
-              <span className="ml-1 text-gray-800">{candidatura.local}</span>
-            </div>
-            <div>
-              <span className="font-medium text-gray-600">Tamanho:</span>
-              <span className="ml-1 text-gray-800">{candidatura.tamanhoImovel || 'N/A'} m²</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4 text-gray-500" />
-              <span className="font-medium text-gray-600">Inscritas:</span>
-              <span className="ml-1 text-gray-800">{Math.min(candidatura.quantidadeEmpresas, 3)}/3</span>
-            </div>
-          </div>
-
-          <div className="text-sm flex items-center gap-1">
-            <Clock className="h-4 w-4 text-gray-500" />
-            <span className="font-medium text-gray-600">Início pretendido:</span>{' '}
+        {/* Meta */}
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12, color: R.cz }}>
+          <span><MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{candidatura.local}</span>
+          {candidatura.tamanhoImovel && (
+            <span>{candidatura.tamanhoImovel} m²</span>
+          )}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Users size={12} />
+            {Math.min(candidatura.quantidadeEmpresas, 3)}/3 empresas
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={12} />
             {candidatura.prazoInicioTexto
               ? candidatura.prazoInicioTexto
               : (candidatura.dataInicio instanceof Date
                   ? format(candidatura.dataInicio, 'dd/MM/yyyy')
                   : candidatura.dataInicio || 'Não informado')}
-          </div>
-
-          {/* Painel operacional baseado em status_acompanhamento */}
-          <PainelOperacional candidatura={candidatura} />
-
-          {/* Anexos do orçamento — liberados após inscrição */}
-          {(candidatura.arquivos?.length > 0 || candidatura.fotos?.length > 0) && (
-            <AnexosOrcamento
-              arquivos={candidatura.arquivos || []}
-              fotos={candidatura.fotos || []}
-            />
-          )}
-
-          {/* Upload de proposta */}
-          {showUpload && (
-            <div className="border-t pt-4">
-              <PropostaAnexoUpload
-                candidaturaId={candidatura.candidaturaId}
-                orcamentoId={candidatura.id}
-              />
-            </div>
-          )}
-
-          {/* Concierge responsável */}
-          {candidatura.conciergeResponsavel && (
-            <ConciergeInfo concierge={candidatura.conciergeResponsavel} />
-          )}
-
-          {/* Dados do cliente — só após fechamento */}
-          {showContato && (
-            <ContatoSection
-              dadosContato={candidatura.dadosContato!}
-              orcamentoId={candidatura.id}
-              localReforma={candidatura.local}
-            />
-          )}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Painel operacional */}
+        <PainelOperacional candidatura={candidatura} />
+
+        {/* Anexos */}
+        {temAnexos ? (
+          <AnexosOrcamento
+            arquivos={candidatura.arquivos || []}
+            fotos={candidatura.fotos || []}
+          />
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: R.cz, padding: '6px 0' }}>
+            <Paperclip size={12} />
+            Sem anexos neste orçamento
+          </div>
+        )}
+
+        {/* Upload de proposta */}
+        {showUpload && (
+          <div style={{ borderTop: `1px solid ${R.bd}`, paddingTop: 12 }}>
+            <PropostaAnexoUpload
+              candidaturaId={candidatura.candidaturaId}
+              orcamentoId={candidatura.id}
+            />
+          </div>
+        )}
+
+        {/* Concierge */}
+        {candidatura.conciergeResponsavel && (
+          <ConciergeInfo concierge={candidatura.conciergeResponsavel} />
+        )}
+
+        {/* Dados do cliente */}
+        {showContato && (
+          <ContatoSection
+            dadosContato={candidatura.dadosContato!}
+            orcamentoId={candidatura.id}
+            localReforma={candidatura.local}
+          />
+        )}
+      </div>
+    </div>
   );
 };

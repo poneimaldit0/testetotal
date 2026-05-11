@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMeusCandidaturas, CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
 import { FichaOperacionalFornecedor } from './FichaOperacionalFornecedor';
 import { R as I } from '@/styles/tokens';
+import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 
 // ── CSS injection ─────────────────────────────────────────────────────────────
 function useCentralStyles() {
@@ -674,22 +675,10 @@ export function CentralOperacionalFornecedor() {
       />
 
       {/* Header premium */}
-      <div style={{
-        background: `linear-gradient(150deg, ${I.azul} 0%, ${I.azul2} 100%)`,
-        padding: '28px 24px 22px',
-        marginBottom: 24,
-        color: '#fff',
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: .65, marginBottom: 6 }}>
-          Reforma100 · Painel do Parceiro
-        </div>
-        <div className="cop-serif" style={{ fontSize: 22, fontWeight: 400, lineHeight: 1.3, marginBottom: 6 }}>
-          {profile?.empresa ?? profile?.nome ?? 'Bem-vindo'}
-        </div>
-        <div style={{ fontSize: 13, opacity: .8, lineHeight: 1.6 }}>
-          Central Operacional — acompanhe suas negociações ativas
-        </div>
-      </div>
+      <PremiumPageHeader
+        title={profile?.empresa ?? profile?.nome ?? 'Painel do Parceiro'}
+        subtitle="Central Operacional · Reforma100 — acompanhe suas negociações ativas"
+      />
 
       <div style={{ padding: '0 16px' }}>
 

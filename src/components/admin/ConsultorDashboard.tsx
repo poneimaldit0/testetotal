@@ -9,6 +9,7 @@ import { listPendingCompatRequests, PendingCompatRequest } from '@/lib/rota100St
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PainelCompatibilizacaoIA } from '@/components/admin/consultor/PainelCompatibilizacaoIA';
+import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 
 export function ConsultorDashboard() {
   const { profile } = useAuth();
@@ -29,12 +30,10 @@ export function ConsultorDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Painel do Consultor</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Solicitações de compatibilização e análises IA dos seus clientes.
-        </p>
-      </div>
+      <PremiumPageHeader
+        title="Painel do Consultor"
+        subtitle="Solicitações de compatibilização e análises IA dos seus clientes"
+      />
 
       {/* Análises IA de Compatibilização */}
       <PainelCompatibilizacaoIA />
