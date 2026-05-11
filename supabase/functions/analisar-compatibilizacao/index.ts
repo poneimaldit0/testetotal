@@ -6,6 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper: atualiza registro para 'erro' com detalhe e garante que nunca fica travado
+async function marcarErro(
+  supabase: ReturnType<typeof createClient>,
+  id: string,
+  detalhe: string,
+): Promise<void> {
+  await supabase
+    .from("compatibilizacoes_analises_ia")
+    .update({ status: "erro", erro_detalhe: detalhe })
+    .eq("id", id);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -137,32 +149,104 @@ serve(async (req) => {
 
     console.log(`[compat] válidas para análise: ${propostasValidas.length} | incompatíveis excluídas: ${propostasIncompativeis.length}`);
 
-    // ── 4. Criar registro pending ─────────────────────────────────────────
+    // ── 3c. Montar proposta_filtros_log ───────────────────────────────────
+    // Registro estruturado de TODAS as decisões de filtragem por proposta.
+    // Permite rastreabilidade futura no frontend sem depender de logs de console.
+    const idsNaoEncontrados = (candidaturas_ids as string[]).filter(
+      id => !candidaturasEncontradas.find((c: { id: string }) => c.id === id)
+    );
+
+    const proposta_filtros_log = {
+      gerado_em:                      new Date().toISOString(),
+      candidaturas_ids_recebidos:     (candidaturas_ids as string[]).length,
+      candidaturas_encontradas_banco:  candidaturasEncontradas.length,
+      nao_encontradas_no_banco:        idsNaoEncontrados,
+      incluidas: propostasValidas.map(p => ({
+        candidatura_id: p.candidatura_id,
+        empresa:        p.empresa,
+        motivo:         "passou_todos_os_filtros",
+      })),
+      excluidas: propostas
+        .filter(p => !propostasValidas.find(v => v.candidatura_id === p.candidatura_id))
+        .map(p => {
+          if (!p.analise) {
+            return {
+              candidatura_id: p.candidatura_id,
+              empresa:        p.empresa,
+              motivo:         "sem_analise_ia_individual",
+              detalhe:        "Nenhuma análise IA com status=completed encontrada em propostas_analises_ia",
+            };
+          }
+          const ac           = p.analise?.analise_completa as Record<string, unknown> | null ?? null;
+          const compatEscopo = ac?.compatibilidade_escopo as string | null;
+          const tipoProposta = ac?.tipo_proposta as string | null;
+          const valorProposta = p.analise?.valor_proposta as number | null;
+          if (!valorProposta) {
+            return {
+              candidatura_id: p.candidatura_id,
+              empresa:        p.empresa,
+              motivo:         "valor_proposta_ausente_ou_zero",
+              detalhe:        "valor_proposta é null ou 0 em propostas_analises_ia",
+            };
+          }
+          if (compatEscopo === "incompativel") {
+            return {
+              candidatura_id: p.candidatura_id,
+              empresa:        p.empresa,
+              motivo:         "escopo_incompativel",
+              detalhe:        (ac?.motivo_incompatibilidade as string) ?? "compatibilidade_escopo=incompativel",
+            };
+          }
+          if (tipoProposta === "projeto_arquitetonico") {
+            return {
+              candidatura_id: p.candidatura_id,
+              empresa:        p.empresa,
+              motivo:         "proposta_arquitetonica",
+              detalhe:        "tipo_proposta=projeto_arquitetonico — não comparável com execução de obra",
+            };
+          }
+          return {
+            candidatura_id: p.candidatura_id,
+            empresa:        p.empresa,
+            motivo:         "razao_desconhecida",
+            detalhe:        `compatibilidade_escopo=${compatEscopo} | tipo_proposta=${tipoProposta} | valor=${valorProposta}`,
+          };
+        }),
+    };
+
+    // ── 4. Criar registro 'processando' ───────────────────────────────────
+    // Partial unique index (idx_compat_orcamento_ativo) previne 2 ativos simultâneos.
+    // Conflito 23505 → retorna 409 em vez de criar duplicata.
     const { data: registro, error: insertError } = await supabase
       .from("compatibilizacoes_analises_ia")
       .insert({
         orcamento_id,
         candidaturas_ids,
-        status: "pending",
+        status:               "processando",
+        proposta_filtros_log,
       })
       .select("id")
       .single();
 
     if (insertError) {
-      console.error("Insert error:", insertError);
+      console.error("[compat] Insert error:", JSON.stringify(insertError));
+      // Código 23505 = unique_violation → análise já em andamento
+      if (insertError.code === "23505") {
+        return new Response(
+          JSON.stringify({ error: "Compatibilização já em andamento para este orçamento. Aguarde a conclusão antes de solicitar nova análise." }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
-        JSON.stringify({ error: "Erro ao criar registro de compatibilização" }),
+        JSON.stringify({ error: "Erro ao criar registro de compatibilização", detalhes: JSON.stringify(insertError) }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (!anthropicApiKey) {
-      await supabase
-        .from("compatibilizacoes_analises_ia")
-        .update({ status: "failed" })
-        .eq("id", registro.id);
+      await marcarErro(supabase, registro.id, "ANTHROPIC_API_KEY não configurada no ambiente da edge function");
       return new Response(
-        JSON.stringify({ compat_id: registro.id, status: "failed" }),
+        JSON.stringify({ compat_id: registro.id, status: "erro", motivo: "configuracao_api_ausente" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -170,12 +254,9 @@ serve(async (req) => {
     if (propostasValidas.length < 2) {
       const motivo = `Apenas ${propostasValidas.length} proposta(s) compatível(is) após filtro. Mínimo 2 para compatibilização.`;
       console.error("[compat]", motivo);
-      await supabase
-        .from("compatibilizacoes_analises_ia")
-        .update({ status: "failed", raw_response: motivo })
-        .eq("id", registro.id);
+      await marcarErro(supabase, registro.id, motivo);
       return new Response(
-        JSON.stringify({ compat_id: registro.id, status: "failed", motivo }),
+        JSON.stringify({ compat_id: registro.id, status: "erro", motivo }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -426,140 +507,154 @@ Seja direto e profundo — 3 a 4 frases densas por empresa. Mencione números, p
 
 Retorne candidatura_id exatamente como fornecido. Análise EXCLUSIVAMENTE das empresas normalizadas acima.`;
 
-      // Chamar Claude — Etapa 2
+      // ── Avançar para 'compatibilizando' antes de chamar Claude ──────────
+      await supabase
+        .from("compatibilizacoes_analises_ia")
+        .update({ status: "compatibilizando" })
+        .eq("id", registro.id);
+
+      // Chamar Claude — Etapa 2 (com timeout de 110s para não travar em erro de rede)
       console.log("[compat] etapa2 start — id:", registro.id);
       console.time("[compat] etapa2");
-      const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": anthropicApiKey!,
-          "anthropic-version": "2023-06-01",
-          "anthropic-beta": "prompt-caching-2024-07-31",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: etapa2MaxTokens,
-          system: [{ type: "text", text: "Você é um consultor técnico sênior da Reforma100 especializado em análise comparativa de propostas de reforma e construção. Produza parecer técnico profissional — análise específica e baseada em referências reais de mercado (SINAPI-SP, SINDUSCON-SP, CREA-SP). Preencha TODOS os campos com dados concretos. Scores devem ser tecnicamente embasados. Nunca use texto genérico. IMPORTANTE: seja conciso — máx 3 frases por empresa em cada campo comparativo. Prefira frases objetivas com números e fatos a parágrafos longos.", cache_control: { type: "ephemeral" } }],
-          messages: [{ role: "user", content: promptCompat }],
-          tools: [
-            {
-              name: "analise_compatibilizacao",
-              description: "Retorna ranking comparativo, análise técnica e recomendação final entre múltiplas propostas",
-              input_schema: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
 
-                  // analise_comparativa PRIMEIRO — garante geração antes do ranking
-                  analise_comparativa: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      escopo:    { type: "string", description: "Síntese comparativa de escopo — diferenças reais de escopo que impactam o cliente" },
-                      preco:     { type: "string", description: "Comparação de preços com referência SINAPI/SINDUSCON — desvio % vs mercado por empresa" },
-                      prazo:     { type: "string", description: "Comparação de prazos, viabilidade e benchmark por empresa" },
-                      risco:     { type: "string", description: "Comparação de riscos técnicos, financeiros e contratuais — qual empresa apresenta menor risco e por quê" },
-                      materiais: { type: "string", description: "Comparação de padrão e especificação de materiais por empresa — impacto no custo real" },
-                      escopo_cliente:               { type: "string", description: "SEÇÃO 1: Tipologia, padrão esperado, ambientes, faixa CUB/SINDUSCON aplicável, riscos do projeto" },
-                      tabela_comparativa:           { type: "string", description: "SEÇÃO 2: Comparação item a item por disciplina com ✔/~/✗/? por empresa" },
-                      valores_por_empresa:          { type: "string", description: "SEÇÃO 3: Valor total, R$/m², composição M.O/materiais, spread entre propostas" },
-                      comparacao_mercado_detalhada: { type: "string", description: "SEÇÃO 4: Desvio % vs SINAPI-SP/SINDUSCON-SP por empresa, tipologia, fonte explícita, subdimensionamento ou sobrepreço" },
-                      inclusoes_exclusoes:          { type: "string", description: "SEÇÃO 5: Itens inclusos e excluídos/não mencionados por empresa — risco de aditivo comparado" },
-                      analise_materiais:            { type: "string", description: "SEÇÃO 6: Padrão de materiais por empresa — compatibilidade com padrão esperado, riscos de especificação vaga" },
-                      analise_prazo:                { type: "string", description: "SEÇÃO 7: Prazo declarado por empresa — viabilidade, benchmark SECONCI-SP, risco de atraso" },
-                      condicoes_pagamento:          { type: "string", description: "SEÇÃO 8: Estrutura de pagamento, risco financeiro para o cliente, alinhamento com cronograma físico" },
-                      documentacao_tecnica:         { type: "string", description: "SEÇÃO 9: ART/RRT, responsável técnico, garantias (NBR 15575), segurança jurídica comparada" },
-                      pontos_fortes_por_empresa:    { type: "string", description: "SEÇÃO 10: Pontos fortes específicos e técnicos por empresa — O QUÊ é forte e POR QUÊ vantagem real" },
-                      pontos_atencao_por_empresa:   { type: "string", description: "SEÇÃO 11: Pontos de atenção por empresa — [problema] → [risco] → [mitigação]" },
-                      riscos_detalhados:            { type: "string", description: "SEÇÃO 12: Riscos técnico, financeiro, operacional e contratual por empresa — nível (baixo/médio/alto), risco crítico e mitigações" },
-                      diferenca_real:               { type: "string", description: "SEÇÃO 13: Diferença real além do preço — custo real com aditivos, valor-custo, resposta: preço ou escopo diferente?" },
-                      recomendacao_final_detalhada: { type: "string", description: "SEÇÃO 14: Recomendação condicional com justificativa técnica+financeira+risco, condições de validade, pontos a negociar" },
-                      proximos_passos:              { type: "string", description: "SEÇÃO 15: Ações concretas e sequenciais — documentos, negociação, proteção jurídica, formalização" },
-                    },
-                    required: [
-                      "escopo", "preco", "prazo", "risco", "materiais",
-                      "escopo_cliente", "tabela_comparativa", "valores_por_empresa",
-                      "comparacao_mercado_detalhada", "inclusoes_exclusoes",
-                      "analise_materiais", "analise_prazo", "condicoes_pagamento",
-                      "documentacao_tecnica", "pontos_fortes_por_empresa",
-                      "pontos_atencao_por_empresa", "riscos_detalhados",
-                      "diferenca_real", "recomendacao_final_detalhada", "proximos_passos",
-                    ],
-                  },
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 110_000);
 
-                  empresa_recomendada_id:     { type: "string", description: "candidatura_id da empresa recomendada" },
-                  justificativa_recomendacao: { type: "string", description: "Por que esta empresa é a mais adequada — técnica + financeiro + risco" },
-                  recomendacao_geral:         { type: "string", description: "Síntese executiva para o cliente — o que fazer e por quê, em linguagem acessível" },
-                  metodologia:                { type: "string", description: "Como o score composto foi calculado — transparência para o cliente" },
+      let aiResponse: Response;
+      try {
+        aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": anthropicApiKey!,
+            "anthropic-version": "2023-06-01",
+            "anthropic-beta": "prompt-caching-2024-07-31",
+            "Content-Type": "application/json",
+          },
+          signal: abortController.signal,
+          body: JSON.stringify({
+            model: "claude-sonnet-4-6",
+            max_tokens: etapa2MaxTokens,
+            system: [{ type: "text", text: "Você é um consultor técnico sênior da Reforma100 especializado em análise comparativa de propostas de reforma e construção. Produza parecer técnico profissional — análise específica e baseada em referências reais de mercado (SINAPI-SP, SINDUSCON-SP, CREA-SP). Preencha TODOS os campos com dados concretos. Scores devem ser tecnicamente embasados. Nunca use texto genérico. IMPORTANTE: seja conciso — máx 3 frases por empresa em cada campo comparativo. Prefira frases objetivas com números e fatos a parágrafos longos.", cache_control: { type: "ephemeral" } }],
+            messages: [{ role: "user", content: promptCompat }],
+            tools: [
+              {
+                name: "analise_compatibilizacao",
+                description: "Retorna ranking comparativo, análise técnica e recomendação final entre múltiplas propostas",
+                input_schema: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
 
-                  decisao_estrategica: {
-                    type: "object",
-                    description: "Leitura consultiva prática para o cliente",
-                    additionalProperties: false,
-                    properties: {
-                      nivel_confianca:             { type: "string", enum: ["alta", "media", "baixa"], description: "alta = dados completos e diferença clara; media = dados parciais mas direção clara; baixa = empate ou dados insuficientes" },
-                      recomendacao:                { type: "string", description: "Nome da empresa recomendada ou condição" },
-                      tipo_recomendacao:           { type: "string", enum: ["forte", "moderada", "condicional"] },
-                      justificativa:               { type: "string", description: "Texto claro e direto para o cliente entender a decisão" },
-                      criterio_de_desempate:       { type: "string", description: "O que foi usado para desempatar quando scores são próximos" },
-                      quando_escolher_recomendada: { type: "string", description: "Cenário em que a empresa recomendada é a melhor escolha" },
-                      quando_escolher_alternativa: { type: "string", description: "Cenário em que outra empresa pode ser preferível" },
-                      risco_da_decisao:            { type: "string", description: "Principal risco ao seguir esta recomendação e como mitigá-lo" },
-                      proximo_passo_obrigatorio:   { type: "string", description: "Ação concreta que o cliente deve tomar agora — nunca vazio" },
-                    },
-                    required: [
-                      "nivel_confianca", "recomendacao", "tipo_recomendacao",
-                      "justificativa", "criterio_de_desempate",
-                      "quando_escolher_recomendada", "quando_escolher_alternativa",
-                      "risco_da_decisao", "proximo_passo_obrigatorio",
-                    ],
-                  },
-                  // ranking ÚLTIMO — simplificado, apenas posição e justificativa profunda
-                  ranking: {
-                    type: "array",
-                    description: "Empresas ordenadas por score_composto DESC (posicao 1 = melhor). Gerado por último.",
-                    items: {
+                    // analise_comparativa PRIMEIRO — garante geração antes do ranking
+                    analise_comparativa: {
                       type: "object",
+                      additionalProperties: false,
                       properties: {
-                        candidatura_id:        { type: "string", description: "ID exato da candidatura — copie sem alteração" },
-                        empresa:               { type: "string" },
-                        posicao:               { type: "number", description: "1 = melhor" },
-                        score_composto:        { type: "number", description: "0–100, score ponderado" },
-                        valor_proposta:        { type: ["number", "null"], description: "Valor total em R$. null se indisponível." },
-                        diferenca_mercado:     { type: ["number", "null"], description: "% vs mercado. Positivo = acima. Negativo = abaixo." },
-                        justificativa_posicao: { type: "string", description: "Análise direta e profunda: por que esta empresa está nesta posição vs as outras. Compare preço real (com aditivos prováveis), escopo declarado, risco contratual e documentação. 3–4 frases densas com números e fatos concretos." },
+                        escopo:    { type: "string", description: "Síntese comparativa de escopo — diferenças reais de escopo que impactam o cliente" },
+                        preco:     { type: "string", description: "Comparação de preços com referência SINAPI/SINDUSCON — desvio % vs mercado por empresa" },
+                        prazo:     { type: "string", description: "Comparação de prazos, viabilidade e benchmark por empresa" },
+                        risco:     { type: "string", description: "Comparação de riscos técnicos, financeiros e contratuais — qual empresa apresenta menor risco e por quê" },
+                        materiais: { type: "string", description: "Comparação de padrão e especificação de materiais por empresa — impacto no custo real" },
+                        escopo_cliente:               { type: "string", description: "SEÇÃO 1: Tipologia, padrão esperado, ambientes, faixa CUB/SINDUSCON aplicável, riscos do projeto" },
+                        tabela_comparativa:           { type: "string", description: "SEÇÃO 2: Comparação item a item por disciplina com ✔/~/✗/? por empresa" },
+                        valores_por_empresa:          { type: "string", description: "SEÇÃO 3: Valor total, R$/m², composição M.O/materiais, spread entre propostas" },
+                        comparacao_mercado_detalhada: { type: "string", description: "SEÇÃO 4: Desvio % vs SINAPI-SP/SINDUSCON-SP por empresa, tipologia, fonte explícita, subdimensionamento ou sobrepreço" },
+                        inclusoes_exclusoes:          { type: "string", description: "SEÇÃO 5: Itens inclusos e excluídos/não mencionados por empresa — risco de aditivo comparado" },
+                        analise_materiais:            { type: "string", description: "SEÇÃO 6: Padrão de materiais por empresa — compatibilidade com padrão esperado, riscos de especificação vaga" },
+                        analise_prazo:                { type: "string", description: "SEÇÃO 7: Prazo declarado por empresa — viabilidade, benchmark SECONCI-SP, risco de atraso" },
+                        condicoes_pagamento:          { type: "string", description: "SEÇÃO 8: Estrutura de pagamento, risco financeiro para o cliente, alinhamento com cronograma físico" },
+                        documentacao_tecnica:         { type: "string", description: "SEÇÃO 9: ART/RRT, responsável técnico, garantias (NBR 15575), segurança jurídica comparada" },
+                        pontos_fortes_por_empresa:    { type: "string", description: "SEÇÃO 10: Pontos fortes específicos e técnicos por empresa — O QUÊ é forte e POR QUÊ vantagem real" },
+                        pontos_atencao_por_empresa:   { type: "string", description: "SEÇÃO 11: Pontos de atenção por empresa — [problema] → [risco] → [mitigação]" },
+                        riscos_detalhados:            { type: "string", description: "SEÇÃO 12: Riscos técnico, financeiro, operacional e contratual por empresa — nível (baixo/médio/alto), risco crítico e mitigações" },
+                        diferenca_real:               { type: "string", description: "SEÇÃO 13: Diferença real além do preço — custo real com aditivos, valor-custo, resposta: preço ou escopo diferente?" },
+                        recomendacao_final_detalhada: { type: "string", description: "SEÇÃO 14: Recomendação condicional com justificativa técnica+financeira+risco, condições de validade, pontos a negociar" },
+                        proximos_passos:              { type: "string", description: "SEÇÃO 15: Ações concretas e sequenciais — documentos, negociação, proteção jurídica, formalização" },
                       },
-                      required: ["candidatura_id", "empresa", "posicao", "score_composto", "justificativa_posicao"],
+                      required: [
+                        "escopo", "preco", "prazo", "risco", "materiais",
+                        "escopo_cliente", "tabela_comparativa", "valores_por_empresa",
+                        "comparacao_mercado_detalhada", "inclusoes_exclusoes",
+                        "analise_materiais", "analise_prazo", "condicoes_pagamento",
+                        "documentacao_tecnica", "pontos_fortes_por_empresa",
+                        "pontos_atencao_por_empresa", "riscos_detalhados",
+                        "diferenca_real", "recomendacao_final_detalhada", "proximos_passos",
+                      ],
                     },
-                  },
 
+                    empresa_recomendada_id:     { type: "string", description: "candidatura_id da empresa recomendada" },
+                    justificativa_recomendacao: { type: "string", description: "Por que esta empresa é a mais adequada — técnica + financeiro + risco" },
+                    recomendacao_geral:         { type: "string", description: "Síntese executiva para o cliente — o que fazer e por quê, em linguagem acessível" },
+                    metodologia:                { type: "string", description: "Como o score composto foi calculado — transparência para o cliente" },
+
+                    decisao_estrategica: {
+                      type: "object",
+                      description: "Leitura consultiva prática para o cliente",
+                      additionalProperties: false,
+                      properties: {
+                        nivel_confianca:             { type: "string", enum: ["alta", "media", "baixa"], description: "alta = dados completos e diferença clara; media = dados parciais mas direção clara; baixa = empate ou dados insuficientes" },
+                        recomendacao:                { type: "string", description: "Nome da empresa recomendada ou condição" },
+                        tipo_recomendacao:           { type: "string", enum: ["forte", "moderada", "condicional"] },
+                        justificativa:               { type: "string", description: "Texto claro e direto para o cliente entender a decisão" },
+                        criterio_de_desempate:       { type: "string", description: "O que foi usado para desempatar quando scores são próximos" },
+                        quando_escolher_recomendada: { type: "string", description: "Cenário em que a empresa recomendada é a melhor escolha" },
+                        quando_escolher_alternativa: { type: "string", description: "Cenário em que outra empresa pode ser preferível" },
+                        risco_da_decisao:            { type: "string", description: "Principal risco ao seguir esta recomendação e como mitigá-lo" },
+                        proximo_passo_obrigatorio:   { type: "string", description: "Ação concreta que o cliente deve tomar agora — nunca vazio" },
+                      },
+                      required: [
+                        "nivel_confianca", "recomendacao", "tipo_recomendacao",
+                        "justificativa", "criterio_de_desempate",
+                        "quando_escolher_recomendada", "quando_escolher_alternativa",
+                        "risco_da_decisao", "proximo_passo_obrigatorio",
+                      ],
+                    },
+                    // ranking ÚLTIMO — simplificado, apenas posição e justificativa profunda
+                    ranking: {
+                      type: "array",
+                      description: "Empresas ordenadas por score_composto DESC (posicao 1 = melhor). Gerado por último.",
+                      items: {
+                        type: "object",
+                        properties: {
+                          candidatura_id:        { type: "string", description: "ID exato da candidatura — copie sem alteração" },
+                          empresa:               { type: "string" },
+                          posicao:               { type: "number", description: "1 = melhor" },
+                          score_composto:        { type: "number", description: "0–100, score ponderado" },
+                          valor_proposta:        { type: ["number", "null"], description: "Valor total em R$. null se indisponível." },
+                          diferenca_mercado:     { type: ["number", "null"], description: "% vs mercado. Positivo = acima. Negativo = abaixo." },
+                          justificativa_posicao: { type: "string", description: "Análise direta e profunda: por que esta empresa está nesta posição vs as outras. Compare preço real (com aditivos prováveis), escopo declarado, risco contratual e documentação. 3–4 frases densas com números e fatos concretos." },
+                        },
+                        required: ["candidatura_id", "empresa", "posicao", "score_composto", "justificativa_posicao"],
+                      },
+                    },
+
+                  },
+                  required: [
+                    "analise_comparativa",
+                    "empresa_recomendada_id", "justificativa_recomendacao",
+                    "recomendacao_geral", "metodologia", "decisao_estrategica",
+                    "ranking",
+                  ],
                 },
-                required: [
-                  "analise_comparativa",
-                  "empresa_recomendada_id", "justificativa_recomendacao",
-                  "recomendacao_geral", "metodologia", "decisao_estrategica",
-                  "ranking",
-                ],
+                cache_control: { type: "ephemeral" },
               },
-              cache_control: { type: "ephemeral" },
-            },
-          ],
-          tool_choice: { type: "tool", name: "analise_compatibilizacao" },
-        }),
-      });
+            ],
+            tool_choice: { type: "tool", name: "analise_compatibilizacao" },
+          }),
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       console.timeEnd("[compat] etapa2");
 
       if (!aiResponse.ok) {
         const errText = await aiResponse.text();
+        const detalhe = `Claude API retornou HTTP ${aiResponse.status}: ${errText.slice(0, 500)}`;
         console.error("[compat] Etapa 2 falhou:", aiResponse.status, errText);
-        await supabase
-          .from("compatibilizacoes_analises_ia")
-          .update({ status: "failed", raw_response: "Falha na geração da compatibilização final." })
-          .eq("id", registro.id);
+        await marcarErro(supabase, registro.id, detalhe);
         return new Response(
-          JSON.stringify({ compat_id: registro.id, status: "failed", motivo: "Falha na geração da compatibilização final." }),
+          JSON.stringify({ compat_id: registro.id, status: "erro", motivo: "falha_na_geracao_ia" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -568,13 +663,11 @@ Retorne candidatura_id exatamente como fornecido. Análise EXCLUSIVAMENTE das em
       const toolUse = aiData.content?.find((c: { type: string }) => c.type === "tool_use");
 
       if (!toolUse?.input) {
+        const detalhe = `Claude retornou sem tool_use. stop_reason=${aiData.stop_reason}. content_types=${aiData.content?.map((c: {type:string}) => c.type).join(',')}`;
         console.error("[compat] Etapa 2: sem tool_use:", JSON.stringify(aiData));
-        await supabase
-          .from("compatibilizacoes_analises_ia")
-          .update({ status: "failed", raw_response: JSON.stringify(aiData) })
-          .eq("id", registro.id);
+        await marcarErro(supabase, registro.id, detalhe);
         return new Response(
-          JSON.stringify({ compat_id: registro.id, status: "failed", motivo: "Falha na geração da compatibilização final." }),
+          JSON.stringify({ compat_id: registro.id, status: "erro", motivo: "resposta_ia_sem_estrutura" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -582,11 +675,11 @@ Retorne candidatura_id exatamente como fornecido. Análise EXCLUSIVAMENTE das em
       const result = toolUse.input;
 
       // ── Salvar resultado ──────────────────────────────────────────────
-      console.log("[compat] update completed — id:", registro.id);
+      console.log("[compat] update concluida — id:", registro.id);
       const { error: updateErr } = await supabase
         .from("compatibilizacoes_analises_ia")
         .update({
-          status: "completed",
+          status: "concluida",
           analise_completa: {
             ranking:                    result.ranking,
             analise_comparativa:        result.analise_comparativa,
@@ -601,26 +694,30 @@ Retorne candidatura_id exatamente como fornecido. Análise EXCLUSIVAMENTE das em
         .eq("id", registro.id);
 
       if (updateErr) {
+        const detalhe = `Erro ao salvar análise no banco após geração com sucesso: ${JSON.stringify(updateErr)}`;
         console.error("[compat] update failed — id:", registro.id, JSON.stringify(updateErr));
+        await marcarErro(supabase, registro.id, detalhe);
         return new Response(
-          JSON.stringify({ compat_id: registro.id, status: "failed", motivo: "Erro ao salvar análise no banco." }),
+          JSON.stringify({ compat_id: registro.id, status: "erro", motivo: "falha_ao_salvar_resultado" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
-        JSON.stringify({ compat_id: registro.id, status: "completed" }),
+        JSON.stringify({ compat_id: registro.id, status: "concluida" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
 
     } catch (aiErr) {
+      const detalhe = aiErr instanceof Error
+        ? (aiErr.name === "AbortError"
+            ? "Timeout de 110s atingido aguardando resposta da Claude API"
+            : `Exceção na chamada IA: ${aiErr.message}`)
+        : String(aiErr);
       console.error("[compat] Erro nas chamadas de IA:", aiErr);
-      await supabase
-        .from("compatibilizacoes_analises_ia")
-        .update({ status: "failed", raw_response: String(aiErr) })
-        .eq("id", registro.id);
+      await marcarErro(supabase, registro.id, detalhe);
       return new Response(
-        JSON.stringify({ compat_id: registro.id, status: "failed" }),
+        JSON.stringify({ compat_id: registro.id, status: "erro" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

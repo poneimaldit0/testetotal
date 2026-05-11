@@ -55,9 +55,17 @@ export interface CompatibilizacaoCompleta {
 // ── Registro no banco ─────────────────────────────────────────────────────────
 export type StatusCompat =
   | 'idle'
+  // Estados canônicos (pós bloco2)
+  | 'processando'
+  | 'compatibilizando'
+  | 'concluida'
+  | 'erro'
+  | 'cancelada'
+  // Valores legados (registros anteriores ao bloco2 — mantidos para backward compat)
   | 'pending'
   | 'completed'
   | 'failed'
+  // Workflow consultor (inalterado)
   | 'pendente_revisao'
   | 'revisado'
   | 'aprovado'
@@ -114,16 +122,18 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
     }
 
     if (data) {
-      // Auto-fail stuck pending records older than 10 minutes
-      if (data.status === 'pending') {
+      // Auto-falha de registros travados em estado ativo por mais de 10 minutos.
+      // Cobre tanto estados legados ('pending') quanto canônicos ('processando','compatibilizando').
+      const ESTADOS_ATIVOS = ['pending', 'processando', 'compatibilizando'];
+      if (ESTADOS_ATIVOS.includes(data.status)) {
         const ageMs = Date.now() - new Date(data.created_at).getTime();
         if (ageMs > 10 * 60 * 1000) {
-          console.warn('[useCompatibilizacaoIA] pending > 10 min — marcando como failed:', data.id);
+          console.warn('[useCompatibilizacaoIA] análise travada > 10 min — marcando como erro:', data.id, 'status:', data.status);
           await (supabase as any)
             .from('compatibilizacoes_analises_ia')
-            .update({ status: 'failed', raw_response: 'timeout_detectado_pelo_cliente' })
+            .update({ status: 'erro', erro_detalhe: 'timeout_detectado_pelo_cliente_apos_10min' })
             .eq('id', data.id);
-          data.status = 'failed';
+          data.status = 'erro';
         }
       }
 
@@ -143,20 +153,20 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
         created_at:           data.created_at,
       });
 
-      if (data.status === 'completed' || data.status === 'pendente_revisao' ||
-          data.status === 'revisado'  || data.status === 'aprovado' ||
-          data.status === 'enviado') {
+      const ESTADOS_TERMINAIS_OK  = ['completed', 'concluida', 'pendente_revisao', 'revisado', 'aprovado', 'enviado'];
+      const ESTADOS_TERMINAIS_ERR = ['failed', 'erro', 'cancelada'];
+      if (ESTADOS_TERMINAIS_OK.includes(data.status)) {
         setStatusCompat(data.status as StatusCompat);
         stopPolling();
         return data.status as StatusCompat;
-      } else if (data.status === 'failed') {
-        setStatusCompat('failed');
+      } else if (ESTADOS_TERMINAIS_ERR.includes(data.status)) {
+        setStatusCompat(data.status as StatusCompat);
         stopPolling();
-        return 'failed';
+        return data.status as StatusCompat;
       } else {
-        // pending
-        setStatusCompat('pending');
-        return 'pending';
+        // Estados ativos: pending | processando | compatibilizando
+        setStatusCompat(data.status as StatusCompat);
+        return data.status as StatusCompat;
       }
     } else {
       setCompat(null);
@@ -198,39 +208,45 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
           console.error('[useCompatibilizacaoIA] invoke error context (raw):', error.context);
         }
         // Marca registros pending presos como failed para evitar spinner infinito no próximo acesso
-        await (supabase as any)
-          .from('compatibilizacoes_analises_ia')
-          .update({ status: 'failed', raw_response: 'timeout_ou_erro_rede' })
-          .eq('orcamento_id', orcamentoId)
-          .eq('status', 'pending');
-        setStatusCompat('failed');
+        // Marcar como erro todos os registros ativos deste orçamento (legado e canônico)
+        for (const st of ['pending', 'processando', 'compatibilizando']) {
+          await (supabase as any)
+            .from('compatibilizacoes_analises_ia')
+            .update({ status: 'erro', erro_detalhe: 'timeout_ou_erro_rede_detectado_no_frontend' })
+            .eq('orcamento_id', orcamentoId)
+            .eq('status', st);
+        }
+        setStatusCompat('erro');
         return;
       }
 
       console.log('[useCompatibilizacaoIA] invoke response:', data);
 
-      if (data?.status === 'completed') {
+      if (data?.status === 'concluida' || data?.status === 'completed') {
         const dbStatus = await carregarCompat();
-        if (dbStatus === 'pending') {
-          // Invoke returned completed but DB still shows pending — DB update likely failed in the edge fn
-          console.warn('[useCompatibilizacaoIA] invoke completed mas DB pending — iniciando polling');
+        const ATIVOS = ['pending', 'processando', 'compatibilizando'];
+        if (dbStatus && ATIVOS.includes(dbStatus)) {
+          // Edge fn retornou concluida mas DB ainda mostra ativo — DB update pode ter falhado
+          console.warn('[useCompatibilizacaoIA] invoke concluida mas DB ativo — iniciando polling');
           startPolling();
         }
-      } else if (data?.status === 'failed') {
-        console.error('[useCompatibilizacaoIA] edge function retornou failed. Detalhes:', data);
-        setStatusCompat('failed');
+      } else if (data?.status === 'erro' || data?.status === 'failed') {
+        console.error('[useCompatibilizacaoIA] edge function retornou erro. Detalhes:', data);
+        setStatusCompat(data.status as StatusCompat);
         await carregarCompat();
       } else {
         startPolling();
       }
     } catch (err) {
       console.error('[useCompatibilizacaoIA] solicitarCompatibilizacao exception:', err);
-      await (supabase as any)
-        .from('compatibilizacoes_analises_ia')
-        .update({ status: 'failed', raw_response: String(err) })
-        .eq('orcamento_id', orcamentoId)
-        .eq('status', 'pending');
-      setStatusCompat('failed');
+      for (const st of ['pending', 'processando', 'compatibilizando']) {
+        await (supabase as any)
+          .from('compatibilizacoes_analises_ia')
+          .update({ status: 'erro', erro_detalhe: String(err) })
+          .eq('orcamento_id', orcamentoId)
+          .eq('status', st);
+      }
+      setStatusCompat('erro');
     }
   }, [orcamentoId, carregarCompat, startPolling]);
 
