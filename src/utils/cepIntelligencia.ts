@@ -79,24 +79,47 @@ function deriveTipoResultado(
   return 'validado';
 }
 
-// ─── Periferias guard ─────────────────────────────────────────────────────────
+// ─── Guard rails nacionais (cliente) ─────────────────────────────────────────
+//
+// Segunda linha de defesa contra super-classificações vindas do cache da IA.
+// Espelha os guard rails da edge function para entradas vindas de ia_cache.
+// Entradas manuais (db_bairro, db_cidade) nunca são alteradas.
 
 const CLASSIFICACOES_ORDENADAS = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C/D', 'D'];
 
-// Tokens que, quando presentes no nome do bairro normalizado, indicam área periférica
+const TOKENS_POPULAR_UNIVERSAL = [
+  'conjunto habitacional', 'cohab', 'cdhu', 'vila popular',
+];
+
 const TOKENS_PERIFERIA_SP = [
   'guaianases', 'brasilandia', 'lajeado', 'cangaiba', 'parelheiros',
   'grajau', 'capao redondo', 'jardim angela', 'jardim helena',
   'sao miguel paulista', 'cidade tiradentes', 'itaquera',
   'jose bonifacio', 'sao mateus', 'ermelino matarazzo',
-  'ponte rasa', 'itaim paulista', 'conjunto habitacional',
+  'ponte rasa', 'itaim paulista',
 ];
 
-// Cidades satélites periféricas da Grande SP
-const CIDADES_SATELITE_PERIFERICAS = new Set([
+const SATELITES_SP = new Set([
   'ferraz de vasconcelos', 'itaquaquecetuba', 'suzano', 'poa', 'maua',
   'ribeirao pires', 'franco da rocha', 'francisco morato',
-  'biritiba-mirim', 'guararema', 'salesopolis', 'aruja', 'santa isabel', 'jacarei',
+  'biritiba-mirim', 'guararema', 'salesopolis', 'aruja', 'santa isabel',
+  'jacarei', 'guarulhos',
+]);
+
+const BAIXADA_FLUMINENSE = new Set([
+  'nova iguacu', 'duque de caxias', 'sao joao de meriti', 'nilopolis',
+  'nilópolis', 'mesquita', 'belford roxo', 'queimados', 'japeri',
+  'seropedica', 'itaguai',
+]);
+
+const SATELITES_BH = new Set([
+  'contagem', 'betim', 'ribeirao das neves', 'vespasiano',
+  'santa luzia', 'ibirite', 'sabara',
+]);
+
+const CIDADES_LITORAL_POPULAR_SP = new Set([
+  'mongagua', 'itanhaem', 'peruibe', 'ilha comprida',
+  'praia grande', 'sao vicente', 'caraguatatuba', 'bertioga',
 ]);
 
 function isClassificacaoAcimaDeC(classificacao: string): boolean {
@@ -105,30 +128,31 @@ function isClassificacaoAcimaDeC(classificacao: string): boolean {
   return idx !== -1 && idx < limiteIdx;
 }
 
-// Garante que áreas periféricas não ultrapassem C+ (aplica a todas fontes IA)
-function applyPeriferiaGuard(regiao: RegiaoInfo): RegiaoInfo {
+// Guard nacional: aplica a entradas ia_cache e ia_nova (nunca a manuais)
+function applyGuardNacional(regiao: RegiaoInfo): RegiaoInfo {
   if (regiao.fonte === 'db_bairro' || regiao.fonte === 'db_cidade') return regiao;
+  if (!isClassificacaoAcimaDeC(regiao.classificacao)) return regiao;
 
-  const bairroNorm = normalizeGeo(regiao.bairro);
-  const cidadeNorm = normalizeGeo(regiao.cidade);
+  const bairroN = normalizeGeo(regiao.bairro);
+  const cidadeN = normalizeGeo(regiao.cidade);
+  const uf      = (regiao.uf || '').toUpperCase();
 
-  const isSatelite   = CIDADES_SATELITE_PERIFERICAS.has(cidadeNorm);
-  const hasPerifToken = TOKENS_PERIFERIA_SP.some(t => bairroNorm.includes(t));
+  const rebaixar = (motivo: string): RegiaoInfo => {
+    console.warn('[cepIntelligencia] guard:', motivo, '→', regiao.bairro, '/', regiao.cidade, regiao.classificacao, '→ C+');
+    return { ...regiao, classificacao: 'C+', potencial: 'médio-baixo', status_regiao: 'fora', faixa_valor_min: null, faixa_valor_max: null };
+  };
 
-  if ((isSatelite || hasPerifToken) && isClassificacaoAcimaDeC(regiao.classificacao)) {
-    console.warn(
-      '[cepIntelligencia] periferiaGuard:', regiao.bairro, '/', regiao.cidade,
-      '→', regiao.classificacao, 'rebaixada para C+',
-    );
-    return {
-      ...regiao,
-      classificacao:   'C+',
-      potencial:       'médio-baixo',
-      status_regiao:   'fora',
-      faixa_valor_min: null,
-      faixa_valor_max: null,
-    };
+  if (TOKENS_POPULAR_UNIVERSAL.some(t => bairroN.includes(t))) return rebaixar('universal_popular');
+
+  if (uf === 'SP') {
+    if (SATELITES_SP.has(cidadeN)) return rebaixar('satelite_sp');
+    if (TOKENS_PERIFERIA_SP.some(t => bairroN.includes(t))) return rebaixar('periferia_sp');
+    if (CIDADES_LITORAL_POPULAR_SP.has(cidadeN)) return rebaixar('litoral_popular_sp');
   }
+
+  if (uf === 'RJ' && BAIXADA_FLUMINENSE.has(cidadeN)) return rebaixar('baixada_fluminense');
+
+  if (uf === 'MG' && SATELITES_BH.has(cidadeN)) return rebaixar('satelite_bh');
 
   return regiao;
 }
@@ -233,7 +257,7 @@ export async function consultarCep(
     if (cached) {
       const estimado = cached.revisao_manual || cached.inferencia_conservadora ||
         cached.confianca === 'baixa' || cached.confianca === 'insuficiente';
-      regiao = applyPeriferiaGuard({
+      regiao = applyGuardNacional({
         bairro, cidade, uf, ibge,
         classificacao:        cached.classificacao,
         potencial:            cached.potencial,
@@ -263,7 +287,7 @@ export async function consultarCep(
         const c = fnData.classificacao;
         const estimado = c.revisao_manual || c.inferencia_conservadora ||
           c.confianca === 'baixa' || c.confianca === 'insuficiente';
-        regiao = applyPeriferiaGuard({
+        regiao = applyGuardNacional({
           bairro, cidade, uf, ibge,
           classificacao:        c.classificacao,
           potencial:            c.potencial,
