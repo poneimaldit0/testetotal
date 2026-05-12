@@ -111,7 +111,7 @@ export const CRMKanbanOrcamentos = () => {
 
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [cardsSelecionados.size, orcamentosAtivos, toast]);
+  }, [cardsSelecionados.size, toast]);
 
   const calcularPeriodoFiltro = (tipo: string) => {
     const hoje = new Date();
