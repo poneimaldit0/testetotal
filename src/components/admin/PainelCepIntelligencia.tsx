@@ -473,7 +473,7 @@ export function PainelCepIntelligencia() {
                     </span>
                     {ex?.fonte && ex.fonte !== 'desconhecida' && (
                       <div style={{ fontSize: 10, color: ex.fonte === 'manual' ? '#3B35B7' : '#6B21A8', marginTop: 2 }}>
-                        {ex.fonte === 'manual' ? '● Manual' : '◇ IA Cache'}
+                        {ex.fonte === 'manual' ? '● Base validada' : '◇ Inteligência regional'}
                         {ex.confianca && ex.fonte === 'ia_cache' ? ` · ${ex.confianca}` : ''}
                       </div>
                     )}
@@ -537,7 +537,7 @@ export function PainelCepIntelligencia() {
                       )}
                       {ex?.fonte === 'desconhecida' && (
                         <p style={{ fontSize: 11, color: C.CZ, marginTop: 6, margin: 0 }}>
-                          ⚠ Enriquecimento não encontrado — registro pode ser fallback ou de período anterior ao cache IA.
+                          ⚠ Estimativa parcial — região ainda não mapeada na base ou registro anterior ao enriquecimento.
                         </p>
                       )}
                     </div>
@@ -548,8 +548,8 @@ export function PainelCepIntelligencia() {
                       {faixaTxt && <div><strong style={{ color: C.NV }}>Faixa estimada:</strong> {faixaTxt}</div>}
                       {ex?.fonte && ex.fonte !== 'desconhecida' && (
                         <div>
-                          <strong style={{ color: C.NV }}>Fonte:</strong>{' '}
-                          {ex.fonte === 'manual' ? 'Base manual validada' : 'Cache de IA'}
+                          <strong style={{ color: C.NV }}>Cobertura:</strong>{' '}
+                          {ex.fonte === 'manual' ? 'Base validada' : 'Inteligência regional'}
                           {ex.confianca ? ` · confiança ${ex.confianca}` : ''}
                         </div>
                       )}
