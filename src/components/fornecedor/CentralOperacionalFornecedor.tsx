@@ -124,6 +124,10 @@ function useCentralStyles() {
         -webkit-appearance:none;
       }
       .cop-search-input:focus { border-color:#2D3395; }
+      .cop-timeline-scroll { scrollbar-width: thin; }
+      .cop-timeline-scroll::-webkit-scrollbar { height: 4px; }
+      .cop-timeline-scroll::-webkit-scrollbar-track { background: transparent; }
+      .cop-timeline-scroll::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
       @media(max-width:640px) {
         .cop-kpi-row { grid-template-columns:1fr 1fr !important; gap:10px !important; margin-bottom:20px; }
         .cop-kpi { flex:unset !important; }
@@ -131,7 +135,7 @@ function useCentralStyles() {
         .cop-meta-row { flex-direction:column !important; gap:6px !important; }
         .cop-action-row { flex-direction:column !important; }
         .cop-btn { width:100%; justify-content:center; }
-        .cop-timeline-label { display:none !important; }
+        .cop-timeline-label { font-size: 8px !important; line-height: 1.15 !important; }
       }
     `;
     document.head.appendChild(s);
@@ -232,7 +236,11 @@ const STAGE_COLORS_TL = [I.azul, I.lj, I.am, I.rx, I.rx, I.vd, I.vd];
 
 function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 16 }}>
+    <div
+      className="cop-timeline-scroll"
+      style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: 16, paddingBottom: 4 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 440 }}>
       {STAGES_DEF.map((st, i) => {
         const done    = i < activeStage;
         const current = i === activeStage;
@@ -279,6 +287,7 @@ function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
