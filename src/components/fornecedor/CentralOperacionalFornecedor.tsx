@@ -6,6 +6,7 @@ import { useMeusCandidaturas, CandidaturaOrcamento } from '@/hooks/useMeusCandia
 import { FichaOperacionalFornecedor } from './FichaOperacionalFornecedor';
 import { R as I } from '@/styles/tokens';
 import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 // ── CSS injection ─────────────────────────────────────────────────────────────
 function useCentralStyles() {
@@ -236,61 +237,89 @@ const STAGES_DEF = [
 
 const STAGE_COLORS_TL = [I.azul, I.lj, I.am, I.rx, I.rx, I.vd, I.vd];
 
+const STAGE_DESCRIPTIONS: Record<Stage, string> = {
+  0: 'Aguardando contato inicial com o cliente',
+  1: 'Visita ou reunião marcada',
+  2: 'Atendimento concluído',
+  3: 'Proposta enviada e em análise',
+  4: 'Cliente comparando propostas',
+  5: 'Negócio fechado',
+  6: 'Obra em execução',
+};
+
 function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }) {
   return (
-    <div
-      className="cop-timeline-scroll"
-      style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: 16, paddingBottom: 4 }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 440 }}>
-      {STAGES_DEF.map((st, i) => {
-        const done    = i < activeStage;
-        const current = i === activeStage;
-        // Etapas que ainda não têm sinal no backend (Compatibilização e Obra)
-        const aspirational = i === 4 || i === 6;
-        const dotClr  = done || current ? STAGE_COLORS_TL[i] : I.bd;
-        let label = st.label;
-        if (isReu && i === 1) label = 'Reunião agendada';
-        if (isReu && i === 2) label = 'Reunião realizada';
-        return (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-            {i > 0 && (
-              <div style={{
-                position: 'absolute', top: 9, left: 0, right: '50%', height: 2,
-                background: i <= activeStage ? STAGE_COLORS_TL[i - 1] : I.bd,
-              }} />
-            )}
-            {i < STAGES_DEF.length - 1 && (
-              <div style={{
-                position: 'absolute', top: 9, left: '50%', right: 0, height: 2,
-                background: i < activeStage ? STAGE_COLORS_TL[i] : I.bd,
-              }} />
-            )}
-            <div style={{
-              width: 20, height: 20, borderRadius: '50%',
-              background: done || current ? dotClr : I.br,
-              border: `2px solid ${dotClr}`,
-              boxShadow: current ? `0 0 0 3px ${dotClr}30` : 'none',
-              zIndex: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 8, fontWeight: 700,
-              color: done || current ? '#fff' : I.cz,
-              transition: 'all .2s',
-            }}>
-              {done ? '✓' : aspirational && !current ? '·' : current ? '●' : i + 1}
-            </div>
-            <div className="cop-timeline-label" style={{
-              fontSize: 9, fontWeight: current ? 700 : 500, marginTop: 3, textAlign: 'center',
-              color: current ? dotClr : done ? I.cz : '#9CA3AF',
-              whiteSpace: 'nowrap', lineHeight: 1.2,
-            }}>
-              {label}
-            </div>
-          </div>
-        );
-      })}
+    <TooltipProvider delayDuration={120} skipDelayDuration={300}>
+      <div
+        className="cop-timeline-scroll"
+        style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: 16, paddingBottom: 4 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 440 }}>
+        {STAGES_DEF.map((st, i) => {
+          const done    = i < activeStage;
+          const current = i === activeStage;
+          // Etapas que ainda não têm sinal no backend (Compatibilização e Obra)
+          const aspirational = i === 4 || i === 6;
+          const dotClr  = done || current ? STAGE_COLORS_TL[i] : I.bd;
+          const stageIdx = i as Stage;
+          let label = st.label;
+          let descricao = STAGE_DESCRIPTIONS[stageIdx];
+          if (isReu && i === 1) { label = 'Reunião agendada';  descricao = 'Reunião online marcada'; }
+          if (isReu && i === 2) { label = 'Reunião realizada'; descricao = 'Reunião online concluída'; }
+          return (
+            <Tooltip key={i}>
+              <TooltipTrigger asChild>
+                <div
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', cursor: 'help' }}
+                >
+                  {i > 0 && (
+                    <div style={{
+                      position: 'absolute', top: 9, left: 0, right: '50%', height: 2,
+                      background: i <= activeStage ? STAGE_COLORS_TL[i - 1] : I.bd,
+                    }} />
+                  )}
+                  {i < STAGES_DEF.length - 1 && (
+                    <div style={{
+                      position: 'absolute', top: 9, left: '50%', right: 0, height: 2,
+                      background: i < activeStage ? STAGE_COLORS_TL[i] : I.bd,
+                    }} />
+                  )}
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: done || current ? dotClr : I.br,
+                    border: `2px solid ${dotClr}`,
+                    boxShadow: current ? `0 0 0 3px ${dotClr}30` : 'none',
+                    zIndex: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 8, fontWeight: 700,
+                    color: done || current ? '#fff' : I.cz,
+                    transition: 'all .2s',
+                  }}>
+                    {done ? '✓' : aspirational && !current ? '·' : current ? '●' : i + 1}
+                  </div>
+                  <div className="cop-timeline-label" style={{
+                    fontSize: 9, fontWeight: current ? 700 : 500, marginTop: 3, textAlign: 'center',
+                    color: current ? dotClr : done ? I.cz : '#9CA3AF',
+                    whiteSpace: 'nowrap', lineHeight: 1.2,
+                  }}>
+                    {label}
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={6} className="max-w-[200px]">
+                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 12, marginBottom: 2 }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: 11, lineHeight: 1.4 }}>
+                  {descricao}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
