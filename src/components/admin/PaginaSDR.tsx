@@ -13,6 +13,7 @@ import { formatarGap } from '@/utils/valorTecnico';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { consultarCep, type CepResultado } from '@/utils/cepIntelligencia';
+import { abrirWhatsAppAcompanhamentoSDR } from '@/utils/orcamentoUtils';
 
 const C = {
   NV:  '#2D3395',       // Isabella blue – primary brand
@@ -102,7 +103,7 @@ function getLeadStatus(lead: Lead): LeadStatus {
 
 // ─── Filtros temporais + Status operacional SDR ───────────────────────────────
 
-type FiltroTempo = 'todos' | 'novos' | '24h' | '12h' | '6h' | 'vagas_abertas' | 'acoes_urgentes' | 'ganhos' | 'perdidos';
+type FiltroTempo = 'todos' | 'hoje' | '7dias' | 'novos' | '24h' | '12h' | '6h' | 'vagas_abertas' | 'acoes_urgentes' | 'ganhos' | 'perdidos';
 
 type StatusOperacional =
   | 'confirmacao_final_6h'
@@ -177,6 +178,19 @@ function filtrarLeadsPorTempo(leads: Lead[], filtro: FiltroTempo): Lead[] {
   if (filtro === 'vagas_abertas')  return leads.filter(leadTemVagaAberta);
   if (filtro === 'acoes_urgentes') return leads.filter(leadTemProblema);
   if (filtro === 'ganhos' || filtro === 'perdidos') return []; // dados vêm de estado separado
+
+  // Filtros por data de cadastro do lead (independente de etapa ou horário)
+  if (filtro === 'hoje') {
+    const inicioDia = new Date();
+    inicioDia.setHours(0, 0, 0, 0);
+    return leads.filter(lead => new Date(lead.created_at) >= inicioDia);
+  }
+  if (filtro === '7dias') {
+    const limite = Date.now() - 7 * 24 * 3600000;
+    return leads.filter(lead => new Date(lead.created_at).getTime() >= limite);
+  }
+
+  // Filtros por proximidade de horário agendado
   const now = Date.now();
   const H = 3600000;
   return leads.filter(lead =>
@@ -1804,6 +1818,8 @@ function LeadCard({
   // Para persistência real: criar coluna `reagendado_em` em horarios_visita_orcamento
   // ou tabela sdr_eventos — orcamentos_crm_historico não é segura (etapa_nova enum obrigatório).
   const rota100Url = lead.rota100_token ? `${window.location.origin}/rota100/${lead.rota100_token}` : null;
+  const telefoneClienteDigits = (lead.dados_contato?.telefone ?? '').replace(/\D/g, '');
+  const podeAbrirWhatsAcompanhamento = telefoneClienteDigits.length >= 10 && !!rota100Url;
 
   const marcarEmContato = async () => {
     setMarcandoEmContato(true);
@@ -1992,6 +2008,36 @@ function LeadCard({
           >
             🔗 Abrir Rota100
           </a>
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              if (podeAbrirWhatsAcompanhamento) {
+                abrirWhatsAppAcompanhamentoSDR(
+                  lead.dados_contato!.telefone!,
+                  lead.dados_contato?.nome ?? '',
+                  rota100Url!,
+                );
+              }
+            }}
+            disabled={!podeAbrirWhatsAcompanhamento}
+            title={
+              !lead.dados_contato?.telefone
+                ? 'Telefone do cliente não cadastrado'
+                : telefoneClienteDigits.length < 10
+                ? 'Telefone do cliente inválido'
+                : !rota100Url
+                ? 'Token Rota100 não disponível'
+                : 'Enviar link de acompanhamento por WhatsApp'
+            }
+            style={mkBtn(
+              podeAbrirWhatsAcompanhamento ? '#25D366' : 'transparent',
+              podeAbrirWhatsAcompanhamento ? C.white : C.CZ,
+              !podeAbrirWhatsAcompanhamento,
+              !podeAbrirWhatsAcompanhamento ? `1px solid ${C.BD}` : undefined,
+            )}
+          >
+            💬 Enviar por WhatsApp
+          </button>
           <button
             onClick={e => { e.stopPropagation(); if (rota100Url) { navigator.clipboard.writeText(rota100Url); toast({ title: 'Link copiado!' }); } }}
             disabled={!rota100Url}
@@ -3225,9 +3271,14 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
         const alertaVagas         = leadsMatch.filter(leadTemVagaAberta).length;
         const alertaAcoesUrgentes = alertaGeral;
 
+        const leadsHoje  = filtrarLeadsPorTempo(leadsMatch, 'hoje');
+        const leads7dias = filtrarLeadsPorTempo(leadsMatch, '7dias');
+
         const cards: { key: FiltroTempo; label: string; count: number; alerta: number; bg: string; clr: string; bdrAct: string }[] = [
           { key: 'todos',          label: 'Total fila',     count: leads.length,                                   alerta: alertaGeral,        bg: C.FD,       clr: C.NV,      bdrAct: C.NV },
-          { key: 'novos',          label: 'Novos',          count: filtrarLeadsPorTempo(leadsMatch, 'novos').length, alerta: 0,                 bg: C.greenBg,  clr: C.green,   bdrAct: C.green },
+          { key: 'hoje',           label: 'Hoje',           count: leadsHoje.length,                               alerta: 0,                  bg: '#F0FFF4',  clr: '#15803D', bdrAct: '#15803D' },
+          { key: '7dias',          label: 'Últimos 7 dias', count: leads7dias.length,                              alerta: 0,                  bg: '#F5F3FF',  clr: '#7C3AED', bdrAct: '#7C3AED' },
+          { key: 'novos',          label: 'Novos',          count: filtrarLeadsPorTempo(leadsMatch, 'novos').length, alerta: 0,                bg: C.greenBg,  clr: C.green,   bdrAct: C.green },
           { key: '24h',            label: '≤ 24h',          count: leads24h.length,                                alerta: alerta24h,          bg: '#EEF0FF',  clr: '#3B35B7', bdrAct: '#3B35B7' },
           { key: '12h',            label: '≤ 12h',          count: leads12h.length,                                alerta: alerta12h,          bg: '#FFF5DC',  clr: '#9A6200', bdrAct: '#9A6200' },
           { key: '6h',             label: '≤ 6h',           count: leads6h.length,                                 alerta: alerta6h,           bg: C.orangeBg, clr: C.LJ,      bdrAct: C.LJ },
@@ -3343,7 +3394,7 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
             {busca ? 'Nenhum resultado' : filtroTempo !== 'todos' ? 'Nenhum lead neste prazo' : 'Fila vazia'}
           </div>
           <div style={{ fontSize: 13 }}>
-            {busca ? 'Tente outra busca.' : filtroTempo !== 'todos' ? 'Nenhum lead com horário no prazo selecionado.' : 'Cadastre um novo lead para começar.'}
+            {busca ? 'Tente outra busca.' : filtroTempo === 'hoje' ? 'Nenhum lead cadastrado hoje.' : filtroTempo === '7dias' ? 'Nenhum lead nos últimos 7 dias.' : filtroTempo !== 'todos' ? 'Nenhum lead neste prazo.' : 'Cadastre um novo lead para começar.'}
           </div>
         </div>
       ) : (

@@ -40,6 +40,20 @@ export const abrirWhatsApp = (
   window.open(url, '_blank');
 };
 
+export const abrirWhatsAppAcompanhamentoSDR = (
+  telefone: string,
+  nomeCliente: string,
+  linkAcompanhamento: string,
+) => {
+  const mensagem =
+    `Oi ${nomeCliente}, conforme combinamos, segue o link para acompanhar sua demanda: ${linkAcompanhamento}. ` +
+    `Nele você conseguirá acompanhar o andamento do seu projeto, visitas, propostas e atualizações.`;
+  const telDigits = telefone.replace(/\D/g, '');
+  const telComCodigo = telDigits.startsWith('55') ? telDigits : `55${telDigits}`;
+  const url = `https://api.whatsapp.com/send/?phone=${telComCodigo}&text=${encodeURIComponent(mensagem)}&type=phone_number&app_absent=0`;
+  window.open(url, '_blank');
+};
+
 /**
  * Parseia uma data no formato YYYY-MM-DD como timezone local (não UTC)
  * Resolve o problema de datas sendo interpretadas com 1 dia a menos
