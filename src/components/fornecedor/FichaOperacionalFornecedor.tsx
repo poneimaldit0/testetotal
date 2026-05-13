@@ -22,6 +22,22 @@ function fmtBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+// Atenção pós-atendimento: visita/reunião realizada, sem proposta, ≥3 dias do horário
+const ATENCAO_POS_ATENDIMENTO_DIAS = 3;
+
+function diasDesdeAtendimento(c: CandidaturaOrcamento): number | null {
+  if (!c.horarioVisitaAgendado) return null;
+  return (Date.now() - new Date(c.horarioVisitaAgendado).getTime()) / 86_400_000;
+}
+
+function isAtencaoPosAtendimento(c: CandidaturaOrcamento): boolean {
+  const s = c.statusAcompanhamento;
+  if (s !== 'visita_realizada' && s !== 'reuniao_realizada') return false;
+  if (c.propostaEnviada) return false;
+  const dias = diasDesdeAtendimento(c);
+  return dias !== null && dias >= ATENCAO_POS_ATENDIMENTO_DIAS;
+}
+
 // ── Próxima ação ──────────────────────────────────────────────────────────────
 // Deriva visualmente o que o fornecedor deve fazer a seguir.
 // Não altera backend nem status — apenas UI de orientação.
@@ -41,6 +57,16 @@ function deriveProximaAcao(c: CandidaturaOrcamento): ProximaAcao {
     return { tom: 'urgent', icone: '⚡', titulo: 'Confirme sua presença no atendimento', ancora: 'atendimento' };
   }
   if ((s === 'visita_realizada' || s === 'reuniao_realizada') && !c.propostaEnviada) {
+    // B5.15: pós-atendimento sem proposta há ≥3 dias vira urgente
+    if (isAtencaoPosAtendimento(c)) {
+      const dias = Math.floor(diasDesdeAtendimento(c) ?? 0);
+      return {
+        tom: 'urgent',
+        icone: '⚡',
+        titulo: `Envie sua proposta — atendimento realizado há ${dias} dias`,
+        ancora: 'proposta',
+      };
+    }
     return { tom: 'action', icone: '📋', titulo: 'Envie sua proposta para avançar no processo', ancora: 'proposta' };
   }
   if (s === 'em_orcamento') {
@@ -127,6 +153,7 @@ type EventoTipo =
   | 'lembrete_12h'
   | 'lembrete_6h'
   | 'visita_realizada'
+  | 'proposta_pendente_atencao'
   | 'proposta_enviada'
   | 'negocio_fechado'
   | 'negocio_perdido';
@@ -198,6 +225,17 @@ function deriveEventos(c: CandidaturaOrcamento): EventoTimeline[] {
       data: null,
       icone: '✓',
       cor: I.vd,
+    });
+  }
+  // B5.15: sinal de atenção quando atendimento realizado e proposta não enviada há ≥3 dias
+  if (isAtencaoPosAtendimento(c)) {
+    const dias = Math.floor(diasDesdeAtendimento(c) ?? 0);
+    out.push({
+      tipo: 'proposta_pendente_atencao',
+      label: `Proposta pendente após atendimento (${dias} dias)`,
+      data: null,
+      icone: '⚡',
+      cor: I.vm,
     });
   }
   if (c.propostaEnviada || s === 'orcamento_enviado' || s === 'negocio_fechado') {
