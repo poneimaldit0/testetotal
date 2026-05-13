@@ -137,6 +137,26 @@ function useCentralStyles() {
         transition:background .12s, color .12s;
       }
       .cop-search-clear:hover { background:#E5E7EB; color:#1A2030; }
+      .cop-filter-chip {
+        display:inline-flex; align-items:center; gap:5px;
+        padding:5px 10px;
+        background:${I.azul3};
+        color:${I.azul};
+        border:1px solid ${I.azul}33;
+        border-radius:999px;
+        font-size:11px;
+        font-weight:700;
+        font-family:'Syne', sans-serif;
+        cursor:pointer;
+        transition:opacity .12s, transform .12s;
+      }
+      .cop-filter-chip:hover { opacity:.85; transform:translateY(-1px); }
+      .cop-filter-chip-x {
+        display:inline-flex; align-items:center; justify-content:center;
+        width:14px; height:14px;
+        font-size:14px; line-height:1;
+        opacity:.7;
+      }
       .cop-kpi-clickable { cursor: pointer; transition: transform .12s, box-shadow .12s; }
       .cop-kpi-clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
       @keyframes cop-current-halo {
@@ -934,6 +954,54 @@ export function CentralOperacionalFornecedor() {
     || funilFiltro !== 'todos'
     || periodoFiltro !== 'todos';
 
+  // B5.24: contagens absolutas usadas em chips/dropdowns (sobre candidaturas, não filtradas)
+  const counts = useMemo(() => {
+    const grupos: Record<'urgent' | 'active' | 'done', number> = { urgent: 0, active: 0, done: 0 };
+    const stages: Record<Stage, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    const periodos: Record<'7' | '30' | '90', number> = { '7': 0, '30': 0, '90': 0 };
+    const agora = Date.now();
+    candidaturas.forEach(c => {
+      const g = deriveGroup(c.statusAcompanhamento);
+      const ge: 'urgent' | 'active' | 'done' =
+        (g === 'urgent' || isAtencaoPosAtendimento(c)) ? 'urgent'
+        : g === 'done' ? 'done'
+        : 'active';
+      grupos[ge]++;
+      stages[statusToFunilStage(c.statusAcompanhamento)]++;
+      const ms = c.dataCandidatura instanceof Date
+        ? c.dataCandidatura.getTime()
+        : new Date(c.dataCandidatura).getTime();
+      const dias = (agora - ms) / 86_400_000;
+      if (dias <= 7)  periodos['7']++;
+      if (dias <= 30) periodos['30']++;
+      if (dias <= 90) periodos['90']++;
+    });
+    return { grupos, stages, periodos };
+  }, [candidaturas]);
+
+  // B5.23: chips de filtros ativos (acima da lista, removíveis individualmente)
+  const chipsAtivos = useMemo(() => {
+    const arr: Array<{ key: string; label: string; clear: () => void }> = [];
+    const q = busca.trim();
+    if (q) arr.push({ key: 'q', label: `Busca: ${q}`, clear: () => setBusca('') });
+    if (grupoFiltro === 'urgent') arr.push({ key: 'grupo', label: 'Requer ação',  clear: () => setGrupoFiltro('todos') });
+    if (grupoFiltro === 'active') arr.push({ key: 'grupo', label: 'Em andamento', clear: () => setGrupoFiltro('todos') });
+    if (grupoFiltro === 'done')   arr.push({ key: 'grupo', label: 'Finalizadas',  clear: () => setGrupoFiltro('todos') });
+    if (funilFiltro !== 'todos') {
+      arr.push({
+        key: 'etapa',
+        label: `Etapa: ${FUNIL_STAGE_LABELS[funilFiltro as Stage]}`,
+        clear: () => setFunilFiltro('todos'),
+      });
+    }
+    if (periodoFiltro !== 'todos') {
+      arr.push({ key: 'periodo', label: `Últimos ${periodoFiltro} dias`, clear: () => setPeriodoFiltro('todos') });
+    }
+    if (ordem === 'antigo')   arr.push({ key: 'ordem', label: 'Mais antigo primeiro', clear: () => setOrdem('recente') });
+    if (ordem === 'urgencia') arr.push({ key: 'ordem', label: 'Ordem: Urgência',      clear: () => setOrdem('recente') });
+    return arr;
+  }, [busca, grupoFiltro, funilFiltro, periodoFiltro, ordem]);
+
   // Grupos (usam lista filtrada e ordenada). B4: pós-atendimento sem proposta há ≥3 dias entra em urgentes.
   const urgentes  = candidaturasOrdenadas.filter(
     c => deriveGroup(c.statusAcompanhamento) === 'urgent' || isAtencaoPosAtendimento(c)
@@ -1073,14 +1141,14 @@ export function CentralOperacionalFornecedor() {
               </button>
             </div>
 
-            {/* Chips de grupo */}
+            {/* Chips de grupo (com contadores B5.24) */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
               {([
-                { v: 'todos',  l: 'Todos',        c: I.azul },
-                { v: 'urgent', l: 'Requer ação',  c: I.vm },
-                { v: 'active', l: 'Em andamento', c: I.azul },
-                { v: 'done',   l: 'Finalizadas',  c: I.cz },
-              ] as { v: GrupoFiltro; l: string; c: string }[]).map(opt => {
+                { v: 'todos',  l: 'Todos',        c: I.azul, n: candidaturas.length         },
+                { v: 'urgent', l: 'Requer ação',  c: I.vm,   n: counts.grupos.urgent        },
+                { v: 'active', l: 'Em andamento', c: I.azul, n: counts.grupos.active        },
+                { v: 'done',   l: 'Finalizadas',  c: I.cz,   n: counts.grupos.done          },
+              ] as { v: GrupoFiltro; l: string; c: string; n: number }[]).map(opt => {
                 const ativo = grupoFiltro === opt.v;
                 return (
                   <button
@@ -1098,9 +1166,22 @@ export function CentralOperacionalFornecedor() {
                       fontFamily: "'Syne',sans-serif",
                       cursor: 'pointer',
                       transition: 'all .15s',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
                     }}
                   >
                     {opt.l}
+                    <span style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: 10,
+                      background: ativo ? 'rgba(255,255,255,.22)' : I.cz2,
+                      color: ativo ? '#fff' : I.cz,
+                    }}>
+                      {opt.n}
+                    </span>
                   </button>
                 );
               })}
@@ -1127,9 +1208,9 @@ export function CentralOperacionalFornecedor() {
                   outline: 'none',
                 }}
               >
-                <option value="todos">Todas as etapas</option>
+                <option value="todos">Todas as etapas ({candidaturas.length})</option>
                 {([0, 1, 2, 3, 4, 5, 6] as Stage[]).map(st => (
-                  <option key={st} value={st}>{FUNIL_STAGE_LABELS[st]}</option>
+                  <option key={st} value={st}>{FUNIL_STAGE_LABELS[st]} ({counts.stages[st]})</option>
                 ))}
               </select>
               <select
@@ -1148,10 +1229,10 @@ export function CentralOperacionalFornecedor() {
                   outline: 'none',
                 }}
               >
-                <option value="todos">Todo o período</option>
-                <option value="7">Últimos 7 dias</option>
-                <option value="30">Últimos 30 dias</option>
-                <option value="90">Últimos 90 dias</option>
+                <option value="todos">Todo o período ({candidaturas.length})</option>
+                <option value="7">Últimos 7 dias ({counts.periodos['7']})</option>
+                <option value="30">Últimos 30 dias ({counts.periodos['30']})</option>
+                <option value="90">Últimos 90 dias ({counts.periodos['90']})</option>
               </select>
               {filtrosAtivos && (
                 <button
@@ -1178,6 +1259,24 @@ export function CentralOperacionalFornecedor() {
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* B5.23: chips de filtros ativos — removíveis individualmente */}
+        {!loading && chipsAtivos.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+            {chipsAtivos.map(f => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={f.clear}
+                aria-label={`Remover filtro: ${f.label}`}
+                className="cop-filter-chip"
+              >
+                {f.label}
+                <span className="cop-filter-chip-x">×</span>
+              </button>
+            ))}
           </div>
         )}
 
