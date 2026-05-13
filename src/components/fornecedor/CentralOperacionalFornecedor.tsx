@@ -140,23 +140,29 @@ function useCentralStyles() {
 }
 
 // ── Stage helpers ─────────────────────────────────────────────────────────────
-type Stage = 0 | 1 | 2 | 3 | 4;
+// Funil oficial Reforma100 (alinhado ao CRM SDR):
+// 0 Contato · 1 Visita agendada · 2 Visita realizada · 3 Proposta enviada
+// 4 Compatibilização · 5 Fechamento · 6 Obra
+type Stage = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 function deriveStage(s: string | null): Stage {
   if (!s) return 0;
-  if (s === 'visita_agendada' || s === 'reuniao_agendada' ||
-      s === 'visita_realizada' || s === 'reuniao_realizada') return 1;
-  if (s === 'em_orcamento' || s === 'orcamento_enviado') return 2;
-  if (s === 'negocio_fechado') return 3;
+  if (s === 'visita_agendada' || s === 'reuniao_agendada') return 1;
+  if (s === 'visita_realizada' || s === 'reuniao_realizada' || s === 'em_orcamento') return 2;
+  if (s === 'orcamento_enviado') return 3;
+  // 4 (Compatibilização) e 6 (Obra) ainda não têm status próprio no backend
+  if (s === 'negocio_fechado') return 5;
   return 0;
 }
 
 function deriveStageColor(s: string | null): string {
   if (!s || s === 'negocio_perdido') return '#9e9e9e';
-  if (s === 'negocio_fechado') return I.rx;
-  if (s === 'em_orcamento' || s === 'orcamento_enviado') return I.vd;
-  if (s === 'reuniao_agendada' || s === 'reuniao_realizada') return I.rx;
-  if (s === 'visita_agendada' || s === 'visita_realizada') return I.lj;
+  if (s === 'negocio_fechado') return I.vd;
+  if (s === 'orcamento_enviado') return I.rx;
+  if (s === 'em_orcamento') return I.am;
+  if (s === 'reuniao_realizada' || s === 'visita_realizada') return I.vd;
+  if (s === 'reuniao_agendada') return I.rx;
+  if (s === 'visita_agendada') return I.lj;
   return I.azul;
 }
 
@@ -191,15 +197,18 @@ function horasRestantes(iso: string): number {
 }
 
 // ── Timeline ──────────────────────────────────────────────────────────────────
+// 7 etapas alinhadas ao funil oficial Reforma100 (CRM SDR)
 const STAGES_DEF = [
-  { label: 'Contato'  },
-  { label: 'Visita'   },
-  { label: 'Proposta' },
-  { label: 'Contrato' },
-  { label: 'Obra'     },
+  { label: 'Contato'           },
+  { label: 'Visita agendada'   },
+  { label: 'Visita realizada'  },
+  { label: 'Proposta enviada'  },
+  { label: 'Compatibilização'  },
+  { label: 'Fechamento'        },
+  { label: 'Obra'              },
 ];
 
-const STAGE_COLORS_TL = [I.azul, I.lj, I.vd, I.rx, I.am];
+const STAGE_COLORS_TL = [I.azul, I.lj, I.am, I.rx, I.rx, I.vd, I.vd];
 
 function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }) {
   return (
@@ -207,9 +216,12 @@ function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }
       {STAGES_DEF.map((st, i) => {
         const done    = i < activeStage;
         const current = i === activeStage;
-        const locked  = i >= 3;
+        // Etapas que ainda não têm sinal no backend (Compatibilização e Obra)
+        const aspirational = i === 4 || i === 6;
         const dotClr  = done || current ? STAGE_COLORS_TL[i] : I.bd;
-        const label   = i === 1 && isReu ? 'Reunião' : st.label;
+        let label = st.label;
+        if (isReu && i === 1) label = 'Reunião agendada';
+        if (isReu && i === 2) label = 'Reunião realizada';
         return (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
             {i > 0 && (
@@ -235,7 +247,7 @@ function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }
               color: done || current ? '#fff' : I.cz,
               transition: 'all .2s',
             }}>
-              {done ? '✓' : locked ? '·' : current ? '●' : i + 1}
+              {done ? '✓' : aspirational && !current ? '·' : current ? '●' : i + 1}
             </div>
             <div className="cop-timeline-label" style={{
               fontSize: 9, fontWeight: current ? 700 : 500, marginTop: 3, textAlign: 'center',
