@@ -302,7 +302,33 @@ const STAGE_DESCRIPTIONS: Record<Stage, string> = {
   6: 'Obra em execução',
 };
 
-function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }) {
+// Hint operacional para a etapa atual (B5.20+). Não usado em etapas passadas/futuras.
+const STAGE_PARA_AVANCAR: Record<Stage, string> = {
+  0: 'aguarde o contato inicial da Reforma100',
+  1: 'confirme presença e compareça ao atendimento',
+  2: 'envie sua proposta comercial',
+  3: 'aguarde a análise da Reforma100',
+  4: 'aguarde a decisão do cliente na compatibilização',
+  5: 'aguarde os próximos passos do contrato',
+  6: 'acompanhe a execução da obra',
+};
+
+function tempoNaEtapa(dataAtualizacao: Date): string {
+  const diff = Date.now() - dataAtualizacao.getTime();
+  const horas = diff / 3_600_000;
+  const dias  = diff / 86_400_000;
+  if (dias >= 1) {
+    const d = Math.floor(dias);
+    return d === 1 ? 'Nesta etapa há 1 dia' : `Nesta etapa há ${d} dias`;
+  }
+  if (horas >= 1) {
+    const h = Math.floor(horas);
+    return h === 1 ? 'Nesta etapa há 1 hora' : `Nesta etapa há ${h} horas`;
+  }
+  return 'Etapa iniciada há pouco';
+}
+
+function Timeline({ activeStage, isReu, dataAtualizacao }: { activeStage: Stage; isReu: boolean; dataAtualizacao?: Date }) {
   return (
     <TooltipProvider delayDuration={120} skipDelayDuration={300}>
       <div
@@ -382,13 +408,25 @@ function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }
                   )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="top" sideOffset={6} className="max-w-[200px]">
+              <TooltipContent side="top" sideOffset={6} className="max-w-[230px]">
                 <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 12, marginBottom: 2 }}>
                   {label}
                 </div>
                 <div style={{ fontSize: 11, lineHeight: 1.4 }}>
                   {descricao}
                 </div>
+                {current && (
+                  <>
+                    {dataAtualizacao && (
+                      <div style={{ fontSize: 10, marginTop: 6, opacity: .8 }}>
+                        {tempoNaEtapa(dataAtualizacao)}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 11, marginTop: 4, lineHeight: 1.4, fontWeight: 600 }}>
+                      Para avançar: {STAGE_PARA_AVANCAR[stageIdx]}
+                    </div>
+                  </>
+                )}
               </TooltipContent>
             </Tooltip>
           );
@@ -764,7 +802,7 @@ function CardOperacional({
           )}
         </div>
 
-        {!isPerdido && <Timeline activeStage={stage} isReu={isReu} />}
+        {!isPerdido && <Timeline activeStage={stage} isReu={isReu} dataAtualizacao={candidatura.dataAtualizacao} />}
 
         {/* Meta row */}
         <div className="cop-meta-row" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', borderTop: `1px solid ${I.bd}`, paddingTop: 12, marginTop: 4 }}>
