@@ -168,20 +168,12 @@ function SecaoAtendimento({
               <span style={{ fontSize: 12, fontWeight: 700, color: I.vd }}>Presença confirmada</span>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button
-                style={{ background: I.am, color: '#fff', border: 'none', borderRadius: 8, padding: '13px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%', minHeight: 48 }}
-                onClick={() => onPreConfirmar('whatsapp')}
-              >
-                ✓ Confirmar presença via WhatsApp
-              </button>
-              <button
-                style={{ background: 'transparent', color: I.cz, border: `1.5px solid ${I.bd}`, borderRadius: 8, padding: '11px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', width: '100%', minHeight: 44 }}
-                onClick={() => onPreConfirmar('plataforma')}
-              >
-                Confirmar aqui na plataforma
-              </button>
-            </div>
+            <button
+              style={{ background: I.azul, color: '#fff', border: 'none', borderRadius: 8, padding: '13px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%', minHeight: 48 }}
+              onClick={() => onPreConfirmar('plataforma')}
+            >
+              ✓ Confirmar presença na plataforma
+            </button>
           )
         )}
 
@@ -200,6 +192,64 @@ function SecaoAtendimento({
           )
         )}
 
+        {!feito && dt && (
+          <LembretesAutomaticos
+            dt={dt}
+            notif24h={candidatura.notif24hEm ?? null}
+            notif12h={candidatura.notif12hEm ?? null}
+            notif6h={candidatura.notif6hEm ?? null}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Lembretes automáticos (visual) ────────────────────────────────────────────
+// Estrutura visual; o envio real será integrado pelo backend posteriormente.
+function LembretesAutomaticos({
+  dt, notif24h, notif12h, notif6h,
+}: {
+  dt: string;
+  notif24h: string | null;
+  notif12h: string | null;
+  notif6h: string | null;
+}) {
+  const horas = horasRestantes(dt);
+  const itens: Array<{ janela: 24 | 12 | 6; enviadoEm: string | null }> = [
+    { janela: 24, enviadoEm: notif24h },
+    { janela: 12, enviadoEm: notif12h },
+    { janela: 6,  enviadoEm: notif6h  },
+  ];
+  return (
+    <div style={{ marginTop: 12, borderTop: `1px dashed ${I.bd}`, paddingTop: 10 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 6 }}>
+        Lembretes automáticos
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {itens.map(({ janela, enviadoEm }) => {
+          const enviado = !!enviadoEm;
+          const pendente = !enviado && horas > janela;
+          const bg = enviado ? I.vd2 : pendente ? I.azul + '11' : I.cz2;
+          const fg = enviado ? I.vd  : pendente ? I.azul       : I.cz;
+          const icone = enviado ? '✓' : pendente ? '⏳' : '–';
+          const sufixo = enviado ? 'enviado' : pendente ? 'pendente' : 'fora da janela';
+          return (
+            <span
+              key={janela}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                background: bg, color: fg,
+                fontSize: 11, fontWeight: 700,
+                padding: '4px 9px', borderRadius: 999,
+                fontFamily: "'DM Sans',sans-serif",
+              }}
+            >
+              <span>{icone}</span>
+              <span>{janela}h {sufixo}</span>
+            </span>
+          );
+        })}
       </div>
     </div>
   );
