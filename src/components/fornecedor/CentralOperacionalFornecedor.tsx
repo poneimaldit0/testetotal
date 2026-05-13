@@ -112,7 +112,7 @@ function useCentralStyles() {
       }
       .cop-search-input {
         width:100%;
-        padding:11px 12px 11px 38px;
+        padding:11px 38px 11px 38px;
         border-radius:10px;
         border:1.5px solid #E5E7EB;
         font-size:16px; /* ≥16px evita auto-zoom no iOS */
@@ -125,6 +125,18 @@ function useCentralStyles() {
         -webkit-appearance:none;
       }
       .cop-search-input:focus { border-color:#2D3395; }
+      .cop-search-input::-webkit-search-cancel-button,
+      .cop-search-input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+      .cop-search-clear {
+        position:absolute; right:8px; top:50%; transform:translateY(-50%);
+        width:24px; height:24px;
+        background:#F3F4F6; color:#6B7280;
+        border:none; border-radius:50%;
+        font-size:16px; line-height:1; cursor:pointer;
+        display:flex; align-items:center; justify-content:center;
+        transition:background .12s, color .12s;
+      }
+      .cop-search-clear:hover { background:#E5E7EB; color:#1A2030; }
       .cop-kpi-clickable { cursor: pointer; transition: transform .12s, box-shadow .12s; }
       .cop-kpi-clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
       @keyframes cop-current-halo {
@@ -1000,6 +1012,16 @@ export function CentralOperacionalFornecedor() {
                   onChange={e => setBusca(e.target.value)}
                   placeholder="Buscar por local, cliente ou código…"
                 />
+                {busca && (
+                  <button
+                    type="button"
+                    onClick={() => setBusca('')}
+                    aria-label="Limpar busca"
+                    className="cop-search-clear"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
               <button
                 type="button"
