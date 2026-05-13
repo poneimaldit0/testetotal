@@ -76,7 +76,7 @@ export const OrcamentoInscritoCard: React.FC<OrcamentoInscritoCardProps> = ({
             </div>
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              <span className="font-medium">Empresas inscritas:</span> {orcamento.quantidadeEmpresas}/3
+              <span className="font-medium">Empresas inscritas:</span> {orcamento.quantidadeEmpresas}/{orcamento.horariosVisitaTotal ?? 3}
             </div>
           </div>
 

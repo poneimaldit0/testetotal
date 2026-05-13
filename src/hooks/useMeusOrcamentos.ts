@@ -21,6 +21,7 @@ export interface OrcamentoInscrito {
   inscricaoId: string;
   statusAcompanhamento: StatusAcompanhamento | null;
   dataInscricao: Date;
+  horariosVisitaTotal?: number;
   // Adicionar campos de arquivos
   arquivos?: Array<{
     id: string;
@@ -91,7 +92,8 @@ export const useMeusOrcamentos = (userId?: string) => {
             tipo_arquivo,
             tamanho,
             url_arquivo
-          )
+          ),
+          horarios_visita_orcamento (id)
         `)
         .in('id', orcamentoIds);
 
@@ -172,6 +174,9 @@ export const useMeusOrcamentos = (userId?: string) => {
             tamanhoImovel: Number(orcamento.tamanho_imovel) || 0,
             dataInicio: orcamento.data_inicio ? new Date(orcamento.data_inicio) : new Date(),
             quantidadeEmpresas: quantidadeEmpresas,
+            horariosVisitaTotal: Array.isArray((orcamento as any).horarios_visita_orcamento)
+              ? (orcamento as any).horarios_visita_orcamento.length
+              : undefined,
             status: orcamento.status as 'aberto' | 'fechado',
             dadosContato: orcamento.dados_contato,
             inscricaoId: inscricao.id,

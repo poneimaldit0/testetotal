@@ -96,7 +96,7 @@ export const MeusOrcamentosCard: React.FC<MeusOrcamentosCardProps> = ({
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4 text-gray-500" />
               <span className="font-medium text-gray-600">Empresas:</span> 
-              <span className="ml-1 text-gray-800">{orcamento.quantidadeEmpresas}/3</span>
+              <span className="ml-1 text-gray-800">{orcamento.quantidadeEmpresas}/{orcamento.horariosVisitaTotal ?? 3}</span>
             </div>
           </div>
 

@@ -19,6 +19,7 @@ export interface OrcamentoMeusOrcamentos {
   statusAcompanhamento: StatusAcompanhamento | null;
   dataInscricao: Date;
   quantidadeEmpresas: number;
+  horariosVisitaTotal?: number;
   // Adicionar campos de arquivos
   arquivos?: Array<{
     id: string;
@@ -96,6 +97,9 @@ export const processarOrcamentoCompleto = (
     statusAcompanhamento: inscricao.status_acompanhamento as StatusAcompanhamento | null,
     dataInscricao: new Date(inscricao.data_inscricao),
     quantidadeEmpresas: contagemPorOrcamento[orcamento.id] || 0,
+    horariosVisitaTotal: Array.isArray(orcamento.horarios_visita_orcamento)
+      ? orcamento.horarios_visita_orcamento.length
+      : undefined,
     arquivos: documentos,
     fotos: fotos
   };

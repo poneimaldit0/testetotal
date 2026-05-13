@@ -281,7 +281,7 @@ export const ListaOrcamentos: React.FC = () => {
                     {orcamento.tamanhoImovel && (
                       <span><span className="font-medium text-foreground">{orcamento.tamanhoImovel} m²</span></span>
                     )}
-                    <span>{orcamento.quantidadeEmpresas}/3 empresas</span>
+                    <span>{orcamento.quantidadeEmpresas}/{orcamento.horariosVisita?.length || 3} empresas</span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 shrink-0" />
                       {orcamento.prazoInicioTexto || 'Início não informado'}

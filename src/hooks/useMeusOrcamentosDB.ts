@@ -29,7 +29,8 @@ export const buscarOrcamentosPorIds = async (orcamentoIds: string[]) => {
         tipo_arquivo,
         tamanho,
         url_arquivo
-      )
+      ),
+      horarios_visita_orcamento (id)
     `)
     .in('id', orcamentoIds);
 
