@@ -53,7 +53,6 @@ export function NovoLayout({ activeView, onViewChange, userRole, userName, onSig
           title: 'Orçamentos',
           items: [
             { label: 'Gerenciar', view: 'lista', icon: '📁' },
-            { label: 'Novo Lead', view: 'cadastro', icon: '➕' },
           ]
         }
       ];
@@ -72,7 +71,6 @@ export function NovoLayout({ activeView, onViewChange, userRole, userName, onSig
           title: 'Orçamentos',
           items: [
             { label: 'Gerenciar', view: 'lista', icon: '📁' },
-            { label: 'Novo Lead', view: 'cadastro', icon: '➕' },
             { label: 'CRM Kanban', view: 'crm-orcamentos', icon: '📊' },
           ]
         },
@@ -100,7 +98,6 @@ export function NovoLayout({ activeView, onViewChange, userRole, userName, onSig
         title: 'Orçamentos',
         items: [
           { label: 'Gerenciar', view: 'lista', icon: '📁' },
-          { label: 'Novo Lead', view: 'cadastro', icon: '➕' },
           { label: 'CRM Kanban', view: 'crm-orcamentos', icon: '📊' },
           { label: 'CRM Marcenaria', view: 'crm-marcenaria', icon: '🪚' },
           { label: 'Motivos de Perda', view: 'crm-motivos-perda', icon: '❌' },

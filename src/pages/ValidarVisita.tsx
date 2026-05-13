@@ -64,6 +64,26 @@ export default function ValidarVisita() {
 
       if (error) throw error;
 
+      // Evento operacional — fire-and-forget, falha não bloqueia o fluxo
+      try {
+        await (supabase as any).from('eventos_operacionais').insert({
+          orcamento_id:    candidatura.orcamento_id,
+          candidatura_id:  candidaturaId,
+          fornecedor_id:   user.id,
+          usuario_acao_id: user.id,
+          tipo_evento:     'visita_confirmada_fornecedor',
+          origem_evento:   'fornecedor_autoservico',
+          canal_evento:    'link_publico',
+          payload: {
+            status_anterior: 'visita_agendada',
+            status_novo:     'visita_realizada',
+            origem_tela:     'ValidarVisita',
+          },
+        });
+      } catch (evErr) {
+        console.warn('[ValidarVisita] evento não registrado:', evErr);
+      }
+
       // Garante que o lead esteja em em_orcamento se há pelo menos 1 candidatura realizada
       try {
         const { data: realizadas, error: qErr } = await (supabase as any)

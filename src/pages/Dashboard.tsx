@@ -218,9 +218,10 @@ const DashboardContent = () => {
   const handleViewChange = (view: string) => {
     const userRole = profile?.tipo_usuario as UserRole;
     const viewType = view as ViewType;
-    
+
     if (hasViewAccess(userRole, viewType)) {
       setActiveView(viewType);
+      setSearchParams({ view: viewType });
     }
   };
 

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog } from '@/components/ui/dialog';
 import { Loader2, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOrcamentosGlobal, OrcamentoGlobal } from '@/hooks/useOrcamentosGlobal';
 import { OrcamentoFilters } from './OrcamentoFilters';
 import { InscricaoModal } from './InscricaoModal';
@@ -171,7 +171,9 @@ function CardDisponivel({
   onOpenModal: (id: string, horarioId?: string, filaEspera?: boolean) => void;
 }) {
   const navigate = useNavigate();
+  const [, setSearchParams] = useSearchParams();
   const [showTodos, setShowTodos] = useState(false);
+  const [showFullDesc, setShowFullDesc] = useState(false);
 
   const todosHorarios  = orcamento.horariosVisita || [];
   const horariosTotal  = todosHorarios.length;
@@ -192,9 +194,10 @@ function CardDisponivel({
 
   const borderColor = inscrito ? D.vd : aberto ? D.azul : D.cz;
 
-  const descTrunc = orcamento.necessidade.length > 110
-    ? orcamento.necessidade.slice(0, 110) + '…'
-    : orcamento.necessidade;
+  const descLonga = orcamento.necessidade.length > 110;
+  const descExibida = !descLonga || showFullDesc
+    ? orcamento.necessidade
+    : orcamento.necessidade.slice(0, 110) + '…';
 
   const localTrunc = (orcamento.local || '').length > 45
     ? orcamento.local.slice(0, 45) + '…'
@@ -235,11 +238,26 @@ function CardDisponivel({
       {/* ── Descrição ── */}
       <div style={{
         fontSize: 14, fontWeight: 600, color: D.nv,
-        lineHeight: 1.45, marginBottom: 10,
+        lineHeight: 1.45, marginBottom: descLonga ? 4 : 10,
         fontFamily: "'Syne', sans-serif",
+        whiteSpace: 'pre-wrap',
       }}>
-        {descTrunc}
+        {descExibida}
       </div>
+      {descLonga && (
+        <button
+          type="button"
+          onClick={() => setShowFullDesc(s => !s)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: D.azul, fontSize: 12, fontWeight: 700,
+            padding: '0 0 10px 0', fontFamily: "'Syne', sans-serif",
+            textAlign: 'left',
+          }}
+        >
+          {showFullDesc ? 'Ver menos ↑' : 'Ver mais ↓'}
+        </button>
+      )}
 
       {/* ── Prazo + empresas ── */}
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -272,7 +290,7 @@ function CardDisponivel({
           )}
           <span
             role="button"
-            onClick={() => navigate('/dashboard?view=central')}
+            onClick={() => setSearchParams({ view: 'central', orc: orcamento.id })}
             style={{
               marginLeft: 'auto', fontSize: 11, color: D.azul,
               fontWeight: 600, cursor: 'pointer',
@@ -358,6 +376,7 @@ function CardDisponivel({
 export const OrcamentosDisponiveis: React.FC = () => {
   useDisponivelStyles();
   const navigate = useNavigate();
+  const [, setSearchParams] = useSearchParams();
   const { profile, user } = useAuth();
   const { verificar, marcarDiaComoAtualizado } = useVerificacaoAtualizacaoDiaria();
 
@@ -468,8 +487,8 @@ export const OrcamentosDisponiveis: React.FC = () => {
       if (sucesso) {
         setFormData({ nome: '', email: '', telefone: '', empresa: '' });
         setIsOpen(false);
-        // Após inscrição bem-sucedida → ir para Central Operacional
-        setTimeout(() => navigate('/dashboard?view=central'), 300);
+        // Após inscrição bem-sucedida → ir para Central Operacional já abrindo a Ficha
+        setTimeout(() => setSearchParams({ view: 'central', orc: selectedOrcamento }), 300);
       }
     } catch { /* silent */ } finally {
       setIsSubmitting(false);

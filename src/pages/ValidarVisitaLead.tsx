@@ -219,6 +219,26 @@ export default function ValidarVisitaLead() {
         })
         .eq('id', info.candidaturaId);
 
+      // Evento operacional — fire-and-forget, falha não bloqueia o fluxo
+      try {
+        await (supabase as any).from('eventos_operacionais').insert({
+          orcamento_id:    info.orcamentoId,
+          candidatura_id:  info.candidaturaId,
+          fornecedor_id:   user.id,
+          usuario_acao_id: user.id,
+          tipo_evento:     'visita_confirmada_cliente',
+          origem_evento:   'cliente_autoservico',
+          canal_evento:    'link_publico',
+          payload: {
+            status_anterior: 'visita_agendada',
+            status_novo:     'visita_realizada',
+            origem_tela:     'ValidarVisitaLead',
+          },
+        });
+      } catch (evErr) {
+        console.warn('[ValidarVisitaLead] evento não registrado:', evErr);
+      }
+
       try {
         const { data: realizadas } = await (supabase as any)
           .from('candidaturas_fornecedores')

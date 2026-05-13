@@ -199,6 +199,7 @@ function SecaoAtendimento({
             </div>
           )
         )}
+
       </div>
     </div>
   );
@@ -357,115 +358,54 @@ function SecaoAnexosOrcamento({ candidatura }: { candidatura: CandidaturaOrcamen
   );
 }
 
-// ── Seção: mensagem para a equipe ─────────────────────────────────────────────
-const CHIPS = [
-  { label: '📅 Reagendamento', texto: 'Preciso reagendar o atendimento.' },
-  { label: '❓ Dúvida', texto: 'Tenho uma dúvida sobre este processo.' },
-  { label: '📋 Atualização', texto: 'Quero informar uma atualização.' },
-];
+// ── Seção: escopo completo ────────────────────────────────────────────────────
+function SecaoEscopo({ candidatura }: { candidatura: CandidaturaOrcamento }) {
+  if (!candidatura.necessidade) return null;
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 10 }}>
+        Escopo do cliente
+      </div>
+      <div style={{
+        background: I.bg, borderRadius: 10, padding: '14px 16px',
+        fontSize: 13, color: I.nv, lineHeight: 1.6, whiteSpace: 'pre-wrap',
+      }}>
+        {candidatura.necessidade}
+      </div>
+    </div>
+  );
+}
 
-function SecaoMensagem({
-  candidatura,
-}: {
-  candidatura: CandidaturaOrcamento;
-}) {
-  const [texto, setTexto] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const [historico, setHistorico] = useState<string[]>(() => {
-    if (!candidatura.observacoesAcompanhamento) return [];
-    return candidatura.observacoesAcompanhamento
-      .split('\n---\n')
-      .filter(Boolean)
-      .reverse();
-  });
-
-  const enviar = async () => {
-    if (!texto.trim() || enviando) return;
-    setEnviando(true);
-    try {
-      const ts = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
-      const novaMsg = `[${ts}] ${texto.trim()}`;
-      const obsAtual = candidatura.observacoesAcompanhamento ?? '';
-      const novaObs = obsAtual ? `${novaMsg}\n---\n${obsAtual}` : novaMsg;
-
-      await (supabase as any).rpc('atualizar_observacoes_acompanhamento', {
-        p_inscricao_id: candidatura.candidaturaId,
-        p_observacoes: novaObs,
-      });
-
-      setHistorico(prev => [novaMsg, ...prev]);
-      setTexto('');
-    } catch { /* silent */ } finally {
-      setEnviando(false);
-    }
-  };
+// ── Seção: contato do cliente ─────────────────────────────────────────────────
+function SecaoContato({ candidatura }: { candidatura: CandidaturaOrcamento }) {
+  const contato = candidatura.dadosContato;
+  if (!contato || (!contato.nome && !contato.telefone && !contato.email)) return null;
 
   return (
-    <div style={{ marginBottom: 8 }}>
+    <div style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 10 }}>
-        Mensagem para a equipe
+        Contato do cliente
       </div>
-
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-        {CHIPS.map(chip => (
-          <button
-            key={chip.label}
-            style={{
-              fontSize: 11, fontWeight: 600, padding: '10px 14px', borderRadius: 10,
-              background: texto === chip.texto ? I.azul3 : I.cz2,
-              color: texto === chip.texto ? I.azul : I.cz,
-              border: `1px solid ${texto === chip.texto ? I.azul + '44' : I.bd}`,
-              cursor: 'pointer', minHeight: 44,
-            }}
-            onClick={() => setTexto(chip.texto)}
-          >
-            {chip.label}
-          </button>
-        ))}
+      <div style={{ background: I.bg, borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {contato.nome && (
+          <div>
+            <div style={{ fontSize: 10, color: I.cz, fontWeight: 600, marginBottom: 2 }}>Nome</div>
+            <div style={{ fontSize: 13, color: I.nv, fontWeight: 600 }}>{contato.nome}</div>
+          </div>
+        )}
+        {contato.telefone && (
+          <div>
+            <div style={{ fontSize: 10, color: I.cz, fontWeight: 600, marginBottom: 2 }}>Telefone</div>
+            <div style={{ fontSize: 13, color: I.nv, fontWeight: 600 }}>📞 {contato.telefone}</div>
+          </div>
+        )}
+        {contato.email && (
+          <div>
+            <div style={{ fontSize: 10, color: I.cz, fontWeight: 600, marginBottom: 2 }}>E-mail</div>
+            <div style={{ fontSize: 13, color: I.nv, fontWeight: 600, wordBreak: 'break-all' }}>✉️ {contato.email}</div>
+          </div>
+        )}
       </div>
-
-      <textarea
-        value={texto}
-        onChange={e => setTexto(e.target.value)}
-        placeholder="Descreva sua mensagem, dúvida ou solicitação para a equipe Reforma100…"
-        rows={3}
-        style={{
-          width: '100%', borderRadius: 8, border: `1.5px solid ${I.bd}`,
-          padding: '10px 12px', fontSize: 16, color: I.nv, resize: 'vertical',
-          fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, boxSizing: 'border-box',
-          outline: 'none',
-        }}
-      />
-
-      <button
-        disabled={!texto.trim() || enviando}
-        onClick={enviar}
-        style={{
-          marginTop: 8, width: '100%', padding: '12px 0', borderRadius: 8,
-          background: texto.trim() ? I.azul : I.cz2,
-          color: texto.trim() ? '#fff' : I.cz,
-          border: 'none', cursor: texto.trim() ? 'pointer' : 'default',
-          fontSize: 13, fontWeight: 700, minHeight: 44,
-          transition: 'background .15s',
-        }}
-      >
-        {enviando ? 'Enviando…' : 'Enviar mensagem'}
-      </button>
-
-      {historico.length > 0 && (
-        <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 8 }}>
-            Histórico de mensagens
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {historico.map((msg, i) => (
-              <div key={i} style={{ background: I.bg, borderRadius: 8, padding: '10px 12px', fontSize: 12, color: I.nv, lineHeight: 1.5, borderLeft: `3px solid ${I.azul}44` }}>
-                {msg}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -545,11 +485,9 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
                 />
               )}
 
+              <SecaoEscopo candidatura={candidatura} />
+              <SecaoContato candidatura={candidatura} />
               <SecaoDadosOrcamento candidatura={candidatura} />
-
-              {/* Mensagem antes de anexos — mais acionável */}
-              <SecaoMensagem candidatura={candidatura} />
-
               <SecaoAnexosOrcamento candidatura={candidatura} />
             </div>
           </>

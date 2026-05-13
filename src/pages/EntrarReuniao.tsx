@@ -199,6 +199,28 @@ export default function EntrarReuniao() {
         .update(updatePayload)
         .eq('id', info.candidaturaId);
 
+      // Evento operacional — fire-and-forget, falha não bloqueia o fluxo
+      try {
+        await (supabase as any).from('eventos_operacionais').insert({
+          orcamento_id:    info.orcamentoId,
+          candidatura_id:  info.candidaturaId,
+          fornecedor_id:   user.id,
+          usuario_acao_id: user.id,
+          tipo_evento:     'reuniao_entrou',
+          origem_evento:   'fornecedor_autoservico',
+          canal_evento:    'link_publico',
+          payload: {
+            status_anterior: info.statusAtual,
+            status_novo:     jaRealizada ? info.statusAtual : 'reuniao_realizada',
+            acesso_numero:   info.acessosAtuais.length + 1,
+            origem_tela:     'EntrarReuniao',
+            user_agent:      navigator.userAgent.slice(0, 200),
+          },
+        });
+      } catch (evErr) {
+        console.warn('[EntrarReuniao] evento não registrado:', evErr);
+      }
+
       // Tentar avançar etapa CRM
       try {
         const { data: realizadas } = await (supabase as any)

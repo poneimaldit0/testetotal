@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMeusCandidaturas, CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
 import { FichaOperacionalFornecedor } from './FichaOperacionalFornecedor';
 import { R as I } from '@/styles/tokens';
 import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
+import { STATUS_LABELS, type StatusAcompanhamento } from '@/hooks/useStatusAcompanhamento';
 
 // ── CSS injection ─────────────────────────────────────────────────────────────
 function useCentralStyles() {
@@ -645,14 +646,35 @@ function CandidaturaSection({
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+type GrupoFiltro = 'todos' | 'urgent' | 'active' | 'done';
+type PeriodoFiltro = 'todos' | '7' | '30' | '90';
+
 export function CentralOperacionalFornecedor() {
   useCentralStyles();
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { candidaturas, loading } = useMeusCandidaturas(profile?.id);
   const [repKpi, setRepKpi] = useState<{ media: number; total: number } | null>(null);
   const [fichaAberta, setFichaAberta] = useState<CandidaturaOrcamento | null>(null);
   const [busca, setBusca] = useState('');
+  const [grupoFiltro, setGrupoFiltro] = useState<GrupoFiltro>('todos');
+  const [statusFiltro, setStatusFiltro] = useState<StatusAcompanhamento | 'todos'>('todos');
+  const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>('todos');
+
+  // Auto-abrir Ficha quando vier via ?orc=<id> (ex.: "Ver na Central" do Disponíveis)
+  useEffect(() => {
+    const orcId = searchParams.get('orc');
+    if (!orcId || loading || candidaturas.length === 0) return;
+    const alvo = candidaturas.find(c => c.id === orcId);
+    if (alvo) {
+      setFichaAberta(alvo);
+      // limpar param para não reabrir em re-renders
+      const next = new URLSearchParams(searchParams);
+      next.delete('orc');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, candidaturas, loading, setSearchParams]);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -667,18 +689,53 @@ export function CentralOperacionalFornecedor() {
       });
   }, [profile?.id]);
 
-  // Filtragem por busca (afeta apenas a lista, não os KPIs)
+  // Filtragem combinada (afeta apenas a lista, não os KPIs)
   const candidaturasFiltradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return candidaturas;
+    const cutoffMs = periodoFiltro === 'todos'
+      ? 0
+      : Date.now() - Number(periodoFiltro) * 86_400_000;
+
     return candidaturas.filter(c => {
-      const local     = (c.local ?? '').toLowerCase();
-      const texto     = c.necessidade.toLowerCase();
-      const codigo    = c.id.toLowerCase();
-      const cliente   = (c.dadosContato?.nome ?? '').toLowerCase();
-      return local.includes(q) || texto.includes(q) || codigo.includes(q) || cliente.includes(q);
+      // Busca textual
+      if (q) {
+        const local   = (c.local ?? '').toLowerCase();
+        const texto   = c.necessidade.toLowerCase();
+        const codigo  = c.id.toLowerCase();
+        const cliente = (c.dadosContato?.nome ?? '').toLowerCase();
+        if (!local.includes(q) && !texto.includes(q) && !codigo.includes(q) && !cliente.includes(q)) {
+          return false;
+        }
+      }
+      // Grupo (urgente / em andamento / finalizada)
+      if (grupoFiltro !== 'todos') {
+        const grupo = deriveGroup(c.statusAcompanhamento);
+        const atencao = isAtencaoPosAtendimento(c);
+        const grupoEfetivo: GrupoFiltro =
+          (grupo === 'urgent' || atencao) ? 'urgent'
+          : grupo === 'done' ? 'done'
+          : 'active';
+        if (grupoEfetivo !== grupoFiltro) return false;
+      }
+      // Status detalhado
+      if (statusFiltro !== 'todos' && c.statusAcompanhamento !== statusFiltro) {
+        return false;
+      }
+      // Período (data da candidatura)
+      if (cutoffMs > 0) {
+        const dt = c.dataCandidatura instanceof Date
+          ? c.dataCandidatura.getTime()
+          : new Date(c.dataCandidatura).getTime();
+        if (dt < cutoffMs) return false;
+      }
+      return true;
     });
-  }, [candidaturas, busca]);
+  }, [candidaturas, busca, grupoFiltro, statusFiltro, periodoFiltro]);
+
+  const filtrosAtivos = busca.trim() !== ''
+    || grupoFiltro !== 'todos'
+    || statusFiltro !== 'todos'
+    || periodoFiltro !== 'todos';
 
   // Grupos (usam lista filtrada). B4: pós-atendimento sem proposta há ≥3 dias entra em urgentes.
   const urgentes  = candidaturasFiltradas.filter(
@@ -759,27 +816,132 @@ export function CentralOperacionalFornecedor() {
           />
         </div>
 
-        {/* Busca */}
+        {/* Busca + filtros */}
         {!loading && candidaturas.length > 0 && (
-          <div style={{ marginBottom: 20, position: 'relative' }}>
-            <span style={{
-              position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-              fontSize: 15, pointerEvents: 'none', lineHeight: 1,
-            }}>🔍</span>
-            <input
-              type="search"
-              className="cop-search-input"
-              value={busca}
-              onChange={e => setBusca(e.target.value)}
-              placeholder="Buscar por local, cliente ou código…"
-            />
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <span style={{
+                position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                fontSize: 15, pointerEvents: 'none', lineHeight: 1,
+              }}>🔍</span>
+              <input
+                type="search"
+                className="cop-search-input"
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+                placeholder="Buscar por local, cliente ou código…"
+              />
+            </div>
+
+            {/* Chips de grupo */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+              {([
+                { v: 'todos',  l: 'Todos',        c: I.azul },
+                { v: 'urgent', l: 'Requer ação',  c: I.vm },
+                { v: 'active', l: 'Em andamento', c: I.azul },
+                { v: 'done',   l: 'Finalizadas',  c: I.cz },
+              ] as { v: GrupoFiltro; l: string; c: string }[]).map(opt => {
+                const ativo = grupoFiltro === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setGrupoFiltro(opt.v)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 999,
+                      border: `1.5px solid ${ativo ? opt.c : I.bd}`,
+                      background: ativo ? opt.c : '#fff',
+                      color: ativo ? '#fff' : I.cz,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      fontFamily: "'Syne',sans-serif",
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                    }}
+                  >
+                    {opt.l}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Dropdowns: status detalhado + período */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <select
+                value={statusFiltro}
+                onChange={e => setStatusFiltro(e.target.value as StatusAcompanhamento | 'todos')}
+                style={{
+                  flex: '1 1 200px',
+                  padding: '9px 10px',
+                  borderRadius: 8,
+                  border: `1.5px solid ${I.bd}`,
+                  background: '#fff',
+                  color: I.nv,
+                  fontSize: 13,
+                  fontFamily: "'DM Sans',sans-serif",
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="todos">Todos os status</option>
+                {(Object.keys(STATUS_LABELS) as StatusAcompanhamento[]).map(s => (
+                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+              <select
+                value={periodoFiltro}
+                onChange={e => setPeriodoFiltro(e.target.value as PeriodoFiltro)}
+                style={{
+                  flex: '1 1 140px',
+                  padding: '9px 10px',
+                  borderRadius: 8,
+                  border: `1.5px solid ${I.bd}`,
+                  background: '#fff',
+                  color: I.nv,
+                  fontSize: 13,
+                  fontFamily: "'DM Sans',sans-serif",
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="todos">Todo o período</option>
+                <option value="7">Últimos 7 dias</option>
+                <option value="30">Últimos 30 dias</option>
+                <option value="90">Últimos 90 dias</option>
+              </select>
+              {filtrosAtivos && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBusca('');
+                    setGrupoFiltro('todos');
+                    setStatusFiltro('todos');
+                    setPeriodoFiltro('todos');
+                  }}
+                  style={{
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${I.bd}`,
+                    background: '#fff',
+                    color: I.cz,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: "'Syne',sans-serif",
+                    cursor: 'pointer',
+                  }}
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Sem resultado na busca */}
-        {!loading && busca.trim() && candidaturasFiltradas.length === 0 && (
+        {/* Sem resultado nos filtros */}
+        {!loading && filtrosAtivos && candidaturasFiltradas.length === 0 && (
           <div style={{ textAlign: 'center', padding: '24px 16px', color: I.cz, fontSize: 13 }}>
-            Nenhuma candidatura encontrada para <strong>"{busca}"</strong>.
+            Nenhuma candidatura corresponde aos filtros aplicados.
           </div>
         )}
 
