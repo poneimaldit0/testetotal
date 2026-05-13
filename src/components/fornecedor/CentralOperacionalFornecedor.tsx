@@ -660,6 +660,7 @@ function CandidaturaSection({
 // ── Main component ────────────────────────────────────────────────────────────
 type GrupoFiltro = 'todos' | 'urgent' | 'active' | 'done';
 type PeriodoFiltro = 'todos' | '7' | '30' | '90';
+type Ordem = 'recente' | 'antigo';
 
 export function CentralOperacionalFornecedor() {
   useCentralStyles();
@@ -673,6 +674,7 @@ export function CentralOperacionalFornecedor() {
   const [grupoFiltro, setGrupoFiltro] = useState<GrupoFiltro>('todos');
   const [statusFiltro, setStatusFiltro] = useState<StatusAcompanhamento | 'todos'>('todos');
   const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>('todos');
+  const [ordem, setOrdem] = useState<Ordem>('recente');
 
   // Auto-abrir Ficha quando vier via ?orc=<id> (ex.: "Ver na Central" do Disponíveis)
   useEffect(() => {
@@ -744,19 +746,31 @@ export function CentralOperacionalFornecedor() {
     });
   }, [candidaturas, busca, grupoFiltro, statusFiltro, periodoFiltro]);
 
+  const candidaturasOrdenadas = useMemo(() => {
+    const arr = [...candidaturasFiltradas];
+    const toMs = (d: Date | string) =>
+      (d instanceof Date ? d.getTime() : new Date(d).getTime());
+    arr.sort((a, b) => {
+      const da = toMs(a.dataCandidatura);
+      const db = toMs(b.dataCandidatura);
+      return ordem === 'recente' ? db - da : da - db;
+    });
+    return arr;
+  }, [candidaturasFiltradas, ordem]);
+
   const filtrosAtivos = busca.trim() !== ''
     || grupoFiltro !== 'todos'
     || statusFiltro !== 'todos'
     || periodoFiltro !== 'todos';
 
-  // Grupos (usam lista filtrada). B4: pós-atendimento sem proposta há ≥3 dias entra em urgentes.
-  const urgentes  = candidaturasFiltradas.filter(
+  // Grupos (usam lista filtrada e ordenada). B4: pós-atendimento sem proposta há ≥3 dias entra em urgentes.
+  const urgentes  = candidaturasOrdenadas.filter(
     c => deriveGroup(c.statusAcompanhamento) === 'urgent' || isAtencaoPosAtendimento(c)
   );
-  const ativas    = candidaturasFiltradas.filter(
+  const ativas    = candidaturasOrdenadas.filter(
     c => deriveGroup(c.statusAcompanhamento) === 'active' && !isAtencaoPosAtendimento(c)
   );
-  const finais    = candidaturasFiltradas.filter(c => deriveGroup(c.statusAcompanhamento) === 'done');
+  const finais    = candidaturasOrdenadas.filter(c => deriveGroup(c.statusAcompanhamento) === 'done');
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -831,18 +845,45 @@ export function CentralOperacionalFornecedor() {
         {/* Busca + filtros */}
         {!loading && candidaturas.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ position: 'relative', marginBottom: 10 }}>
-              <span style={{
-                position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-                fontSize: 15, pointerEvents: 'none', lineHeight: 1,
-              }}>🔍</span>
-              <input
-                type="search"
-                className="cop-search-input"
-                value={busca}
-                onChange={e => setBusca(e.target.value)}
-                placeholder="Buscar por local, cliente ou código…"
-              />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <span style={{
+                  position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                  fontSize: 15, pointerEvents: 'none', lineHeight: 1,
+                }}>🔍</span>
+                <input
+                  type="search"
+                  className="cop-search-input"
+                  value={busca}
+                  onChange={e => setBusca(e.target.value)}
+                  placeholder="Buscar por local, cliente ou código…"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setOrdem(o => o === 'recente' ? 'antigo' : 'recente')}
+                title={ordem === 'recente' ? 'Mais recente primeiro' : 'Mais antigo primeiro'}
+                style={{
+                  padding: '0 12px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${I.bd}`,
+                  background: '#fff',
+                  color: I.nv,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: "'Syne',sans-serif",
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <span style={{ fontSize: 14, lineHeight: 1 }}>
+                  {ordem === 'recente' ? '↓' : '↑'}
+                </span>
+                {ordem === 'recente' ? 'Mais recente' : 'Mais antigo'}
+              </button>
             </div>
 
             {/* Chips de grupo */}
