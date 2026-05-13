@@ -6,7 +6,6 @@ import { useMeusCandidaturas, CandidaturaOrcamento } from '@/hooks/useMeusCandia
 import { FichaOperacionalFornecedor } from './FichaOperacionalFornecedor';
 import { R as I } from '@/styles/tokens';
 import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
-import { STATUS_LABELS, type StatusAcompanhamento } from '@/hooks/useStatusAcompanhamento';
 
 // ── CSS injection ─────────────────────────────────────────────────────────────
 function useCentralStyles() {
@@ -165,6 +164,27 @@ function deriveStageColor(s: string | null): string {
   if (s === 'visita_agendada') return I.lj;
   return I.azul;
 }
+
+// Mapeamento para o dropdown de filtro: inclui negocio_perdido no Fechamento
+// (Timeline já trata perdido como linha cinza separada via deriveStage).
+function statusToFunilStage(s: string | null): Stage {
+  if (!s) return 0;
+  if (s === 'visita_agendada' || s === 'reuniao_agendada') return 1;
+  if (s === 'visita_realizada' || s === 'reuniao_realizada' || s === 'em_orcamento') return 2;
+  if (s === 'orcamento_enviado') return 3;
+  if (s === 'negocio_fechado' || s === 'negocio_perdido') return 5;
+  return 0;
+}
+
+const FUNIL_STAGE_LABELS: Record<Stage, string> = {
+  0: 'Contato',
+  1: 'Visita agendada',
+  2: 'Visita realizada',
+  3: 'Proposta enviada',
+  4: 'Compatibilização',
+  5: 'Fechamento',
+  6: 'Obra',
+};
 
 type Group = 'urgent' | 'active' | 'done';
 
@@ -672,7 +692,7 @@ export function CentralOperacionalFornecedor() {
   const [fichaAberta, setFichaAberta] = useState<CandidaturaOrcamento | null>(null);
   const [busca, setBusca] = useState('');
   const [grupoFiltro, setGrupoFiltro] = useState<GrupoFiltro>('todos');
-  const [statusFiltro, setStatusFiltro] = useState<StatusAcompanhamento | 'todos'>('todos');
+  const [funilFiltro, setFunilFiltro] = useState<Stage | 'todos'>('todos');
   const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>('todos');
   const [ordem, setOrdem] = useState<Ordem>('recente');
 
@@ -731,8 +751,8 @@ export function CentralOperacionalFornecedor() {
           : 'active';
         if (grupoEfetivo !== grupoFiltro) return false;
       }
-      // Status detalhado
-      if (statusFiltro !== 'todos' && c.statusAcompanhamento !== statusFiltro) {
+      // Etapa do funil (mapeada a partir do statusAcompanhamento)
+      if (funilFiltro !== 'todos' && statusToFunilStage(c.statusAcompanhamento) !== funilFiltro) {
         return false;
       }
       // Período (data da candidatura)
@@ -744,7 +764,7 @@ export function CentralOperacionalFornecedor() {
       }
       return true;
     });
-  }, [candidaturas, busca, grupoFiltro, statusFiltro, periodoFiltro]);
+  }, [candidaturas, busca, grupoFiltro, funilFiltro, periodoFiltro]);
 
   const candidaturasOrdenadas = useMemo(() => {
     const arr = [...candidaturasFiltradas];
@@ -760,7 +780,7 @@ export function CentralOperacionalFornecedor() {
 
   const filtrosAtivos = busca.trim() !== ''
     || grupoFiltro !== 'todos'
-    || statusFiltro !== 'todos'
+    || funilFiltro !== 'todos'
     || periodoFiltro !== 'todos';
 
   // Grupos (usam lista filtrada e ordenada). B4: pós-atendimento sem proposta há ≥3 dias entra em urgentes.
@@ -922,8 +942,11 @@ export function CentralOperacionalFornecedor() {
             {/* Dropdowns: status detalhado + período */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <select
-                value={statusFiltro}
-                onChange={e => setStatusFiltro(e.target.value as StatusAcompanhamento | 'todos')}
+                value={funilFiltro === 'todos' ? 'todos' : String(funilFiltro)}
+                onChange={e => {
+                  const v = e.target.value;
+                  setFunilFiltro(v === 'todos' ? 'todos' : (Number(v) as Stage));
+                }}
                 style={{
                   flex: '1 1 200px',
                   padding: '9px 10px',
@@ -937,9 +960,9 @@ export function CentralOperacionalFornecedor() {
                   outline: 'none',
                 }}
               >
-                <option value="todos">Todos os status</option>
-                {(Object.keys(STATUS_LABELS) as StatusAcompanhamento[]).map(s => (
-                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                <option value="todos">Todas as etapas</option>
+                {([0, 1, 2, 3, 4, 5, 6] as Stage[]).map(st => (
+                  <option key={st} value={st}>{FUNIL_STAGE_LABELS[st]}</option>
                 ))}
               </select>
               <select
@@ -969,7 +992,7 @@ export function CentralOperacionalFornecedor() {
                   onClick={() => {
                     setBusca('');
                     setGrupoFiltro('todos');
-                    setStatusFiltro('todos');
+                    setFunilFiltro('todos');
                     setPeriodoFiltro('todos');
                   }}
                   style={{

@@ -192,7 +192,7 @@ function SecaoAtendimento({
           )
         )}
 
-        {!feito && dt && (
+        {!feito && (
           <LembretesAutomaticos
             dt={dt}
             notif24h={candidatura.notif24hEm ?? null}
@@ -207,15 +207,16 @@ function SecaoAtendimento({
 
 // ── Lembretes automáticos (visual) ────────────────────────────────────────────
 // Estrutura visual; o envio real será integrado pelo backend posteriormente.
+// Quando ainda não há horário agendado, todos os chips aparecem como "pendente".
 function LembretesAutomaticos({
   dt, notif24h, notif12h, notif6h,
 }: {
-  dt: string;
+  dt: string | null;
   notif24h: string | null;
   notif12h: string | null;
   notif6h: string | null;
 }) {
-  const horas = horasRestantes(dt);
+  const horas = dt ? horasRestantes(dt) : Infinity;
   const itens: Array<{ janela: 24 | 12 | 6; enviadoEm: string | null }> = [
     { janela: 24, enviadoEm: notif24h },
     { janela: 12, enviadoEm: notif12h },
@@ -251,6 +252,11 @@ function LembretesAutomaticos({
           );
         })}
       </div>
+      {!dt && (
+        <div style={{ fontSize: 10, color: I.cz, marginTop: 6, lineHeight: 1.4 }}>
+          Os lembretes serão enviados automaticamente assim que o horário do atendimento for definido.
+        </div>
+      )}
     </div>
   );
 }
