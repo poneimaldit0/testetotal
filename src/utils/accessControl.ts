@@ -11,8 +11,8 @@ const roleViewAccess: Record<UserRole, ViewType[]> = {
   admin: ['lista', 'cadastro', 'aprovacoes', 'usuarios', 'relatorios', 'propostas', 'comparador', 'reputacao', 'controle', 'financeiro', 'integridade', 'recuperacao', 'crm-orcamentos', 'crm-marcenaria', 'crm-motivos-perda', 'crm-checklist-config', 'produtividade-checklist', 'cs-pipeline', 'funil-vendas-admin', 'dashboard-operacional', 'sdr-atendimento', 'gestao-fontes', 'sdr-inteligencia'],
   closer: ['funil-vendas'],
   pre_vendas: ['funil-vendas'],
-  gestor_conta: ['lista', 'cadastro', 'propostas', 'relatorios', 'crm-orcamentos', 'calculadora-financiamento', 'dashboard-operacional', 'sdr-atendimento'],
-  sdr: ['lista', 'cadastro', 'sdr-atendimento'],
+  gestor_conta: ['lista', 'cadastro', 'propostas', 'relatorios', 'crm-orcamentos', 'dashboard-operacional'],
+  sdr: ['lista', 'sdr-atendimento'],
   customer_success: ['cs-dashboard', 'lista', 'cadastro', 'relatorios', 'reputacao', 'suporte', 'usuarios', 'aprovacoes', 'crm-marcenaria', 'crm-orcamentos', 'cs-pipeline'], // CS - foco em fornecedores e marcenaria + CRM Kanban
   gestor_marcenaria: ['crm-marcenaria', 'calculadora-financiamento'], // Gestor Marcenaria - CRM Marcenaria + Calculadora
   consultor_marcenaria: ['crm-marcenaria', 'calculadora-financiamento'], // Consultor Marcenaria - seus leads + Calculadora

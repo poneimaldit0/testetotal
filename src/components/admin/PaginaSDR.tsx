@@ -2976,24 +2976,26 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
           >
             {refreshing ? '⏳ Atualizando...' : '↻ Atualizar fila'}
           </button>
-          <button
-            onClick={() => setShowNovoLeadModal(true)}
-            style={{
-              background: C.LJ,
-              color: '#1A1A1A',
-              border: 'none',
-              borderRadius: 8,
-              padding: '9px 18px',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: '"Syne", sans-serif',
-              letterSpacing: '-0.2px',
-              boxShadow: '0 2px 10px rgba(247,162,38,0.35)',
-            }}
-          >
-            + Novo Lead
-          </button>
+          {profile?.tipo_usuario !== 'sdr' && (
+            <button
+              onClick={() => setShowNovoLeadModal(true)}
+              style={{
+                background: C.LJ,
+                color: '#1A1A1A',
+                border: 'none',
+                borderRadius: 8,
+                padding: '9px 18px',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: '"Syne", sans-serif',
+                letterSpacing: '-0.2px',
+                boxShadow: '0 2px 10px rgba(247,162,38,0.35)',
+              }}
+            >
+              + Novo Lead
+            </button>
+          )}
         </div>
       </div>
 
