@@ -127,6 +127,19 @@ function useCentralStyles() {
       .cop-search-input:focus { border-color:#2D3395; }
       .cop-kpi-clickable { cursor: pointer; transition: transform .12s, box-shadow .12s; }
       .cop-kpi-clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
+      @keyframes cop-current-halo {
+        0%   { transform: scale(1);   opacity: .45; }
+        70%  { transform: scale(2.2); opacity: 0;   }
+        100% { transform: scale(2.2); opacity: 0;   }
+      }
+      .cop-current-halo {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        animation: cop-current-halo 1.8s ease-out infinite;
+        pointer-events: none;
+        z-index: 0;
+      }
       .cop-timeline-scroll { scrollbar-width: thin; }
       .cop-timeline-scroll::-webkit-scrollbar { height: 4px; }
       .cop-timeline-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -274,36 +287,57 @@ function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }
                 >
                   {i > 0 && (
                     <div style={{
-                      position: 'absolute', top: 9, left: 0, right: '50%', height: 2,
+                      position: 'absolute', top: 10, left: 0, right: '50%', height: 2,
                       background: i <= activeStage ? STAGE_COLORS_TL[i - 1] : I.bd,
                     }} />
                   )}
                   {i < STAGES_DEF.length - 1 && (
                     <div style={{
-                      position: 'absolute', top: 9, left: '50%', right: 0, height: 2,
+                      position: 'absolute', top: 10, left: '50%', right: 0, height: 2,
                       background: i < activeStage ? STAGE_COLORS_TL[i] : I.bd,
                     }} />
                   )}
-                  <div style={{
-                    width: 20, height: 20, borderRadius: '50%',
-                    background: done || current ? dotClr : I.br,
-                    border: `2px solid ${dotClr}`,
-                    boxShadow: current ? `0 0 0 3px ${dotClr}30` : 'none',
-                    zIndex: 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 8, fontWeight: 700,
-                    color: done || current ? '#fff' : I.cz,
-                    transition: 'all .2s',
-                  }}>
-                    {done ? '✓' : aspirational && !current ? '·' : current ? '●' : i + 1}
+                  <div style={{ position: 'relative', width: 22, height: 22, zIndex: 1 }}>
+                    {current && (
+                      <span className="cop-current-halo" style={{ background: dotClr }} aria-hidden />
+                    )}
+                    <div style={{
+                      position: 'relative', zIndex: 1,
+                      width: '100%', height: '100%', borderRadius: '50%',
+                      background: done || current ? dotClr : I.br,
+                      border: `2px solid ${dotClr}`,
+                      boxShadow: current ? `0 0 0 3px ${dotClr}55` : 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 8, fontWeight: 700,
+                      color: done || current ? '#fff' : I.cz,
+                      transition: 'all .2s',
+                    }}>
+                      {done ? '✓' : aspirational && !current ? '·' : current ? '●' : i + 1}
+                    </div>
                   </div>
                   <div className="cop-timeline-label" style={{
-                    fontSize: 9, fontWeight: current ? 700 : 500, marginTop: 3, textAlign: 'center',
+                    fontSize: 9, fontWeight: current ? 700 : 500, marginTop: current ? 5 : 3, textAlign: 'center',
                     color: current ? dotClr : done ? I.cz : '#9CA3AF',
                     whiteSpace: 'nowrap', lineHeight: 1.2,
                   }}>
                     {label}
                   </div>
+                  {current && (
+                    <div style={{
+                      marginTop: 3,
+                      background: dotClr,
+                      color: '#fff',
+                      fontSize: 8,
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: 4,
+                      letterSpacing: '.05em',
+                      textTransform: 'uppercase',
+                      fontFamily: "'Syne',sans-serif",
+                    }}>
+                      Atual
+                    </div>
+                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent side="top" sideOffset={6} className="max-w-[200px]">
