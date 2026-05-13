@@ -157,6 +157,16 @@ function useCentralStyles() {
         font-size:14px; line-height:1;
         opacity:.7;
       }
+      @keyframes cop-skeleton-shimmer {
+        0%   { background-position: 100% 0; }
+        100% { background-position: -100% 0; }
+      }
+      .cop-skeleton {
+        background: linear-gradient(90deg, #F3F4F6 0%, #E5E7EB 50%, #F3F4F6 100%);
+        background-size: 200% 100%;
+        animation: cop-skeleton-shimmer 1.4s ease-in-out infinite;
+        border-radius: 4px;
+      }
       .cop-kpi-clickable { cursor: pointer; transition: transform .12s, box-shadow .12s; }
       .cop-kpi-clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
       @keyframes cop-current-halo {
@@ -386,6 +396,39 @@ function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }
         </div>
       </div>
     </TooltipProvider>
+  );
+}
+
+// ── Skeleton loading ──────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="cop-card" style={{ padding: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div className="cop-skeleton" style={{ width: 90,  height: 14, borderRadius: 999 }} />
+        <div className="cop-skeleton" style={{ width: 60,  height: 12 }} />
+      </div>
+      <div className="cop-skeleton" style={{ width: '85%', height: 16, marginBottom: 8 }} />
+      <div className="cop-skeleton" style={{ width: '60%', height: 14, marginBottom: 16 }} />
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, minWidth: 0 }}>
+        {[0, 1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} className="cop-skeleton" style={{ width: 18, height: 18, borderRadius: '50%' }} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 10, borderTop: '1px solid #E5E7EB', paddingTop: 12 }}>
+        <div className="cop-skeleton" style={{ width: 90,  height: 12 }} />
+        <div className="cop-skeleton" style={{ width: 70,  height: 12 }} />
+        <div className="cop-skeleton" style={{ width: 60,  height: 12, marginLeft: 'auto' }} />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonList() {
+  return (
+    <div style={{ paddingTop: 4 }}>
+      <div className="cop-skeleton" style={{ width: 130, height: 12, marginBottom: 14, opacity: .8 }} />
+      {[0, 1, 2].map(i => <SkeletonCard key={i} />)}
+    </div>
   );
 }
 
@@ -1309,13 +1352,8 @@ export function CentralOperacionalFornecedor() {
           </div>
         )}
 
-        {/* Loading */}
-        {loading && (
-          <div style={{ textAlign: 'center', padding: 40, color: I.cz }}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
-            <div style={{ fontSize: 13 }}>Carregando suas negociações…</div>
-          </div>
-        )}
+        {/* Loading — skeleton premium (B5.25) */}
+        {loading && <SkeletonList />}
 
         {/* Empty state */}
         {!loading && candidaturas.length === 0 && (
