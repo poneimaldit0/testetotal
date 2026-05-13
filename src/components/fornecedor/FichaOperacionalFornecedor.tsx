@@ -899,10 +899,22 @@ function SecaoProposta({
         </div>
       )}
 
-      {/* Estado: carregando arquivos */}
+      {/* Estado: carregando arquivos — skeleton (S2.10) */}
       {loading && (
-        <div style={{ fontSize: 12, color: I.cz, padding: '12px 0', textAlign: 'center' }}>
-          Carregando proposta…
+        <div
+          aria-busy="true"
+          aria-label="Carregando proposta"
+          style={{
+            background: I.cz2, border: `1.5px solid ${I.bd}`,
+            borderRadius: 10, padding: '12px 14px',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}
+        >
+          <span className="cop-skeleton" style={{ width: 22, height: 22, borderRadius: '50%' }} />
+          <div style={{ flex: 1 }}>
+            <div className="cop-skeleton" style={{ width: '60%', height: 12, marginBottom: 6 }} />
+            <div className="cop-skeleton" style={{ width: '40%', height: 10 }} />
+          </div>
         </div>
       )}
 
@@ -938,17 +950,21 @@ function SecaoProposta({
           <button
             type="button"
             onClick={() => setVerHistorico(v => !v)}
+            aria-expanded={verHistorico}
+            aria-controls="proposta-historico-list"
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontSize: 11, fontWeight: 700, color: I.cz,
-              padding: 0, fontFamily: "'Syne',sans-serif",
+              padding: '4px 0', fontFamily: "'Syne',sans-serif",
               textTransform: 'uppercase', letterSpacing: '.06em',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
           >
-            {verHistorico ? '▲' : '▼'} Histórico de versões ({historico.length})
+            <span aria-hidden>{verHistorico ? '▲' : '▼'}</span>
+            Histórico de versões ({historico.length})
           </button>
           {verHistorico && (
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div id="proposta-historico-list" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {historico.map(a => (
                 <ArquivoCard
                   key={a.id}
@@ -1011,6 +1027,18 @@ function SecaoProposta({
         </div>
       )}
 
+      {/* Edge case: candidatura.propostaEnviada=true mas array vazio (inconsistência) */}
+      {!loading && !versaoAtual && candidatura.propostaEnviada && podeEnviar && (
+        <div style={{
+          background: I.am2, border: `1.5px solid ${I.am}`, borderRadius: 8,
+          padding: '10px 14px', marginTop: 10,
+          fontSize: 12, color: I.am, lineHeight: 1.5,
+        }}>
+          <strong>⚠️ Inconsistência detectada:</strong> a candidatura está marcada como
+          “proposta enviada”, mas nenhum arquivo está anexado. Anexe a proposta novamente abaixo.
+        </div>
+      )}
+
       {/* Sem proposta + processo readonly */}
       {!loading && !podeEnviar && !versaoAtual && (
         <div style={{
@@ -1025,12 +1053,24 @@ function SecaoProposta({
       {/* Modal: preview da proposta */}
       {preview && (
         <Dialog open onOpenChange={open => { if (!open) setPreview(null); }}>
-          <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden">
-            <div className="flex-shrink-0 p-4 border-b">
-              <DialogTitle className="text-sm font-bold">{preview.nome_arquivo}</DialogTitle>
-              <DialogDescription className="text-xs">
-                {fmtBytes(preview.tamanho)} · {fmtDt(preview.created_at)} {fmtTm(preview.created_at)}
-              </DialogDescription>
+          <DialogContent className="max-w-3xl h-[85vh] sm:h-[80vh] flex flex-col p-0 overflow-hidden">
+            <div className="flex-shrink-0 p-4 border-b flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-sm font-bold truncate">{preview.nome_arquivo}</DialogTitle>
+                <DialogDescription className="text-xs">
+                  {fmtBytes(preview.tamanho)} · {fmtDt(preview.created_at)} {fmtTm(preview.created_at)}
+                </DialogDescription>
+              </div>
+              <a
+                href={preview.url_arquivo}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold whitespace-nowrap px-3 py-1.5 rounded border border-border hover:bg-muted transition-colors"
+                style={{ marginRight: 36 }}
+                aria-label="Abrir proposta em nova aba"
+              >
+                ↗ Nova aba
+              </a>
             </div>
             <div className="flex-1 bg-muted overflow-auto">
               {preview.tipo_arquivo === 'application/pdf' ? (
@@ -1153,6 +1193,7 @@ function ArquivoCard({
           type="button"
           onClick={onPreview}
           title="Visualizar"
+          aria-label={`Visualizar ${arquivo.nome_arquivo}`}
           style={iconBtnStyle(I.azul)}
         >
           👁
@@ -1161,6 +1202,7 @@ function ArquivoCard({
           type="button"
           onClick={onDownload}
           title="Baixar"
+          aria-label={`Baixar ${arquivo.nome_arquivo}`}
           style={iconBtnStyle(I.cz)}
         >
           ⤓
@@ -1170,6 +1212,7 @@ function ArquivoCard({
             type="button"
             onClick={onRemover}
             title="Remover"
+            aria-label={`Remover ${arquivo.nome_arquivo}`}
             style={iconBtnStyle(I.vm)}
           >
             ✕
