@@ -22,6 +22,97 @@ function fmtBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+// ── Próxima ação ──────────────────────────────────────────────────────────────
+// Deriva visualmente o que o fornecedor deve fazer a seguir.
+// Não altera backend nem status — apenas UI de orientação.
+type ProximaAcaoTom = 'urgent' | 'action' | 'wait' | 'done' | 'neutral';
+type AncoraSecao = 'atendimento' | 'proposta' | 'escopo';
+
+interface ProximaAcao {
+  tom: ProximaAcaoTom;
+  icone: string;
+  titulo: string;
+  ancora?: AncoraSecao;
+}
+
+function deriveProximaAcao(c: CandidaturaOrcamento): ProximaAcao {
+  const s = c.statusAcompanhamento;
+  if (s === 'visita_agendada' || s === 'reuniao_agendada') {
+    return { tom: 'urgent', icone: '⚡', titulo: 'Confirme sua presença no atendimento', ancora: 'atendimento' };
+  }
+  if ((s === 'visita_realizada' || s === 'reuniao_realizada') && !c.propostaEnviada) {
+    return { tom: 'action', icone: '📋', titulo: 'Envie sua proposta para avançar no processo', ancora: 'proposta' };
+  }
+  if (s === 'em_orcamento') {
+    return { tom: 'action', icone: '✍️', titulo: 'Prepare e anexe sua proposta', ancora: 'proposta' };
+  }
+  if (s === 'orcamento_enviado') {
+    return { tom: 'wait', icone: '⏳', titulo: 'Proposta enviada — aguardando análise' };
+  }
+  if (s === 'negocio_fechado') {
+    return { tom: 'done', icone: '🎉', titulo: 'Negócio fechado — aguarde próximos passos' };
+  }
+  if (s === 'negocio_perdido') {
+    return { tom: 'neutral', icone: '⚫', titulo: 'Processo encerrado' };
+  }
+  return { tom: 'neutral', icone: '📌', titulo: 'Acompanhe o andamento deste processo', ancora: 'escopo' };
+}
+
+const TOM_COLORS: Record<ProximaAcaoTom, { bg: string; bd: string; fg: string }> = {
+  urgent:  { bg: I.vm2,   bd: I.vm,   fg: I.vm   },
+  action:  { bg: I.azul3, bd: I.azul, fg: I.azul },
+  wait:    { bg: I.am2,   bd: I.am,   fg: I.am   },
+  done:    { bg: I.vd2,   bd: I.vd,   fg: I.vd   },
+  neutral: { bg: I.cz2,   bd: I.bd,   fg: I.cz   },
+};
+
+function ProximaAcaoBanner({ candidatura }: { candidatura: CandidaturaOrcamento }) {
+  const acao = deriveProximaAcao(candidatura);
+  const c = TOM_COLORS[acao.tom];
+  const clicavel = !!acao.ancora;
+
+  const handleClick = () => {
+    if (!acao.ancora) return;
+    const el = document.getElementById(`ficha-secao-${acao.ancora}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <div
+      role={clicavel ? 'button' : undefined}
+      onClick={clicavel ? handleClick : undefined}
+      style={{
+        marginBottom: 16,
+        background: c.bg,
+        border: `1.5px solid ${c.bd}`,
+        borderLeft: `4px solid ${c.bd}`,
+        borderRadius: 10,
+        padding: '12px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        cursor: clicavel ? 'pointer' : 'default',
+        transition: 'transform .12s, box-shadow .12s',
+      }}
+      onMouseEnter={e => { if (clicavel) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+      onMouseLeave={e => { if (clicavel) e.currentTarget.style.transform = 'translateY(0)'; }}
+    >
+      <span style={{ fontSize: 20, lineHeight: 1 }}>{acao.icone}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: c.fg, opacity: .75, marginBottom: 2 }}>
+          Próxima ação
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: c.fg, fontFamily: "'Syne',sans-serif", lineHeight: 1.35 }}>
+          {acao.titulo}
+        </div>
+      </div>
+      {clicavel && (
+        <span style={{ fontSize: 16, color: c.fg, fontWeight: 700, lineHeight: 1 }}>→</span>
+      )}
+    </div>
+  );
+}
+
 // ── Seção header ──────────────────────────────────────────────────────────────
 function FichaHeader({ candidatura }: { candidatura: CandidaturaOrcamento }) {
   const s = candidatura.statusAcompanhamento;
@@ -517,31 +608,41 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
 
             {/* Corpo rolável */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 32px' }}>
+              <ProximaAcaoBanner candidatura={candidatura} />
+
               <SecaoResultado s={candidatura.statusAcompanhamento} />
 
               {/* Proposta sobe quando a ação principal é enviar proposta */}
               {candidatura.statusAcompanhamento === 'em_orcamento' && (
-                <SecaoProposta
-                  candidatura={candidatura}
-                  statusLabel={candidatura.statusAcompanhamento}
-                />
+                <div id="ficha-secao-proposta">
+                  <SecaoProposta
+                    candidatura={candidatura}
+                    statusLabel={candidatura.statusAcompanhamento}
+                  />
+                </div>
               )}
 
-              <SecaoAtendimento
-                candidatura={candidatura}
-                preConfirmadoEm={preConfirmadoEm ?? confirmedAt}
-                onPreConfirmar={handlePreConfirmar}
-              />
+              <div id="ficha-secao-atendimento">
+                <SecaoAtendimento
+                  candidatura={candidatura}
+                  preConfirmadoEm={preConfirmadoEm ?? confirmedAt}
+                  onPreConfirmar={handlePreConfirmar}
+                />
+              </div>
 
               {/* Proposta na posição normal para todos os outros estados */}
               {candidatura.statusAcompanhamento !== 'em_orcamento' && (
-                <SecaoProposta
-                  candidatura={candidatura}
-                  statusLabel={candidatura.statusAcompanhamento}
-                />
+                <div id="ficha-secao-proposta">
+                  <SecaoProposta
+                    candidatura={candidatura}
+                    statusLabel={candidatura.statusAcompanhamento}
+                  />
+                </div>
               )}
 
-              <SecaoEscopo candidatura={candidatura} />
+              <div id="ficha-secao-escopo">
+                <SecaoEscopo candidatura={candidatura} />
+              </div>
               <SecaoContato candidatura={candidatura} />
               <SecaoDadosOrcamento candidatura={candidatura} />
               <SecaoAnexosOrcamento candidatura={candidatura} />
