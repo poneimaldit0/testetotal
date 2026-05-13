@@ -113,6 +113,204 @@ function ProximaAcaoBanner({ candidatura }: { candidatura: CandidaturaOrcamento 
   );
 }
 
+// ── Timeline operacional ──────────────────────────────────────────────────────
+// Cronologia derivada APENAS de timestamps reais já presentes em CandidaturaOrcamento.
+// Eventos sem timestamp dedicado (proposta enviada, visita realizada, fechamento)
+// aparecem no topo sem data — não inventamos timestamps.
+type EventoTipo =
+  | 'orcamento_publicado'
+  | 'candidatura'
+  | 'atendimento_agendado'
+  | 'presenca_confirmada'
+  | 'cliente_confirmou'
+  | 'lembrete_24h'
+  | 'lembrete_12h'
+  | 'lembrete_6h'
+  | 'visita_realizada'
+  | 'proposta_enviada'
+  | 'negocio_fechado'
+  | 'negocio_perdido';
+
+interface EventoTimeline {
+  tipo: EventoTipo;
+  label: string;
+  data: Date | null;
+  icone: string;
+  cor: string;
+}
+
+function deriveEventos(c: CandidaturaOrcamento): EventoTimeline[] {
+  const out: EventoTimeline[] = [];
+  const s = c.statusAcompanhamento;
+  const isReu = s === 'reuniao_agendada' || s === 'reuniao_realizada';
+
+  // Eventos com timestamp
+  out.push({
+    tipo: 'orcamento_publicado',
+    label: 'Orçamento publicado pela Reforma100',
+    data: c.dataPublicacao,
+    icone: '📣',
+    cor: I.azul,
+  });
+  out.push({
+    tipo: 'candidatura',
+    label: 'Você se candidatou',
+    data: c.dataCandidatura,
+    icone: '✋',
+    cor: I.azul,
+  });
+  if (c.horarioVisitaAgendado) {
+    out.push({
+      tipo: 'atendimento_agendado',
+      label: isReu ? 'Reunião online marcada' : 'Visita presencial marcada',
+      data: new Date(c.horarioVisitaAgendado),
+      icone: isReu ? '🎥' : '📅',
+      cor: I.lj,
+    });
+  }
+  if (c.preConfirmadoEm) {
+    out.push({
+      tipo: 'presenca_confirmada',
+      label: 'Presença confirmada na plataforma',
+      data: new Date(c.preConfirmadoEm),
+      icone: '✅',
+      cor: I.vd,
+    });
+  }
+  if (c.visitaConfirmadaEm) {
+    out.push({
+      tipo: 'cliente_confirmou',
+      label: 'Cliente confirmou a visita',
+      data: new Date(c.visitaConfirmadaEm),
+      icone: '🙋',
+      cor: I.vd,
+    });
+  }
+  if (c.notif24hEm) out.push({ tipo: 'lembrete_24h', label: 'Lembrete 24h enviado', data: new Date(c.notif24hEm), icone: '🔔', cor: I.cz });
+  if (c.notif12hEm) out.push({ tipo: 'lembrete_12h', label: 'Lembrete 12h enviado', data: new Date(c.notif12hEm), icone: '🔔', cor: I.cz });
+  if (c.notif6hEm)  out.push({ tipo: 'lembrete_6h',  label: 'Lembrete 6h enviado',  data: new Date(c.notif6hEm),  icone: '🔔', cor: I.cz });
+
+  // Eventos sem timestamp dedicado (derivados de status / propostaEnviada)
+  if (s === 'visita_realizada' || s === 'reuniao_realizada' || s === 'em_orcamento' || s === 'orcamento_enviado' || s === 'negocio_fechado') {
+    out.push({
+      tipo: 'visita_realizada',
+      label: isReu ? 'Reunião realizada' : 'Atendimento realizado',
+      data: null,
+      icone: '✓',
+      cor: I.vd,
+    });
+  }
+  if (c.propostaEnviada || s === 'orcamento_enviado' || s === 'negocio_fechado') {
+    out.push({
+      tipo: 'proposta_enviada',
+      label: 'Proposta enviada',
+      data: null,
+      icone: '📄',
+      cor: I.rx,
+    });
+  }
+  if (s === 'negocio_fechado') {
+    out.push({ tipo: 'negocio_fechado', label: 'Negócio fechado', data: null, icone: '🎉', cor: I.vd });
+  }
+  if (s === 'negocio_perdido') {
+    out.push({ tipo: 'negocio_perdido', label: 'Processo encerrado', data: null, icone: '⚫', cor: I.cz });
+  }
+
+  return out;
+}
+
+function fmtRelativo(d: Date): string {
+  const diff = d.getTime() - Date.now();
+  const abs = Math.abs(diff);
+  const min = 60_000, hora = 3_600_000, dia = 86_400_000;
+  const rtf = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' });
+  if (abs < hora)        return rtf.format(Math.round(diff / min),  'minute');
+  if (abs < dia)         return rtf.format(Math.round(diff / hora), 'hour');
+  if (abs < dia * 30)    return rtf.format(Math.round(diff / dia),  'day');
+  if (abs < dia * 365)   return rtf.format(Math.round(diff / (dia * 30)),  'month');
+  return rtf.format(Math.round(diff / (dia * 365)), 'year');
+}
+
+function TimelineOperacional({ candidatura }: { candidatura: CandidaturaOrcamento }) {
+  const eventos = (() => {
+    const arr = deriveEventos(candidatura);
+    return arr.sort((a, b) => {
+      // Eventos sem data ficam no topo (representam o estado atual)
+      if (!a.data && !b.data) return 0;
+      if (!a.data) return -1;
+      if (!b.data) return 1;
+      return b.data.getTime() - a.data.getTime();
+    });
+  })();
+
+  if (eventos.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 12 }}>
+        Histórico do processo
+      </div>
+      <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {eventos.map((ev, i) => {
+          const ehUltimo = i === eventos.length - 1;
+          return (
+            <li
+              key={`${ev.tipo}-${i}`}
+              style={{
+                position: 'relative',
+                paddingLeft: 32,
+                paddingBottom: ehUltimo ? 0 : 14,
+              }}
+            >
+              {/* Linha vertical conectora */}
+              {!ehUltimo && (
+                <span style={{
+                  position: 'absolute',
+                  left: 11,
+                  top: 22,
+                  bottom: 0,
+                  width: 2,
+                  background: I.bd,
+                }} />
+              )}
+              {/* Dot com ícone */}
+              <span style={{
+                position: 'absolute',
+                left: 0,
+                top: 2,
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: '#fff',
+                border: `2px solid ${ev.cor}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                lineHeight: 1,
+              }}>
+                {ev.icone}
+              </span>
+              <div style={{ fontSize: 13, fontWeight: 700, color: I.nv, lineHeight: 1.35, fontFamily: "'Syne',sans-serif" }}>
+                {ev.label}
+              </div>
+              {ev.data ? (
+                <div style={{ fontSize: 11, color: I.cz, marginTop: 2 }}>
+                  {fmtRelativo(ev.data)} · {fmtDt(ev.data.toISOString())} {fmtTm(ev.data.toISOString())}
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: I.cz, marginTop: 2, fontStyle: 'italic' }}>
+                  data não registrada
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 // ── Seção header ──────────────────────────────────────────────────────────────
 function FichaHeader({ candidatura }: { candidatura: CandidaturaOrcamento }) {
   const s = candidatura.statusAcompanhamento;
@@ -609,6 +807,8 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
             {/* Corpo rolável */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 32px' }}>
               <ProximaAcaoBanner candidatura={candidatura} />
+
+              <TimelineOperacional candidatura={candidatura} />
 
               <SecaoResultado s={candidatura.statusAcompanhamento} />
 
