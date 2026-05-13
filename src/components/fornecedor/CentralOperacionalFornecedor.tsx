@@ -699,11 +699,45 @@ export function CentralOperacionalFornecedor() {
   const { candidaturas, loading } = useMeusCandidaturas(profile?.id);
   const [repKpi, setRepKpi] = useState<{ media: number; total: number } | null>(null);
   const [fichaAberta, setFichaAberta] = useState<CandidaturaOrcamento | null>(null);
-  const [busca, setBusca] = useState('');
-  const [grupoFiltro, setGrupoFiltro] = useState<GrupoFiltro>('todos');
-  const [funilFiltro, setFunilFiltro] = useState<Stage | 'todos'>('todos');
-  const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>('todos');
-  const [ordem, setOrdem] = useState<Ordem>('recente');
+
+  // B5.18: estado inicial dos filtros lido da URL (?q, ?grupo, ?etapa, ?periodo, ?ordem)
+  const [busca, setBusca] = useState(() => searchParams.get('q') ?? '');
+  const [grupoFiltro, setGrupoFiltro] = useState<GrupoFiltro>(() => {
+    const v = searchParams.get('grupo');
+    return (v === 'urgent' || v === 'active' || v === 'done') ? v : 'todos';
+  });
+  const [funilFiltro, setFunilFiltro] = useState<Stage | 'todos'>(() => {
+    const v = searchParams.get('etapa');
+    if (v === null) return 'todos';
+    const n = Number(v);
+    return Number.isInteger(n) && n >= 0 && n <= 6 ? (n as Stage) : 'todos';
+  });
+  const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>(() => {
+    const v = searchParams.get('periodo');
+    return (v === '7' || v === '30' || v === '90') ? v : 'todos';
+  });
+  const [ordem, setOrdem] = useState<Ordem>(() => {
+    const v = searchParams.get('ordem');
+    return v === 'antigo' ? 'antigo' : 'recente';
+  });
+
+  // B5.18: sincronizar filtros → URL preservando view e orc; só escreve quando muda
+  useEffect(() => {
+    const current = new URLSearchParams(window.location.search);
+    const next = new URLSearchParams(current);
+    const setOrDel = (k: string, v: string | null) => {
+      if (v === null || v === '') next.delete(k);
+      else next.set(k, v);
+    };
+    setOrDel('q',       busca.trim() || null);
+    setOrDel('grupo',   grupoFiltro === 'todos' ? null : grupoFiltro);
+    setOrDel('etapa',   funilFiltro === 'todos' ? null : String(funilFiltro));
+    setOrDel('periodo', periodoFiltro === 'todos' ? null : periodoFiltro);
+    setOrDel('ordem',   ordem === 'recente' ? null : ordem);
+    if (next.toString() !== current.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [busca, grupoFiltro, funilFiltro, periodoFiltro, ordem, setSearchParams]);
 
   // Auto-abrir Ficha quando vier via ?orc=<id> (ex.: "Ver na Central" do Disponíveis)
   useEffect(() => {
