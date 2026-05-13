@@ -1014,10 +1014,32 @@ export function CentralOperacionalFornecedor() {
           </div>
         )}
 
-        {/* Sem resultado nos filtros */}
+        {/* Sem resultado nos filtros — mensagem contextual por filtro ativo */}
         {!loading && filtrosAtivos && candidaturasFiltradas.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '24px 16px', color: I.cz, fontSize: 13 }}>
-            Nenhuma candidatura corresponde aos filtros aplicados.
+          <div style={{ textAlign: 'center', padding: '24px 16px', color: I.cz, fontSize: 13, lineHeight: 1.5 }}>
+            {(() => {
+              const q = busca.trim();
+              if (q) return <>Nenhum resultado para <strong style={{ color: I.nv }}>“{q}”</strong>.</>;
+              if (grupoFiltro === 'urgent') return 'Nenhum processo requer ação agora.';
+              if (grupoFiltro === 'active') return 'Nenhum processo em andamento no momento.';
+              if (grupoFiltro === 'done')   return 'Nenhum processo finalizado ainda.';
+              if (funilFiltro !== 'todos') {
+                const msgPorEtapa: Record<Stage, string> = {
+                  0: 'Nenhuma candidatura na etapa de contato.',
+                  1: 'Nenhum atendimento agendado no momento.',
+                  2: 'Nenhum atendimento realizado encontrado.',
+                  3: 'Nenhuma proposta enviada encontrada.',
+                  4: 'Nenhum processo em compatibilização.',
+                  5: 'Nenhum fechamento registrado.',
+                  6: 'Nenhuma obra registrada.',
+                };
+                return msgPorEtapa[funilFiltro as Stage];
+              }
+              if (periodoFiltro !== 'todos') {
+                return `Nenhuma candidatura nos últimos ${periodoFiltro} dias.`;
+              }
+              return 'Nenhuma candidatura corresponde aos filtros aplicados.';
+            })()}
           </div>
         )}
 
