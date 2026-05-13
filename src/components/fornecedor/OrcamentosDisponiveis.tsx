@@ -61,6 +61,13 @@ function useDisponivelStyles() {
         transition:background .15s,transform .1s; white-space:nowrap;
       }
       .disp-chip-horario:hover { background:${D.azul}15; transform:scale(1.02); }
+      .disp-chip-horario-ocupado {
+        font-size:11px; font-weight:600; padding:8px 12px;
+        border-radius:8px; cursor:not-allowed; border:1.5px solid ${D.bd};
+        background:${D.cz2}; color:${D.cz}; min-height:40px;
+        white-space:nowrap; text-decoration:line-through; opacity:.7;
+        display:inline-flex; align-items:center; gap:6px;
+      }
       .disp-btn-participar {
         width:100%; padding:14px 0; border-radius:10px;
         background:${D.azul}; color:#fff; border:none;
@@ -166,15 +173,16 @@ function CardDisponivel({
   const navigate = useNavigate();
   const [showTodos, setShowTodos] = useState(false);
 
-  const horariosTotal  = (orcamento.horariosVisita || []).length;
-  const horariosLivres = (orcamento.horariosVisita || []).filter(h => !h.fornecedor_id);
+  const todosHorarios  = orcamento.horariosVisita || [];
+  const horariosTotal  = todosHorarios.length;
+  const horariosLivres = todosHorarios.filter(h => !h.fornecedor_id);
   const temHorarios    = horariosLivres.length > 0;
   const aberto         = orcamento.status === 'aberto';
   const inscrito       = orcamento.estaInscrito;
 
-  // Chips visiveis (máx 3, expandível)
-  const chipsVisiveis  = showTodos ? horariosLivres : horariosLivres.slice(0, 3);
-  const temMaisChips   = horariosLivres.length > 3 && !showTodos;
+  // Chips visiveis (máx 3, expandível) — exibe livres E ocupados; ocupados ficam travados
+  const chipsVisiveis  = showTodos ? todosHorarios : todosHorarios.slice(0, 3);
+  const temMaisChips   = todosHorarios.length > 3 && !showTodos;
 
   const tipoInfo = orcamento.tipoAtendimento === 'presencial'
     ? { label: 'Presencial', bg: D.lj2,  fg: '#9A6200', icon: '📍' }
@@ -281,7 +289,15 @@ function CardDisponivel({
                 Escolha um horário disponível:
               </div>
               <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 4 }}>
-                {chipsVisiveis.map(h => (
+                {chipsVisiveis.map(h => h.fornecedor_id ? (
+                  <span
+                    key={h.id}
+                    className="disp-chip-horario-ocupado"
+                    title="Horário já ocupado por outro fornecedor"
+                  >
+                    🔒 {fmtChip(h.data_hora)}
+                  </span>
+                ) : (
                   <button
                     key={h.id}
                     className="disp-chip-horario"
@@ -296,7 +312,7 @@ function CardDisponivel({
                     style={{ background: D.cz2, color: D.cz, border: `1.5px solid ${D.bd}` }}
                     onClick={() => setShowTodos(true)}
                   >
-                    +{horariosLivres.length - 3} mais…
+                    +{todosHorarios.length - 3} mais…
                   </button>
                 )}
               </div>
