@@ -107,24 +107,6 @@ export const MOCK_ROTA100 = {
       stepStatuses: ['done','done','done','cur',''] as const,
     },
   ],
-  marketplace: {
-    produtos: [
-      { id: 1, emoji: '🪵', loja: 'Leroy Merlin', nome: 'Porcelanato Acetinado 60×60cm', preco: 'R$ 89,90', precoAnt: 'R$ 119,90', cat: 'Revestimentos' },
-      { id: 2, emoji: '💡', loja: 'Shopee', nome: 'Kit Spot LED Embutir 5W (6 un.)', preco: 'R$ 74,90', precoAnt: 'R$ 99,90', cat: 'Elétrica' },
-      { id: 3, emoji: '🚿', loja: 'Mercado Livre', nome: 'Torneira Cromada Monocomando', preco: 'R$ 189,00', precoAnt: 'R$ 240,00', cat: 'Louças/Metais' },
-      { id: 4, emoji: '🎨', loja: 'Leroy Merlin', nome: 'Tinta Acrílica Premium 18L (branco neve)', preco: 'R$ 249,90', precoAnt: 'R$ 299,90', cat: 'Pintura' },
-      { id: 5, emoji: '🧱', loja: 'Telhanorte', nome: 'Argamassa Drywall 20kg', preco: 'R$ 38,90', precoAnt: 'R$ 52,00', cat: 'Gesso/Drywall' },
-      { id: 6, emoji: '🔌', loja: 'Shopee', nome: 'Eletroduto Corrugado 25mm (rolo 50m)', preco: 'R$ 64,00', precoAnt: 'R$ 82,00', cat: 'Elétrica' },
-    ],
-    parceiros: [
-      { emoji: '🛍️', nome: 'Shopee', desc: 'Materiais e produtos de reforma a preços acessíveis.', badge: 'Afiliado ativo · comissão 4–8%', badgeColor: 'green' },
-      { emoji: '🏗️', nome: 'Leroy Merlin', desc: 'Maior rede de construção e decoração do Brasil.', badge: 'Afiliados profissionais · comissão variável', badgeColor: 'orange' },
-      { emoji: '🛋️', nome: 'Tok&Stok', desc: 'Móveis, decoração e acessórios modernos.', badge: 'Parceria em análise', badgeColor: 'gray' },
-      { emoji: '🟡', nome: 'Mercado Livre', desc: 'Maior marketplace do Brasil.', badge: 'Afiliado ativo · comissão 5–12%', badgeColor: 'green' },
-      { emoji: '🔧', nome: 'Telhanorte', desc: 'Especialista em materiais de construção.', badge: 'Parceria em análise', badgeColor: 'gray' },
-      { emoji: '🔵', nome: 'OLX Pro', desc: 'Imóveis, construção e decoração em segunda mão.', badge: 'Parceria em análise', badgeColor: 'gray' },
-    ],
-  },
   avaliacoes: {
     empresas: [
       { id: 'sotm', initials: 'ST', bgColor: '#1A2E42', nome: 'SOTM Engenharia', valor: 'R$ 60.925,62', highlight: false },

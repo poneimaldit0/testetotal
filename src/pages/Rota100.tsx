@@ -188,28 +188,6 @@ function useRota100Styles() {
       .r100-fc:hover { border-color: rgba(232,81,10,.28); box-shadow: 0 4px 18px rgba(232,81,10,.08); transform: translateY(-2px); }
       .r100-fc:last-child { margin-bottom: 0; }
 
-      /* Marketplace cards */
-      .r100-mkt-card {
-        background: #fff;
-        border: 1px solid rgba(0,0,0,.07);
-        border-radius: 14px;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all .2s;
-      }
-      .r100-mkt-card:hover { border-color: #E8510A; box-shadow: 0 6px 24px rgba(232,81,10,.12); transform: translateY(-3px); }
-
-      .r100-partner-card {
-        background: #fff;
-        border: 1px solid rgba(0,0,0,.07);
-        border-radius: 14px;
-        padding: 18px;
-        text-align: center;
-        cursor: pointer;
-        transition: all .2s;
-      }
-      .r100-partner-card:hover { border-color: #E8510A; box-shadow: 0 4px 18px rgba(232,81,10,.09); transform: translateY(-2px); }
-
       /* Upload area */
       .r100-upload {
         border: 2px dashed rgba(0,0,0,.12);
@@ -444,7 +422,7 @@ function Avatar({ initials, bg, size = 32 }: { initials: string; bg: string; siz
 // ────────────────────────────────────────────────────────────────────────────
 // TABS
 // ────────────────────────────────────────────────────────────────────────────
-type Tab = 'checklist' | 'escopo' | 'empresas' | 'compatibilizacao' | 'marketplace' | 'avaliacoes';
+type Tab = 'checklist' | 'escopo' | 'empresas' | 'compatibilizacao' | 'avaliacoes';
 
 // ── RELATÓRIO DE MEDIÇÃO (placeholder) ───────────────────────────────────────
 function RelatorioMedicaoPlaceholder({ empresas }: { empresas: Rota100Empresa[] }) {
@@ -1413,120 +1391,9 @@ function CompatibilizacaoTab({
 }
 
 // ── MARKETPLACE ───────────────────────────────────────────────────────────────
-function MarketplaceTab() {
-  const { produtos, parceiros } = MOCK_ROTA100.marketplace;
-  const cats = ['Todos','Revestimentos','Elétrica','Hidráulica','Gesso/Drywall','Pintura','Ferramentas','Decoração','Louças/Metais'];
-  const [catAtiva, setCatAtiva] = useState('Todos');
-  const [busca, setBusca] = useState('');
-
-  const prodsFiltrados = produtos.filter(p => {
-    const matchCat = catAtiva === 'Todos' || p.cat === catAtiva;
-    const matchBusca = !busca || p.nome.toLowerCase().includes(busca.toLowerCase()) || p.loja.toLowerCase().includes(busca.toLowerCase());
-    return matchCat && matchBusca;
-  });
-
-  const badgePartner = (color: string) => {
-    if (color === 'green')  return { bg: C.vd2, fg: C.vd };
-    if (color === 'orange') return { bg: 'rgba(232,81,10,.1)', fg: C.lj };
-    return { bg: C.fd, fg: C.cz };
-  };
-
-  return (
-    <div>
-      {/* Banner */}
-      <div style={{ background: `linear-gradient(135deg, ${C.nv} 0%, #2a3240 100%)`, borderRadius: 16, padding: '26px 28px', color: '#fff', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20, boxShadow: '0 4px 24px rgba(26,32,48,.18)' }}>
-        <div style={{ fontSize: 44, flexShrink: 0 }}>🛒</div>
-        <div>
-          <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 19, fontWeight: 400, marginBottom: 6, lineHeight: 1.3 }}>Marketplace Reforma100</h3>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginBottom: 12, lineHeight: 1.6 }}>Produtos selecionados para sua reforma — construção, decoração e acabamento com os melhores parceiros</p>
-          <button className="r100-btn r100-btn-primary r100-btn-sm" onClick={() => toast.info('Em breve integração completa!')}>
-            Saiba como ganhar indicando →
-          </button>
-        </div>
-      </div>
-
-      {/* Busca */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <input type="text" className="r100-input" value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar produtos de construção, reforma e decoração..." style={{ flex: 1 }} />
-        <button className="r100-btn r100-btn-primary r100-btn-md">Buscar</button>
-      </div>
-
-      {/* Categorias */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
-        {cats.map(c => (
-          <button key={c} onClick={() => setCatAtiva(c)}
-            style={{ padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${catAtiva === c ? C.nv : C.bd}`, background: catAtiva === c ? C.nv : '#fff', color: catAtiva === c ? '#fff' : C.cz, transition: 'all .18s' }}>
-            {c}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid produtos */}
-      <div className="r100-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>
-        {prodsFiltrados.length === 0 ? (
-          <div style={{ gridColumn: '1/-1', textAlign: 'center', color: C.cz, padding: 40, fontSize: 13 }}>Nenhum produto encontrado.</div>
-        ) : prodsFiltrados.map(p => (
-          <div key={p.id} className="r100-mkt-card" onClick={() => toast.info(`${p.nome} — disponível em breve.`)}>
-            <div style={{ width: '100%', aspectRatio: '1', background: C.fd, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, borderBottom: `1px solid ${C.bd}` }}>
-              {p.emoji}
-            </div>
-            <div style={{ padding: '12px 12px 14px' }}>
-              <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: C.cz, marginBottom: 3 }}>{p.loja}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.nv, lineHeight: 1.35, marginBottom: 8 }}>{p.nome}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
-                <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 800, color: C.lj }}>{p.preco}</span>
-                <span style={{ fontSize: 10, color: C.cz, textDecoration: 'line-through' }}>{p.precoAnt}</span>
-              </div>
-              <button className="r100-btn r100-btn-primary r100-btn-sm" style={{ width: '100%', justifyContent: 'center', fontSize: 10 }}
-                onClick={e => { e.stopPropagation(); toast.info('Link de compra disponível em breve.'); }}>
-                Comprar
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="r100-div"><h3>Lojas parceiras</h3></div>
-      <div className="r100-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
-        {parceiros.map((p, i) => {
-          const b = badgePartner(p.badgeColor);
-          return (
-            <div key={i} className="r100-partner-card" onClick={() => toast.info(`${p.nome} — disponível em breve.`)}>
-              <div style={{ fontSize: 30, marginBottom: 8 }}>{p.emoji}</div>
-              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{p.nome}</div>
-              <div style={{ fontSize: 10, color: C.cz, lineHeight: 1.55, marginBottom: 8 }}>{p.desc}</div>
-              <span style={{ ...bdg(b.bg, b.fg), fontSize: 9 }}>{p.badge}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="r100-card" style={{ background: C.vd2, borderColor: 'rgba(26,122,74,.15)' }}>
-        <div className="r100-card-h"><div className="r100-card-icon" style={{ background: '#fff' }}>💡</div>Como funciona a monetização Reforma100</div>
-        <div className="r100-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {[
-            { icon: '🛒', title: 'Para o cliente',         desc: 'Acesso a produtos selecionados com preços de mercado. Sem taxa adicional.' },
-            { icon: '💰', title: 'Para a Reforma100',       desc: 'Recebemos comissão das plataformas parceiras — sem custo para o cliente.' },
-            { icon: '📦', title: 'Sem estoque',             desc: 'Operamos como afiliado — entrega e gestão são das plataformas.' },
-            { icon: '🎯', title: 'Produtos relevantes',     desc: 'Sugerimos produtos alinhados ao escopo e à sua região.' },
-          ].map((it, i) => (
-            <div key={i} style={{ padding: '14px 16px', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: C.nv, marginBottom: 4 }}>{it.icon} {it.title}</p>
-              <p style={{ fontSize: 11, color: C.cz, lineHeight: 1.65 }}>{it.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── AVALIAÇÕES ────────────────────────────────────────────────────────────────
 function AvaliacoesTab({ empresas: empresasReais, token, orcamentoId }: { empresas: Rota100Empresa[], token: string, orcamentoId: string }) {
-  const { ranking } = MOCK_ROTA100.avaliacoes;
-  const empresas = empresasReais.length > 0
-    ? empresasReais.map(e => ({ id: e.id, initials: e.initials, bgColor: e.bgColor, nome: e.nome, valor: e.valor, highlight: false }))
-    : MOCK_ROTA100.avaliacoes.empresas;
+  const empresas = empresasReais.map(e => ({ id: e.id, initials: e.initials, bgColor: e.bgColor, nome: e.nome, valor: e.valor, highlight: false }));
 
   type RatingsMap = Record<string, Record<string, number>>;
   const [ratings, setRatings] = useState<RatingsMap>(() => {
@@ -1543,7 +1410,7 @@ function AvaliacoesTab({ empresas: empresasReais, token, orcamentoId }: { empres
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || empresas.length === 0) return;
     (supabase as any)
       .from('avaliacoes_fornecedor')
       .select('candidatura_id, nota_geral, notas, comentario')
@@ -1572,8 +1439,6 @@ function AvaliacoesTab({ empresas: empresasReais, token, orcamentoId }: { empres
     ['prazo','Prazo de visita / retorno'],['geral','Impressão geral'],
   ];
 
-  const rankRing = ['#C4780A','#888','#C0392B',C.bd];
-
   const enviarAvaliacoes = async () => {
     if (salvando || enviado) return;
     setSalvando(true);
@@ -1597,6 +1462,20 @@ function AvaliacoesTab({ empresas: empresasReais, token, orcamentoId }: { empres
       setSalvando(false);
     }
   };
+
+  if (empresas.length === 0) {
+    return (
+      <div className="r100-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>⭐</div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16, color: C.nv, marginBottom: 8 }}>
+          Sem empresas para avaliar
+        </div>
+        <p style={{ fontSize: 13, color: C.cz, lineHeight: 1.65 }}>
+          As avaliações ficarão disponíveis quando houver empresas participando do seu projeto.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -1642,29 +1521,6 @@ function AvaliacoesTab({ empresas: empresasReais, token, orcamentoId }: { empres
         )}
       </div>
 
-      {/* Ranking */}
-      <div className="r100-card">
-        <div className="r100-card-h"><div className="r100-card-icon" style={{ background: '#FFF5DC' }}>🏆</div>Ranking das empresas nesta obra</div>
-        <p style={{ fontSize: 12, color: C.cz, marginBottom: 18, lineHeight: 1.55 }}>Baseado na avaliação de clientes anteriores — não inclui dados internos.</p>
-        {ranking.map((r, i) => (
-          <div key={r.pos} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid rgba(0,0,0,.07)`, borderRadius: 14, marginBottom: 8, background: '#fff', transition: 'all .18s' }}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: i === 0 ? '#FFF5DC' : i === 1 ? '#F2F2F2' : i === 2 ? C.vm2 : C.fd, border: `1.5px solid ${rankRing[i] ?? C.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: rankRing[i] ?? C.cz, flexShrink: 0 }}>{r.pos}</div>
-            <Avatar initials={r.initials} bg={r.bgColor} size={30} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 13 }}>{r.nome}</div>
-              <div style={{ fontSize: 10, color: C.cz, marginBottom: 4 }}>{r.specs}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Stars filled={r.stars} size={11} />
-                <span style={{ fontSize: 10, color: C.cz }}>{r.rating} · {r.obras} obras</span>
-              </div>
-            </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22, fontWeight: 400, color: i === 3 ? C.am : C.nv, lineHeight: 1 }}>{r.score}</div>
-              <div style={{ fontSize: 9, color: C.cz, marginTop: 2 }}>score</div>
-            </div>
-          </div>
-        ))}
-      </div>
     </>
   );
 }
@@ -1814,7 +1670,6 @@ export default function Rota100() {
     { id: 'escopo',           label: 'Escopo' },
     { id: 'empresas',         label: 'Empresas' },
     { id: 'compatibilizacao', label: 'Compatibilização', locked: false },
-    { id: 'marketplace',      label: 'Marketplace' },
     { id: 'avaliacoes',       label: 'Avaliações' },
   ];
 
@@ -1956,7 +1811,6 @@ export default function Rota100() {
           {activeTab === 'escopo'           && <EscopoTab {...(data?.escopo ?? MOCK_ROTA100.escopo)} />}
           {activeTab === 'empresas'         && <EmpresasTab empresas={data?.empresas ?? MOCK_ROTA100.empresas as any} token={token} tipoAtendimento={data?.tipoAtendimento ?? null} onCompatIndividual={handleCompatIndividual} onCompatCompleta={handleCompatCompleta} onDispensa={handleDispensa} />}
           {activeTab === 'compatibilizacao' && <CompatibilizacaoTab onGoToEmpresas={() => setActiveTab('empresas')} empresas={data?.empresas ?? []} orcamentoId={data?.orcamentoId ?? ''} token={token} clienteNome={cliente.nome} />}
-          {activeTab === 'marketplace'      && <MarketplaceTab />}
           {activeTab === 'avaliacoes'       && <AvaliacoesTab empresas={data?.empresas ?? []} token={token} orcamentoId={data?.orcamentoId ?? ''} />}
         </div>
 
