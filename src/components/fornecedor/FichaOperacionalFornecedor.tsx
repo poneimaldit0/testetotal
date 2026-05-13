@@ -1,9 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDropzone } from 'react-dropzone';
 import { supabase } from '@/integrations/supabase/client';
-import { CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
-import { PropostaAnexoUpload } from './PropostaAnexoUpload';
+import type { CandidaturaOrcamento } from '@/hooks/useMeusCandiaturas';
+import { usePropostasArquivos, type PropostaArquivo } from '@/hooks/usePropostasArquivos';
+import {
+  useCompatStatusFornecedor,
+  deriveFasePropostaFromCompat,
+  type PropostaFase,
+  type CompatStatusFornecedor,
+} from '@/hooks/useCompatStatusFornecedor';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 import { R as I } from '@/styles/tokens';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -38,6 +47,97 @@ function isAtencaoPosAtendimento(c: CandidaturaOrcamento): boolean {
   return dias !== null && dias >= ATENCAO_POS_ATENDIMENTO_DIAS;
 }
 
+// ── Sprint S2: fases da proposta + SLA ────────────────────────────────────────
+type FaseVisual = {
+  tom: 'urgent' | 'action' | 'wait' | 'done' | 'neutral' | 'error';
+  icone: string;
+  titulo: string;
+  descricao: string;
+};
+
+const FASE_VISUAL: Record<PropostaFase, FaseVisual> = {
+  sem_proposta: {
+    tom: 'action', icone: '📋',
+    titulo: 'Proposta ainda não enviada',
+    descricao: 'Envie sua proposta comercial para avançar no processo.',
+  },
+  enviada_aguardando_analise: {
+    tom: 'wait', icone: '⏳',
+    titulo: 'Proposta enviada — aguardando análise',
+    descricao: 'A Reforma100 vai analisar sua proposta antes de prosseguir.',
+  },
+  em_compatibilizacao: {
+    tom: 'wait', icone: '🔍',
+    titulo: 'Em compatibilização',
+    descricao: 'A Reforma100 está comparando sua proposta às demais para o cliente.',
+  },
+  em_revisao_consultor: {
+    tom: 'wait', icone: '👁️',
+    titulo: 'Em revisão pelo consultor',
+    descricao: 'O consultor está revisando a compatibilização antes de liberar ao cliente.',
+  },
+  aguardando_cliente: {
+    tom: 'wait', icone: '🤔',
+    titulo: 'Cliente analisando',
+    descricao: 'O comparativo foi enviado ao cliente. Aguarde a decisão.',
+  },
+  aprovada: {
+    tom: 'done', icone: '✅',
+    titulo: 'Proposta aprovada',
+    descricao: 'Sua proposta foi aprovada. Aguarde os próximos passos do contrato.',
+  },
+  recusada: {
+    tom: 'neutral', icone: '⚫',
+    titulo: 'Proposta não selecionada',
+    descricao: 'Esta proposta não foi a escolhida pelo cliente neste processo.',
+  },
+  erro: {
+    tom: 'error', icone: '⚠️',
+    titulo: 'Falha na análise',
+    descricao: 'Houve um problema técnico ao analisar a proposta. A Reforma100 já foi avisada.',
+  },
+};
+
+const TOM_COLORS_FASE: Record<FaseVisual['tom'], { bg: string; bd: string; fg: string }> = {
+  urgent:  { bg: I.vm2,   bd: I.vm,   fg: I.vm   },
+  action:  { bg: I.azul3, bd: I.azul, fg: I.azul },
+  wait:    { bg: I.am2,   bd: I.am,   fg: I.am   },
+  done:    { bg: I.vd2,   bd: I.vd,   fg: I.vd   },
+  neutral: { bg: I.cz2,   bd: I.bd,   fg: I.cz   },
+  error:   { bg: I.vm2,   bd: I.vm,   fg: I.vm   },
+};
+
+// SLA: tempo desde o último marcador relevante para a fase atual.
+// Usa propostaArquivos (created_at do mais recente) + compat.created_at + compat.aprovado_em.
+function deriveSLA(
+  fase: PropostaFase,
+  propostaArquivos: PropostaArquivo[],
+  compat: CompatStatusFornecedor | null,
+): { texto: string; dias: number } | null {
+  const ultimaProposta = propostaArquivos[0]?.created_at;
+  const fmtDias = (ms: number): { texto: string; dias: number } => {
+    const dias = Math.floor(ms / 86_400_000);
+    const horas = Math.floor(ms / 3_600_000);
+    if (dias >= 1) return { texto: dias === 1 ? 'há 1 dia' : `há ${dias} dias`, dias };
+    if (horas >= 1) return { texto: horas === 1 ? 'há 1 hora' : `há ${horas} horas`, dias: 0 };
+    return { texto: 'há pouco', dias: 0 };
+  };
+
+  switch (fase) {
+    case 'enviada_aguardando_analise':
+      return ultimaProposta ? fmtDias(Date.now() - new Date(ultimaProposta).getTime()) : null;
+    case 'em_compatibilizacao':
+    case 'em_revisao_consultor':
+      return compat ? fmtDias(Date.now() - new Date(compat.created_at).getTime()) : null;
+    case 'aguardando_cliente':
+      return compat?.aprovado_em
+        ? fmtDias(Date.now() - new Date(compat.aprovado_em).getTime())
+        : compat ? fmtDias(Date.now() - new Date(compat.created_at).getTime()) : null;
+    default:
+      return null;
+  }
+}
+
 // ── Próxima ação ──────────────────────────────────────────────────────────────
 // Deriva visualmente o que o fornecedor deve fazer a seguir.
 // Não altera backend nem status — apenas UI de orientação.
@@ -51,7 +151,7 @@ interface ProximaAcao {
   ancora?: AncoraSecao;
 }
 
-function deriveProximaAcao(c: CandidaturaOrcamento): ProximaAcao {
+function deriveProximaAcao(c: CandidaturaOrcamento, fase: PropostaFase): ProximaAcao {
   const s = c.statusAcompanhamento;
   if (s === 'visita_agendada' || s === 'reuniao_agendada') {
     return { tom: 'urgent', icone: '⚡', titulo: 'Confirme sua presença no atendimento', ancora: 'atendimento' };
@@ -72,14 +172,30 @@ function deriveProximaAcao(c: CandidaturaOrcamento): ProximaAcao {
   if (s === 'em_orcamento') {
     return { tom: 'action', icone: '✍️', titulo: 'Prepare e anexe sua proposta', ancora: 'proposta' };
   }
+  // Pós-envio: usar a fase real (compat) quando disponível
+  if (fase === 'em_compatibilizacao') {
+    return { tom: 'wait', icone: '🔍', titulo: 'Em compatibilização — Reforma100 analisando', ancora: 'proposta' };
+  }
+  if (fase === 'em_revisao_consultor') {
+    return { tom: 'wait', icone: '👁️', titulo: 'Em revisão pelo consultor', ancora: 'proposta' };
+  }
+  if (fase === 'aguardando_cliente') {
+    return { tom: 'wait', icone: '🤔', titulo: 'Cliente analisando — aguarde a decisão', ancora: 'proposta' };
+  }
+  if (fase === 'aprovada') {
+    return { tom: 'done', icone: '🎉', titulo: 'Proposta aprovada — aguarde próximos passos' };
+  }
+  if (fase === 'recusada' || s === 'negocio_perdido') {
+    return { tom: 'neutral', icone: '⚫', titulo: 'Processo encerrado' };
+  }
+  if (fase === 'erro') {
+    return { tom: 'urgent', icone: '⚠️', titulo: 'Houve um problema na análise — Reforma100 foi avisada', ancora: 'proposta' };
+  }
   if (s === 'orcamento_enviado') {
-    return { tom: 'wait', icone: '⏳', titulo: 'Proposta enviada — aguardando análise' };
+    return { tom: 'wait', icone: '⏳', titulo: 'Proposta enviada — aguardando análise', ancora: 'proposta' };
   }
   if (s === 'negocio_fechado') {
     return { tom: 'done', icone: '🎉', titulo: 'Negócio fechado — aguarde próximos passos' };
-  }
-  if (s === 'negocio_perdido') {
-    return { tom: 'neutral', icone: '⚫', titulo: 'Processo encerrado' };
   }
   return { tom: 'neutral', icone: '📌', titulo: 'Acompanhe o andamento deste processo', ancora: 'escopo' };
 }
@@ -92,8 +208,8 @@ const TOM_COLORS: Record<ProximaAcaoTom, { bg: string; bd: string; fg: string }>
   neutral: { bg: I.cz2,   bd: I.bd,   fg: I.cz   },
 };
 
-function ProximaAcaoBanner({ candidatura }: { candidatura: CandidaturaOrcamento }) {
-  const acao = deriveProximaAcao(candidatura);
+function ProximaAcaoBanner({ candidatura, fase }: { candidatura: CandidaturaOrcamento; fase: PropostaFase }) {
+  const acao = deriveProximaAcao(candidatura, fase);
   const c = TOM_COLORS[acao.tom];
   const clicavel = !!acao.ancora;
 
@@ -155,6 +271,11 @@ type EventoTipo =
   | 'visita_realizada'
   | 'proposta_pendente_atencao'
   | 'proposta_enviada'
+  | 'compat_iniciada'
+  | 'compat_em_revisao'
+  | 'compat_aprovada'
+  | 'aguardando_cliente'
+  | 'compat_erro'
   | 'negocio_fechado'
   | 'negocio_perdido';
 
@@ -166,7 +287,7 @@ interface EventoTimeline {
   cor: string;
 }
 
-function deriveEventos(c: CandidaturaOrcamento): EventoTimeline[] {
+function deriveEventos(c: CandidaturaOrcamento, compat: CompatStatusFornecedor | null): EventoTimeline[] {
   const out: EventoTimeline[] = [];
   const s = c.statusAcompanhamento;
   const isReu = s === 'reuniao_agendada' || s === 'reuniao_realizada';
@@ -247,6 +368,60 @@ function deriveEventos(c: CandidaturaOrcamento): EventoTimeline[] {
       cor: I.rx,
     });
   }
+
+  // Sprint S2: eventos derivados de compatibilizacoes_analises_ia (timestamp real)
+  if (compat && compat.incluido) {
+    const compatCreated = new Date(compat.created_at);
+    const ativoIA = compat.status === 'processando' || compat.status === 'compatibilizando' || compat.status === 'pending';
+    const concluido = compat.status === 'concluida' || compat.status === 'completed' || compat.status === 'pendente_revisao' || compat.status === 'revisado';
+
+    if (ativoIA || concluido || compat.status === 'aprovado' || compat.status === 'enviado') {
+      out.push({
+        tipo: 'compat_iniciada',
+        label: 'Compatibilização iniciada',
+        data: compatCreated,
+        icone: '🔍',
+        cor: I.am,
+      });
+    }
+    if (concluido) {
+      out.push({
+        tipo: 'compat_em_revisao',
+        label: 'Em revisão pelo consultor',
+        data: null,
+        icone: '👁️',
+        cor: I.rx,
+      });
+    }
+    if (compat.status === 'aprovado' && compat.aprovado_em) {
+      out.push({
+        tipo: 'compat_aprovada',
+        label: 'Compatibilização aprovada',
+        data: new Date(compat.aprovado_em),
+        icone: '✓',
+        cor: I.vd,
+      });
+    }
+    if (compat.status === 'enviado') {
+      out.push({
+        tipo: 'aguardando_cliente',
+        label: 'Aguardando decisão do cliente',
+        data: null,
+        icone: '🤔',
+        cor: I.rx,
+      });
+    }
+    if (compat.status === 'erro' || compat.status === 'failed') {
+      out.push({
+        tipo: 'compat_erro',
+        label: 'Falha na compatibilização',
+        data: null,
+        icone: '⚠️',
+        cor: I.vm,
+      });
+    }
+  }
+
   if (s === 'negocio_fechado') {
     out.push({ tipo: 'negocio_fechado', label: 'Negócio fechado', data: null, icone: '🎉', cor: I.vd });
   }
@@ -269,9 +444,11 @@ function fmtRelativo(d: Date): string {
   return rtf.format(Math.round(diff / (dia * 365)), 'year');
 }
 
-function TimelineOperacional({ candidatura }: { candidatura: CandidaturaOrcamento }) {
+function TimelineOperacional({ candidatura, compat, fase }: { candidatura: CandidaturaOrcamento; compat: CompatStatusFornecedor | null; fase: PropostaFase }) {
+  // fase é recebida para futura expansão; hoje os eventos derivam de candidatura + compat
+  void fase;
   const eventos = (() => {
-    const arr = deriveEventos(candidatura);
+    const arr = deriveEventos(candidatura, compat);
     return arr.sort((a, b) => {
       // Eventos sem data ficam no topo (representam o estado atual)
       if (!a.data && !b.data) return 0;
@@ -588,44 +765,437 @@ function LembretesAutomaticos({
   );
 }
 
-// ── Seção: proposta ───────────────────────────────────────────────────────────
+// ── Seção: proposta (Sprint S2) ───────────────────────────────────────────────
+// Reescrita para suportar fases visuais, preview, versionamento e SLA.
+// Não toca em backend — usa hooks readonly já existentes + usePropostasArquivos.
 function SecaoProposta({
-  candidatura, statusLabel,
+  candidatura, fase, compat,
 }: {
   candidatura: CandidaturaOrcamento;
-  statusLabel: string | null;
+  fase: PropostaFase;
+  compat: CompatStatusFornecedor | null;
 }) {
   const s = candidatura.statusAcompanhamento;
   const isDone = s === 'negocio_fechado' || s === 'negocio_perdido';
-  if (isDone) return null;
+
+  const {
+    arquivos, loading, uploading,
+    uploadArquivo, removerArquivo, downloadArquivo,
+  } = usePropostasArquivos(candidatura.candidaturaId, candidatura.id);
+
+  const { toast } = useToast();
+  const [preview, setPreview] = useState<PropostaArquivo | null>(null);
+  const [confirmarSubstituir, setConfirmarSubstituir] = useState(false);
+  const [verHistorico, setVerHistorico] = useState(false);
+  const [feedbackEnvio, setFeedbackEnvio] = useState(false);
+
+  const versaoAtual = arquivos[0] ?? null;
+  const historico = arquivos.slice(1);
+
+  const podeEnviar = !isDone && fase !== 'aprovada' && fase !== 'recusada';
+
+  const onDrop = useCallback(async (files: File[]) => {
+    for (const f of files) {
+      const id = await uploadArquivo(f);
+      if (id) {
+        setFeedbackEnvio(true);
+        setTimeout(() => setFeedbackEnvio(false), 3500);
+      }
+    }
+  }, [uploadArquivo]);
+
+  const { getInputProps, open: openPicker } = useDropzone({
+    onDrop,
+    onDropRejected: () => {
+      toast({
+        title: 'Arquivo não aceito',
+        description: 'Envie PDF, JPEG ou PNG até 10MB.',
+        variant: 'destructive',
+      });
+    },
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png':  ['.png'],
+    },
+    maxSize: 10 * 1024 * 1024,
+    disabled: !podeEnviar || uploading,
+    noClick: true,
+    noKeyboard: true,
+  });
+
+  // Encerrados sem proposta enviada: apenas mensagem mínima.
+  if (isDone && !candidatura.propostaEnviada) {
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 8 }}>
+          Proposta comercial
+        </div>
+        <div style={{ fontSize: 12, color: I.cz, fontStyle: 'italic' }}>
+          Processo encerrado sem proposta enviada.
+        </div>
+      </div>
+    );
+  }
+
+  const visual = FASE_VISUAL[isDone ? (s === 'negocio_fechado' ? 'aprovada' : 'recusada') : fase];
+  const cor = TOM_COLORS_FASE[visual.tom];
+  const sla = !isDone ? deriveSLA(fase, arquivos, compat) : null;
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 10 }}>
         Proposta comercial
       </div>
 
-      {s === 'em_orcamento' && (
-        <div style={{ borderRadius: 8, background: I.azul3, border: `1.5px solid ${I.azul}33`, padding: '10px 14px', marginBottom: 10 }}>
-          <div style={{ fontSize: 12, color: I.azul, fontWeight: 700, marginBottom: 2 }}>▶ Envie sua proposta</div>
-          <div style={{ fontSize: 11, color: I.cz, lineHeight: 1.5 }}>A Reforma100 aguarda sua proposta comercial para avançar neste processo.</div>
+      {/* Banner de fase atual */}
+      <div style={{
+        borderRadius: 10,
+        background: cor.bg,
+        border: `1.5px solid ${cor.bd}`,
+        borderLeft: `4px solid ${cor.bd}`,
+        padding: '12px 14px',
+        marginBottom: 12,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+      }}>
+        <span style={{ fontSize: 20, lineHeight: 1 }}>{visual.icone}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: cor.fg, fontFamily: "'Syne',sans-serif" }}>
+              {visual.titulo}
+            </span>
+            {sla && (
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                padding: '1px 7px', borderRadius: 999,
+                background: sla.dias >= 5 ? I.vm2 : 'rgba(255,255,255,.55)',
+                color: sla.dias >= 5 ? I.vm : cor.fg,
+                fontFamily: "'DM Sans',sans-serif",
+              }}>
+                {sla.texto}
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: cor.fg, opacity: .85, lineHeight: 1.4 }}>
+            {visual.descricao}
+          </div>
         </div>
-      )}
-      {s === 'orcamento_enviado' && (
-        <div style={{ borderRadius: 8, background: I.vd2, border: `1.5px solid ${I.vd}33`, padding: '10px 14px', marginBottom: 10 }}>
-          <div style={{ fontSize: 12, color: I.vd, fontWeight: 700, marginBottom: 2 }}>📋 Proposta enviada</div>
-          <div style={{ fontSize: 11, color: I.cz, lineHeight: 1.5 }}>Aguardando análise da Reforma100. Você pode substituir o arquivo abaixo.</div>
+      </div>
+
+      {/* Feedback pós-envio (volátil, 3.5s) */}
+      {feedbackEnvio && (
+        <div style={{
+          background: I.vd2, border: `1.5px solid ${I.vd}`, borderRadius: 8,
+          padding: '10px 14px', marginBottom: 12,
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'cop-fade-in .25s ease-out',
+        }}>
+          <span style={{ fontSize: 16 }}>✅</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: I.vd }}>
+            Proposta enviada com sucesso
+          </span>
         </div>
       )}
 
-      <PropostaAnexoUpload
-        candidaturaId={candidatura.candidaturaId}
-        orcamentoId={candidatura.id}
-        hideAnalise
-      />
+      {/* Estado: carregando arquivos */}
+      {loading && (
+        <div style={{ fontSize: 12, color: I.cz, padding: '12px 0', textAlign: 'center' }}>
+          Carregando proposta…
+        </div>
+      )}
+
+      {/* Estado: upload em andamento */}
+      {uploading && (
+        <div style={{
+          background: I.azul3, border: `1.5px solid ${I.azul}33`, borderRadius: 8,
+          padding: '10px 14px', marginBottom: 10,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ fontSize: 16 }}>📤</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: I.azul }}>
+            Enviando proposta…
+          </span>
+        </div>
+      )}
+
+      {/* Versão atual destacada */}
+      {!loading && versaoAtual && (
+        <ArquivoCard
+          arquivo={versaoAtual}
+          destaque
+          podeRemover={podeEnviar}
+          onPreview={() => setPreview(versaoAtual)}
+          onDownload={() => downloadArquivo(versaoAtual)}
+          onRemover={() => removerArquivo(versaoAtual)}
+        />
+      )}
+
+      {/* Histórico colapsável */}
+      {!loading && historico.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => setVerHistorico(v => !v)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 11, fontWeight: 700, color: I.cz,
+              padding: 0, fontFamily: "'Syne',sans-serif",
+              textTransform: 'uppercase', letterSpacing: '.06em',
+            }}
+          >
+            {verHistorico ? '▲' : '▼'} Histórico de versões ({historico.length})
+          </button>
+          {verHistorico && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {historico.map(a => (
+                <ArquivoCard
+                  key={a.id}
+                  arquivo={a}
+                  destaque={false}
+                  podeRemover={podeEnviar}
+                  onPreview={() => setPreview(a)}
+                  onDownload={() => downloadArquivo(a)}
+                  onRemover={() => removerArquivo(a)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CTA: anexar / substituir */}
+      {!loading && podeEnviar && (
+        <div style={{ marginTop: 12 }}>
+          <input {...getInputProps()} id="proposta-file-input" />
+          {!versaoAtual ? (
+            <button
+              type="button"
+              onClick={openPicker}
+              disabled={uploading}
+              style={{
+                background: I.azul, color: '#fff', border: 'none',
+                borderRadius: 10, padding: '12px 18px',
+                fontSize: 13, fontWeight: 700,
+                cursor: uploading ? 'not-allowed' : 'pointer',
+                fontFamily: "'Syne',sans-serif",
+                opacity: uploading ? .6 : 1,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                minHeight: 48,
+              }}
+            >
+              📤 Anexar proposta
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmarSubstituir(true)}
+              disabled={uploading}
+              style={{
+                background: '#fff', color: I.azul,
+                border: `1.5px solid ${I.azul}`,
+                borderRadius: 10, padding: '10px 14px',
+                fontSize: 12, fontWeight: 700,
+                cursor: uploading ? 'not-allowed' : 'pointer',
+                fontFamily: "'Syne',sans-serif",
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              ↻ Enviar nova versão
+            </button>
+          )}
+          <div style={{ fontSize: 10, color: I.cz, marginTop: 6 }}>
+            PDF, JPEG ou PNG até 10MB
+          </div>
+        </div>
+      )}
+
+      {/* Sem proposta + processo readonly */}
+      {!loading && !podeEnviar && !versaoAtual && (
+        <div style={{
+          background: I.cz2, border: `1.5px solid ${I.bd}`, borderRadius: 8,
+          padding: '12px 14px', textAlign: 'center',
+          fontSize: 12, color: I.cz,
+        }}>
+          Nenhuma proposta anexada.
+        </div>
+      )}
+
+      {/* Modal: preview da proposta */}
+      {preview && (
+        <Dialog open onOpenChange={open => { if (!open) setPreview(null); }}>
+          <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden">
+            <div className="flex-shrink-0 p-4 border-b">
+              <DialogTitle className="text-sm font-bold">{preview.nome_arquivo}</DialogTitle>
+              <DialogDescription className="text-xs">
+                {fmtBytes(preview.tamanho)} · {fmtDt(preview.created_at)} {fmtTm(preview.created_at)}
+              </DialogDescription>
+            </div>
+            <div className="flex-1 bg-muted overflow-auto">
+              {preview.tipo_arquivo === 'application/pdf' ? (
+                <iframe
+                  src={preview.url_arquivo}
+                  title={preview.nome_arquivo}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                />
+              ) : preview.tipo_arquivo.startsWith('image/') ? (
+                <img
+                  src={preview.url_arquivo}
+                  alt={preview.nome_arquivo}
+                  style={{ maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto' }}
+                />
+              ) : (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  Preview não disponível para este tipo de arquivo.
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal: confirmar substituição */}
+      {confirmarSubstituir && (
+        <Dialog open onOpenChange={open => { if (!open) setConfirmarSubstituir(false); }}>
+          <DialogContent className="max-w-md">
+            <DialogTitle>Enviar nova versão da proposta?</DialogTitle>
+            <DialogDescription>
+              A versão atual passará para o histórico. Você poderá voltar a vê-la depois.
+            </DialogDescription>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmarSubstituir(false)}
+                style={{
+                  background: 'transparent', border: `1.5px solid ${I.bd}`,
+                  borderRadius: 8, padding: '8px 14px',
+                  fontSize: 12, fontWeight: 700, color: I.cz,
+                  cursor: 'pointer', fontFamily: "'Syne',sans-serif",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => { setConfirmarSubstituir(false); openPicker(); }}
+                style={{
+                  background: I.azul, color: '#fff', border: 'none',
+                  borderRadius: 8, padding: '8px 14px',
+                  fontSize: 12, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: "'Syne',sans-serif",
+                }}
+              >
+                Selecionar arquivo
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
+
+// ── Card de arquivo de proposta ───────────────────────────────────────────────
+function ArquivoCard({
+  arquivo, destaque, podeRemover, onPreview, onDownload, onRemover,
+}: {
+  arquivo: PropostaArquivo;
+  destaque: boolean;
+  podeRemover: boolean;
+  onPreview: () => void;
+  onDownload: () => void;
+  onRemover: () => void;
+}) {
+  const isPdf = arquivo.tipo_arquivo === 'application/pdf';
+  const isImg = arquivo.tipo_arquivo.startsWith('image/');
+  const icone = isPdf ? '📄' : isImg ? '🖼️' : '📎';
+
+  return (
+    <div style={{
+      background: destaque ? I.vd2 : I.cz2,
+      border: `1.5px solid ${destaque ? I.vd : I.bd}`,
+      borderRadius: 10,
+      padding: '12px 14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+    }}>
+      <span style={{ fontSize: 22, lineHeight: 1 }}>{icone}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 12, fontWeight: 700, color: I.nv,
+            fontFamily: "'Syne',sans-serif",
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            maxWidth: 220,
+          }}>
+            {arquivo.nome_arquivo}
+          </span>
+          {destaque && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              padding: '1px 6px', borderRadius: 4,
+              background: I.vd, color: '#fff',
+              textTransform: 'uppercase', letterSpacing: '.05em',
+              fontFamily: "'Syne',sans-serif",
+            }}>
+              versão atual
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 10, color: I.cz }}>
+          {fmtBytes(arquivo.tamanho)} · {fmtDt(arquivo.created_at)} {fmtTm(arquivo.created_at)}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 4 }}>
+        <button
+          type="button"
+          onClick={onPreview}
+          title="Visualizar"
+          style={iconBtnStyle(I.azul)}
+        >
+          👁
+        </button>
+        <button
+          type="button"
+          onClick={onDownload}
+          title="Baixar"
+          style={iconBtnStyle(I.cz)}
+        >
+          ⤓
+        </button>
+        {podeRemover && (
+          <button
+            type="button"
+            onClick={onRemover}
+            title="Remover"
+            style={iconBtnStyle(I.vm)}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const iconBtnStyle = (cor: string) => ({
+  background: 'transparent',
+  border: 'none',
+  color: cor,
+  fontSize: 14,
+  cursor: 'pointer',
+  padding: 6,
+  borderRadius: 6,
+  lineHeight: 1,
+  minWidth: 32,
+  minHeight: 32,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'background .12s',
+} as const);
 
 // ── Seção: dados do orçamento ─────────────────────────────────────────────────
 function SecaoDadosOrcamento({ candidatura }: { candidatura: CandidaturaOrcamento }) {
@@ -810,6 +1380,15 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
 
   const confirmedAt = candidatura?.preConfirmadoEm ?? null;
 
+  // Sprint S2: status de compatibilização + fase visual derivada
+  const { compat } = useCompatStatusFornecedor(candidatura?.id, candidatura?.candidaturaId);
+  const fase: PropostaFase = useMemo(() => {
+    if (!candidatura) return 'sem_proposta';
+    if (candidatura.statusAcompanhamento === 'negocio_fechado') return 'aprovada';
+    if (candidatura.statusAcompanhamento === 'negocio_perdido') return 'recusada';
+    return deriveFasePropostaFromCompat(!!candidatura.propostaEnviada, compat);
+  }, [candidatura, compat]);
+
   const handlePreConfirmar = async (via: string) => {
     if (!candidatura || preConfirmadoEm || confirmedAt || salvando) return;
     setSalvando(true);
@@ -844,9 +1423,9 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
 
             {/* Corpo rolável */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 32px' }}>
-              <ProximaAcaoBanner candidatura={candidatura} />
+              <ProximaAcaoBanner candidatura={candidatura} fase={fase} />
 
-              <TimelineOperacional candidatura={candidatura} />
+              <TimelineOperacional candidatura={candidatura} compat={compat} fase={fase} />
 
               <SecaoResultado s={candidatura.statusAcompanhamento} />
 
@@ -855,7 +1434,8 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
                 <div id="ficha-secao-proposta">
                   <SecaoProposta
                     candidatura={candidatura}
-                    statusLabel={candidatura.statusAcompanhamento}
+                    fase={fase}
+                    compat={compat}
                   />
                 </div>
               )}
@@ -873,7 +1453,8 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
                 <div id="ficha-secao-proposta">
                   <SecaoProposta
                     candidatura={candidatura}
-                    statusLabel={candidatura.statusAcompanhamento}
+                    fase={fase}
+                    compat={compat}
                   />
                 </div>
               )}

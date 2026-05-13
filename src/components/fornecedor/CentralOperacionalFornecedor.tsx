@@ -161,6 +161,10 @@ function useCentralStyles() {
         0%   { background-position: 100% 0; }
         100% { background-position: -100% 0; }
       }
+      @keyframes cop-fade-in {
+        0%   { opacity: 0; transform: translateY(-4px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
       .cop-skeleton {
         background: linear-gradient(90deg, #F3F4F6 0%, #E5E7EB 50%, #F3F4F6 100%);
         background-size: 200% 100%;
