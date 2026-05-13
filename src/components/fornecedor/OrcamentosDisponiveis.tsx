@@ -163,8 +163,10 @@ function CardDisponivel({
   orcamento: OrcamentoGlobal;
   onOpenModal: (id: string, horarioId?: string, filaEspera?: boolean) => void;
 }) {
+  const navigate = useNavigate();
   const [showTodos, setShowTodos] = useState(false);
 
+  const horariosTotal  = (orcamento.horariosVisita || []).length;
   const horariosLivres = (orcamento.horariosVisita || []).filter(h => !h.fornecedor_id);
   const temHorarios    = horariosLivres.length > 0;
   const aberto         = orcamento.status === 'aberto';
@@ -236,9 +238,9 @@ function CardDisponivel({
         {orcamento.prazoInicioTexto && (
           <span style={{ fontSize: 11, color: D.cz }}>⏱ {orcamento.prazoInicioTexto}</span>
         )}
-        {orcamento.quantidadeEmpresas > 0 && (
+        {horariosTotal > 0 && (
           <span style={{ fontSize: 11, color: D.cz }}>
-            👥 {orcamento.quantidadeEmpresas}/{orcamento.quantidadeEmpresas} inscrita(s)
+            👥 {orcamento.quantidadeEmpresas}/{horariosTotal} inscrita(s)
           </span>
         )}
       </div>
@@ -260,10 +262,14 @@ function CardDisponivel({
               em {fmtInscrito(orcamento.inscritoEm)}
             </span>
           )}
-          <span style={{
-            marginLeft: 'auto', fontSize: 11, color: D.azul,
-            fontWeight: 600, cursor: 'pointer',
-          }}>
+          <span
+            role="button"
+            onClick={() => navigate('/dashboard?view=central')}
+            style={{
+              marginLeft: 'auto', fontSize: 11, color: D.azul,
+              fontWeight: 600, cursor: 'pointer',
+            }}
+          >
             Ver na Central →
           </span>
         </div>
@@ -296,10 +302,10 @@ function CardDisponivel({
               </div>
             </div>
           )}
-          {temHorarios ? (
+          {!temHorarios && horariosTotal > 0 && (
             <div className="disp-fila-box">
               <div style={{ fontSize: 11, color: D.cz, lineHeight: 1.55, marginBottom: 10 }}>
-                Você será chamado caso haja desistência, ausência ou não confirmação de outra empresa.
+                Todas as {horariosTotal} vagas preenchidas. Entre na lista de espera — você será chamado em caso de desistência, ausência ou não confirmação.
               </div>
               <button
                 className="disp-btn-participar"
@@ -309,7 +315,9 @@ function CardDisponivel({
                 Entrar na lista de espera
               </button>
             </div>
-          ) : (
+          )}
+
+          {horariosTotal === 0 && (
             <button
               className="disp-btn-participar"
               onClick={() => onOpenModal(orcamento.id)}
