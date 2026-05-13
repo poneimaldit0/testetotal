@@ -774,7 +774,21 @@ function CandidaturaSection({
 // ── Main component ────────────────────────────────────────────────────────────
 type GrupoFiltro = 'todos' | 'urgent' | 'active' | 'done';
 type PeriodoFiltro = 'todos' | '7' | '30' | '90';
-type Ordem = 'recente' | 'antigo';
+type Ordem = 'recente' | 'antigo' | 'urgencia';
+
+const ORDEM_NEXT: Record<Ordem, Ordem> = {
+  recente:  'urgencia',
+  urgencia: 'antigo',
+  antigo:   'recente',
+};
+const ORDEM_LABEL: Record<Ordem, { icon: string; text: string }> = {
+  recente:  { icon: '↓', text: 'Mais recente' },
+  urgencia: { icon: '⚡', text: 'Urgência' },
+  antigo:   { icon: '↑', text: 'Mais antigo' },
+};
+const GRUPO_PESO: Record<'urgent' | 'active' | 'done', number> = {
+  urgent: 0, active: 1, done: 2,
+};
 
 export function CentralOperacionalFornecedor() {
   useCentralStyles();
@@ -803,7 +817,7 @@ export function CentralOperacionalFornecedor() {
   });
   const [ordem, setOrdem] = useState<Ordem>(() => {
     const v = searchParams.get('ordem');
-    return v === 'antigo' ? 'antigo' : 'recente';
+    return v === 'antigo' || v === 'urgencia' ? v : 'recente';
   });
 
   // B5.18: sincronizar filtros → URL preservando view e orc; só escreve quando muda
@@ -899,6 +913,15 @@ export function CentralOperacionalFornecedor() {
     const toMs = (d: Date | string) =>
       (d instanceof Date ? d.getTime() : new Date(d).getTime());
     arr.sort((a, b) => {
+      if (ordem === 'urgencia') {
+        const ga = (deriveGroup(a.statusAcompanhamento) === 'urgent' || isAtencaoPosAtendimento(a))
+          ? 'urgent' : deriveGroup(a.statusAcompanhamento);
+        const gb = (deriveGroup(b.statusAcompanhamento) === 'urgent' || isAtencaoPosAtendimento(b))
+          ? 'urgent' : deriveGroup(b.statusAcompanhamento);
+        const peso = GRUPO_PESO[ga] - GRUPO_PESO[gb];
+        if (peso !== 0) return peso;
+        return toMs(b.dataCandidatura) - toMs(a.dataCandidatura);
+      }
       const da = toMs(a.dataCandidatura);
       const db = toMs(b.dataCandidatura);
       return ordem === 'recente' ? db - da : da - db;
@@ -1025,14 +1048,14 @@ export function CentralOperacionalFornecedor() {
               </div>
               <button
                 type="button"
-                onClick={() => setOrdem(o => o === 'recente' ? 'antigo' : 'recente')}
-                title={ordem === 'recente' ? 'Mais recente primeiro' : 'Mais antigo primeiro'}
+                onClick={() => setOrdem(ORDEM_NEXT[ordem])}
+                title={`Ordenar por ${ORDEM_LABEL[ordem].text.toLowerCase()} (clique para alternar)`}
                 style={{
                   padding: '0 12px',
                   borderRadius: 10,
-                  border: `1.5px solid ${I.bd}`,
-                  background: '#fff',
-                  color: I.nv,
+                  border: `1.5px solid ${ordem === 'urgencia' ? I.vm : I.bd}`,
+                  background: ordem === 'urgencia' ? I.vm2 : '#fff',
+                  color: ordem === 'urgencia' ? I.vm : I.nv,
                   fontSize: 12,
                   fontWeight: 700,
                   fontFamily: "'Syne',sans-serif",
@@ -1044,9 +1067,9 @@ export function CentralOperacionalFornecedor() {
                 }}
               >
                 <span style={{ fontSize: 14, lineHeight: 1 }}>
-                  {ordem === 'recente' ? '↓' : '↑'}
+                  {ORDEM_LABEL[ordem].icon}
                 </span>
-                {ordem === 'recente' ? 'Mais recente' : 'Mais antigo'}
+                {ORDEM_LABEL[ordem].text}
               </button>
             </div>
 
