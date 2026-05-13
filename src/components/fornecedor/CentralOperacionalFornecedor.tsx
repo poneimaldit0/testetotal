@@ -124,6 +124,8 @@ function useCentralStyles() {
         -webkit-appearance:none;
       }
       .cop-search-input:focus { border-color:#2D3395; }
+      .cop-kpi-clickable { cursor: pointer; transition: transform .12s, box-shadow .12s; }
+      .cop-kpi-clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
       .cop-timeline-scroll { scrollbar-width: thin; }
       .cop-timeline-scroll::-webkit-scrollbar { height: 4px; }
       .cop-timeline-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -294,15 +296,23 @@ function Timeline({ activeStage, isReu }: { activeStage: Stage; isReu: boolean }
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 function KpiCard({
-  borderColor, icon, value, label, sub, onClick,
+  borderColor, icon, value, label, sub, onClick, active,
 }: {
   borderColor: string; icon: string; value: string | number;
-  label: string; sub?: string; onClick?: () => void;
+  label: string; sub?: string; onClick?: () => void; active?: boolean;
 }) {
   return (
     <div
-      className="cop-kpi"
-      style={{ borderTopColor: borderColor, cursor: onClick ? 'pointer' : 'default' }}
+      className={`cop-kpi${onClick ? ' cop-kpi-clickable' : ''}`}
+      role={onClick ? 'button' : undefined}
+      aria-pressed={onClick ? !!active : undefined}
+      style={{
+        borderTopColor: borderColor,
+        background: active ? `${borderColor}10` : '#fff',
+        boxShadow: active
+          ? `0 0 0 2px ${borderColor}, 0 1px 5px rgba(0,0,0,.06)`
+          : undefined,
+      }}
       onClick={onClick}
     >
       <div style={{ fontSize: 20, marginBottom: 6 }}>{icon}</div>
@@ -873,7 +883,7 @@ export function CentralOperacionalFornecedor() {
           </div>
         )}
 
-        {/* KPI cards */}
+        {/* KPI cards — clicáveis como atalho de filtro (B5.19) */}
         <div className="cop-kpi-row">
           <KpiCard
             borderColor={urgentes.length > 0 ? I.vm : I.vd}
@@ -881,6 +891,8 @@ export function CentralOperacionalFornecedor() {
             value={urgentes.length}
             label={urgentes.length > 0 ? 'Requerem ação' : 'Tudo em dia'}
             sub={urgentes.length > 0 ? 'Atenção necessária agora' : 'Sem pendências urgentes'}
+            active={grupoFiltro === 'urgent'}
+            onClick={() => setGrupoFiltro(grupoFiltro === 'urgent' ? 'todos' : 'urgent')}
           />
           <KpiCard
             borderColor={I.azul}
@@ -888,6 +900,8 @@ export function CentralOperacionalFornecedor() {
             value={ativas.length}
             label="Em andamento"
             sub={ativas.length === 1 ? '1 negociação ativa' : `${ativas.length} negociações ativas`}
+            active={grupoFiltro === 'active'}
+            onClick={() => setGrupoFiltro(grupoFiltro === 'active' ? 'todos' : 'active')}
           />
           <KpiCard
             borderColor={I.vd}
@@ -895,6 +909,8 @@ export function CentralOperacionalFornecedor() {
             value={candidaturas.filter(c => c.statusAcompanhamento === 'orcamento_enviado').length}
             label="Propostas enviadas"
             sub="Aguardando análise"
+            active={funilFiltro === 3}
+            onClick={() => setFunilFiltro(funilFiltro === 3 ? 'todos' : 3)}
           />
           <KpiCard
             borderColor={repKpi ? I.lj : I.azul}
