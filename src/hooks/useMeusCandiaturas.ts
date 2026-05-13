@@ -38,6 +38,7 @@ export interface CandidaturaOrcamento {
   notif24hEm?: string | null;
   notif12hEm?: string | null;
   notif6hEm?: string | null;
+  propostaEnviada?: boolean;
   // Adicionar campos de arquivos
   arquivos?: Array<{
     id: string;
@@ -103,6 +104,7 @@ export const useMeusCandidaturas = (userId?: string) => {
           notif_24h_em,
           notif_12h_em,
           notif_6h_em,
+          proposta_enviada,
           orcamentos (
             id,
             necessidade,
@@ -341,6 +343,7 @@ export const useMeusCandidaturas = (userId?: string) => {
             notif24hEm: (candidatura as any).notif_24h_em || null,
             notif12hEm: (candidatura as any).notif_12h_em || null,
             notif6hEm:  (candidatura as any).notif_6h_em  || null,
+            propostaEnviada: !!(candidatura as any).proposta_enviada,
             arquivos: documentos,
             fotos: fotos
           };

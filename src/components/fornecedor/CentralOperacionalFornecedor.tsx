@@ -167,6 +167,18 @@ function deriveGroup(s: string | null): Group {
   return 'active';
 }
 
+const ATENCAO_POS_ATENDIMENTO_DIAS = 3;
+
+function isAtencaoPosAtendimento(c: CandidaturaOrcamento): boolean {
+  const s = c.statusAcompanhamento;
+  if (s !== 'visita_realizada' && s !== 'reuniao_realizada') return false;
+  if (c.propostaEnviada) return false;
+  if (!c.horarioVisitaAgendado) return false;
+  const diasDesdeAtendimento =
+    (Date.now() - new Date(c.horarioVisitaAgendado).getTime()) / 86_400_000;
+  return diasDesdeAtendimento >= ATENCAO_POS_ATENDIMENTO_DIAS;
+}
+
 // ── Formatters ────────────────────────────────────────────────────────────────
 const fmtDt = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -473,6 +485,12 @@ function ProximaAcaoBlock({
 
 // ── Motivo operacional por status ─────────────────────────────────────────────
 function deriveMotivoAcao(c: CandidaturaOrcamento): { label: string; color: string } | null {
+  if (isAtencaoPosAtendimento(c)) {
+    const dias = Math.floor(
+      (Date.now() - new Date(c.horarioVisitaAgendado!).getTime()) / 86_400_000
+    );
+    return { label: `Anexar proposta — atendimento há ${dias} dia(s)`, color: I.vm };
+  }
   const s  = c.statusAcompanhamento;
   const dt = c.horarioVisitaAgendado;
   if (s === 'visita_agendada') {
@@ -510,7 +528,9 @@ function CardOperacional({
   const stageClr = deriveStageColor(s);
   const isReu    = s === 'reuniao_agendada' || s === 'reuniao_realizada';
   const isPerdido = s === 'negocio_perdido';
-  const isUrgente = s === 'visita_agendada' || s === 'reuniao_agendada' || s === 'em_orcamento';
+  const isUrgente =
+    s === 'visita_agendada' || s === 'reuniao_agendada' || s === 'em_orcamento'
+    || isAtencaoPosAtendimento(candidatura);
   const motivo   = deriveMotivoAcao(candidatura);
 
   return (
@@ -660,9 +680,13 @@ export function CentralOperacionalFornecedor() {
     });
   }, [candidaturas, busca]);
 
-  // Grupos (usam lista filtrada)
-  const urgentes  = candidaturasFiltradas.filter(c => deriveGroup(c.statusAcompanhamento) === 'urgent');
-  const ativas    = candidaturasFiltradas.filter(c => deriveGroup(c.statusAcompanhamento) === 'active');
+  // Grupos (usam lista filtrada). B4: pós-atendimento sem proposta há ≥3 dias entra em urgentes.
+  const urgentes  = candidaturasFiltradas.filter(
+    c => deriveGroup(c.statusAcompanhamento) === 'urgent' || isAtencaoPosAtendimento(c)
+  );
+  const ativas    = candidaturasFiltradas.filter(
+    c => deriveGroup(c.statusAcompanhamento) === 'active' && !isAtencaoPosAtendimento(c)
+  );
   const finais    = candidaturasFiltradas.filter(c => deriveGroup(c.statusAcompanhamento) === 'done');
 
   // ── Render ────────────────────────────────────────────────────────────────
