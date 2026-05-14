@@ -137,7 +137,7 @@ function deriveProximaAcaoAdmin(args: {
     if (compat.status === 'enviado') {
       return dias > 5
         ? { tom: 'urgent', icone: '⚡', titulo: `Sem follow-up interno há ${Math.floor(dias)}d` }
-        : { tom: 'wait', icone: '👁️', titulo: 'Em revisão interna — Reforma100 conduzindo' };
+        : { tom: 'wait', icone: '📤', titulo: 'Compat. enviada ao cliente — em follow-up' };
     }
   }
 

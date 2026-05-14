@@ -33,6 +33,24 @@ type PeriodoP3 = 'todos' | '7' | '30' | '90';
 type CompatP3 = 'todos' | 'sem' | 'em_andamento' | 'revisao' | 'cliente' | 'aprovada';
 type TarefasP3 = 'todos' | 'atrasadas';
 
+// Formatação compacta de valores monetários
+// Exemplos: 420000 → "R$ 420k" · 1_250_000 → "R$ 1.3M" · 850 → "R$ 850"
+function fmtMoedaCompacta(valor: number): string {
+  if (!Number.isFinite(valor) || valor <= 0) return 'R$ 0';
+  if (valor >= 1_000_000) {
+    const m = valor / 1_000_000;
+    return `R$ ${m >= 10 ? Math.round(m) : m.toFixed(1).replace('.', ',')}M`;
+  }
+  if (valor >= 1_000) {
+    return `R$ ${Math.round(valor / 1_000)}k`;
+  }
+  return `R$ ${Math.round(valor)}`;
+}
+
+function fmtMoedaCompleta(valor: number): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(valor);
+}
+
 const STATUS_PARA_BUCKET_COMPAT_P3 = (s: string | undefined): CompatP3 => {
   if (!s || s === 'idle') return 'sem';
   if (['pending', 'processando', 'compatibilizando'].includes(s)) return 'em_andamento';
@@ -44,11 +62,13 @@ const STATUS_PARA_BUCKET_COMPAT_P3 = (s: string | undefined): CompatP3 => {
 
 // P3: KPI card clicável (mesmo padrão do KpiCardAdmin do Gerenciar)
 function KpiCardCRM({
-  icon, label, value, color, active, onClick,
+  icon, label, value, valueTitle, color, active, onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number | string;
+  /** Tooltip do valor (ex: valor completo em moeda) */
+  valueTitle?: string;
   color: 'azul' | 'lj' | 'rx' | 'cz' | 'vm' | 'vd';
   active?: boolean;
   onClick?: () => void;
@@ -66,7 +86,7 @@ function KpiCardCRM({
       type="button"
       onClick={onClick}
       aria-pressed={!!active}
-      className="text-left rounded-xl p-3 border transition-all"
+      className="text-left rounded-xl px-3 py-2.5 border transition-all hover:-translate-y-0.5"
       style={{
         background: active ? palette.tint : '#fff',
         borderColor: active ? palette.bd : '#E5E7EB',
@@ -76,11 +96,18 @@ function KpiCardCRM({
         cursor: onClick ? 'pointer' : 'default',
       }}
     >
-      <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: palette.bd, fontFamily: "'Syne', sans-serif" }}>
-        {icon}
-        <span>{label}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider min-w-0" style={{ color: palette.bd, fontFamily: "'Syne', sans-serif" }}>
+          {icon}
+          <span className="truncate">{label}</span>
+        </div>
+        <div
+          className="text-xl font-bold leading-none text-foreground tabular-nums shrink-0"
+          title={valueTitle}
+        >
+          {value}
+        </div>
       </div>
-      <div className="mt-1 text-2xl font-bold leading-none text-foreground">{value}</div>
     </button>
   );
 }
@@ -565,9 +592,9 @@ export const CRMKanbanOrcamentos = () => {
     });
   }, [orcamentosAtivos, buscaP3, periodoP3, compatP3, tarefasP3, compatStatusMapP3]);
 
-  // P3: contagens absolutas para KPIs e dropdowns
+  // P3 + KPIs comerciais: contagens absolutas + valor carteira/fechamento
   const countsP3 = useMemo(() => {
-    const k = { total: orcamentosAtivos.length, revisao: 0, cliente: 0, atrasadas: 0 };
+    const k = { total: orcamentosAtivos.length, atrasadas: 0, valorCarteira: 0, valorFechamento: 0 };
     const periodos = { '7': 0, '30': 0, '90': 0 };
     const compat = { sem: 0, em_andamento: 0, revisao: 0, cliente: 0, aprovada: 0 };
     const agora = Date.now();
@@ -580,10 +607,15 @@ export const CRMKanbanOrcamentos = () => {
 
       const bucket = STATUS_PARA_BUCKET_COMPAT_P3(compatStatusMapP3[o.id]);
       compat[bucket]++;
-      if (bucket === 'revisao') k.revisao++;
-      if (bucket === 'cliente') k.cliente++;
 
       if ((o.tarefas_atrasadas ?? 0) > 0) k.atrasadas++;
+
+      // Valor por lead: prioriza valor manual do concierge; cai para estimativa IA legada
+      const valor = (o.valor_lead_estimado ?? o.valor_estimado_ia_medio ?? 0) || 0;
+      k.valorCarteira += valor;
+      if (o.etapa_crm === 'fechamento_contrato' || o.etapa_crm === 'pos_venda_feedback') {
+        k.valorFechamento += valor;
+      }
     });
     return { kpis: k, periodos, compat };
   }, [orcamentosAtivos, compatStatusMapP3]);
@@ -606,8 +638,8 @@ export const CRMKanbanOrcamentos = () => {
     if (q) arr.push({ key: 'q', label: `Busca: ${q}`, clear: () => setBuscaP3('') });
     if (periodoP3 !== 'todos') arr.push({ key: 'periodo', label: `Últimos ${periodoP3} dias`, clear: () => setPeriodoP3('todos') });
     if (compatP3 === 'em_andamento') arr.push({ key: 'compat', label: 'Compat. em andamento', clear: () => setCompatP3('todos') });
-    if (compatP3 === 'revisao')      arr.push({ key: 'compat', label: 'Pendente revisão',    clear: () => setCompatP3('todos') });
-    if (compatP3 === 'cliente')      arr.push({ key: 'compat', label: 'Em revisão interna',  clear: () => setCompatP3('todos') });
+    if (compatP3 === 'revisao')      arr.push({ key: 'compat', label: 'IA concluída',    clear: () => setCompatP3('todos') });
+    if (compatP3 === 'cliente')      arr.push({ key: 'compat', label: 'Enviada ao cliente',  clear: () => setCompatP3('todos') });
     if (compatP3 === 'aprovada')     arr.push({ key: 'compat', label: 'Compat. aprovada',    clear: () => setCompatP3('todos') });
     if (compatP3 === 'sem')          arr.push({ key: 'compat', label: 'Sem compatibilização', clear: () => setCompatP3('todos') });
     if (tarefasP3 === 'atrasadas')   arr.push({ key: 'tarefas', label: 'Tarefas atrasadas',  clear: () => setTarefasP3('todos') });
@@ -793,32 +825,8 @@ export const CRMKanbanOrcamentos = () => {
         style={{ borderRadius: 0, marginBottom: 0 }}
       />
 
-      {/* Widget Pré-SDR — atalho para o Gerenciar (não entra no Kanban operacional) */}
-      {preSDRCount > 0 && (
-        <div className="px-4 pt-3">
-          <button
-            type="button"
-            onClick={() => setSearchParams((prev) => {
-              const next = new URLSearchParams(prev);
-              next.set('view', 'lista');
-              next.set('etapa', 'pre-sdr');
-              return next;
-            }, { replace: false })}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 transition-colors text-xs font-bold"
-            style={{ fontFamily: "'Syne', sans-serif" }}
-            title="Abrir Gerenciar filtrado em Pré-SDR"
-          >
-            ⏳ Pré-SDR
-            <span className="px-1.5 py-0.5 rounded-full bg-blue-200 text-blue-900 text-[10px] font-bold">
-              {preSDRCount}
-            </span>
-            <span className="text-blue-500 text-sm leading-none">→</span>
-          </button>
-        </div>
-      )}
-
-      {/* KPIs operacionais clicáveis (P3 — alinhados ao Gerenciar) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-4 pt-3">
+      {/* KPIs operacionais + comerciais */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 px-4 pt-3">
         <KpiCardCRM
           icon={<Inbox className="h-4 w-4" />}
           label="Total"
@@ -828,22 +836,6 @@ export const CRMKanbanOrcamentos = () => {
           onClick={limparP3}
         />
         <KpiCardCRM
-          icon={<Eye className="h-4 w-4" />}
-          label="Em revisão"
-          value={countsP3.kpis.revisao}
-          color="lj"
-          active={compatP3 === 'revisao'}
-          onClick={() => setCompatP3(compatP3 === 'revisao' ? 'todos' : 'revisao')}
-        />
-        <KpiCardCRM
-          icon={<Hourglass className="h-4 w-4" />}
-          label="Em revisão interna"
-          value={countsP3.kpis.cliente}
-          color="rx"
-          active={compatP3 === 'cliente'}
-          onClick={() => setCompatP3(compatP3 === 'cliente' ? 'todos' : 'cliente')}
-        />
-        <KpiCardCRM
           icon={<AlertTriangle className="h-4 w-4" />}
           label="Tarefas atrasadas"
           value={countsP3.kpis.atrasadas}
@@ -851,17 +843,32 @@ export const CRMKanbanOrcamentos = () => {
           active={tarefasP3 === 'atrasadas'}
           onClick={() => setTarefasP3(tarefasP3 === 'atrasadas' ? 'todos' : 'atrasadas')}
         />
+        <KpiCardCRM
+          icon={<BarChart2 className="h-4 w-4" />}
+          label="Valor carteira"
+          value={fmtMoedaCompacta(countsP3.kpis.valorCarteira)}
+          valueTitle={`Carteira ativa: ${fmtMoedaCompleta(countsP3.kpis.valorCarteira)}`}
+          color="vd"
+        />
+        <KpiCardCRM
+          icon={<Hourglass className="h-4 w-4" />}
+          label="Valor fechamento"
+          value={fmtMoedaCompacta(countsP3.kpis.valorFechamento)}
+          valueTitle={`Pipeline em fechamento: ${fmtMoedaCompleta(countsP3.kpis.valorFechamento)}`}
+          color="lj"
+        />
       </div>
 
-      {/* Busca + dropdowns premium (P3) */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b bg-background">
+      {/* Busca + dropdowns premium + ações secundárias (P5a — compacto) */}
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b bg-background">
+        {/* Bloco esquerdo: busca + filtros principais */}
         <div className="relative flex-1 min-w-[240px]">
           <input
             type="search"
             value={buscaP3}
             onChange={(e) => setBuscaP3(e.target.value)}
             placeholder="Buscar por necessidade, local, código ou cliente…"
-            className="w-full h-10 pl-3 pr-9 rounded-lg border border-border bg-white text-sm outline-none focus:border-primary"
+            className="w-full h-9 pl-3 pr-9 rounded-lg border border-border bg-white text-sm outline-none focus:border-primary"
           />
           {buscaP3 && (
             <button
@@ -878,7 +885,7 @@ export const CRMKanbanOrcamentos = () => {
         <select
           value={periodoP3}
           onChange={(e) => setPeriodoP3(e.target.value as PeriodoP3)}
-          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+          className="h-9 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
         >
           <option value="todos">Todo o período</option>
           <option value="7">Últimos 7 dias ({countsP3.periodos['7']})</option>
@@ -889,35 +896,28 @@ export const CRMKanbanOrcamentos = () => {
         <select
           value={compatP3}
           onChange={(e) => setCompatP3(e.target.value as CompatP3)}
-          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+          className="h-9 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
         >
           <option value="todos">Compatibilização</option>
           <option value="sem">Sem ({countsP3.compat.sem})</option>
           <option value="em_andamento">Em andamento ({countsP3.compat.em_andamento})</option>
-          <option value="revisao">Pendente revisão ({countsP3.compat.revisao})</option>
-          <option value="cliente">Em revisão interna ({countsP3.compat.cliente})</option>
+          <option value="revisao">IA concluída ({countsP3.compat.revisao})</option>
+          <option value="cliente">Enviada ao cliente ({countsP3.compat.cliente})</option>
           <option value="aprovada">Aprovada ({countsP3.compat.aprovada})</option>
         </select>
 
         {filtrosP3Ativos && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={limparP3}
-            className="h-10 text-xs"
-          >
+          <Button variant="outline" size="sm" onClick={limparP3} className="h-9 text-xs">
             Limpar
           </Button>
         )}
 
         <Popover open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="gap-2 h-10">
+            <Button variant="outline" className="gap-2 h-9">
               <Filter className="h-4 w-4" />
               Avançado
-              {contarFiltrosAtivos() > 0 && (
-                <Badge variant="secondary">{contarFiltrosAtivos()}</Badge>
-              )}
+              {contarFiltrosAtivos() > 0 && <Badge variant="secondary">{contarFiltrosAtivos()}</Badge>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -930,55 +930,78 @@ export const CRMKanbanOrcamentos = () => {
           </PopoverContent>
         </Popover>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => {
-            refetch();
-            toast({
-              title: "🔄 Atualizando...",
-              description: "Recarregando orçamentos do CRM"
-            });
-          }}
-          title="Atualizar orçamentos"
-          className="h-10 w-10"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant={exibirArquivadas ? 'default' : 'outline'}
-          onClick={() => setExibirArquivadas(!exibirArquivadas)}
-          className="gap-2 h-10"
-        >
-          {exibirArquivadas ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          {exibirArquivadas ? 'Ocultar' : 'Exibir'} Arquivadas
-          {orcamentosArquivados.length > 0 && (
-            <Badge variant="secondary">{orcamentosArquivados.length}</Badge>
+        {/* Divisor flexível: empurra ações secundárias para a direita */}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {/* Pré-SDR widget — junto das ações secundárias (P5a) */}
+          {preSDRCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.set('view', 'lista');
+                next.set('etapa', 'pre-sdr');
+                return next;
+              }, { replace: false })}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 transition-colors text-xs font-bold"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+              title="Abrir Gerenciar filtrado em Pré-SDR"
+            >
+              ⏳ Pré-SDR
+              <span className="px-1.5 py-0.5 rounded-full bg-blue-200 text-blue-900 text-[10px] font-bold leading-none">
+                {preSDRCount}
+              </span>
+              <span className="text-blue-500 text-sm leading-none">→</span>
+            </button>
           )}
-        </Button>
 
-        <Button
-          variant="outline"
-          onClick={async () => await exportarLeadsCRMExcel(orcamentosAtivosFiltrados)}
-          className="gap-2 h-10"
-          title="Exportar leads filtrados para Excel"
-        >
-          <Download className="h-4 w-4" />
-          Exportar
-        </Button>
-
-        {isAdminOrMaster && (
           <Button
             variant="outline"
-            onClick={() => setModalApropriar(true)}
-            disabled={cardsSelecionados.size === 0}
-            className="gap-2 h-10"
+            size="icon"
+            onClick={() => {
+              refetch();
+              toast({ title: '🔄 Atualizando...', description: 'Recarregando orçamentos do CRM' });
+            }}
+            title="Atualizar"
+            className="h-9 w-9"
           >
-            <UserCheck className="h-4 w-4" />
-            Apropriar Selecionados
+            <RefreshCw className="h-4 w-4" />
           </Button>
-        )}
+
+          <Button
+            variant={exibirArquivadas ? 'default' : 'outline'}
+            onClick={() => setExibirArquivadas(!exibirArquivadas)}
+            className="gap-2 h-9"
+            size="sm"
+          >
+            {exibirArquivadas ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            Arquivadas
+            {orcamentosArquivados.length > 0 && <Badge variant="secondary">{orcamentosArquivados.length}</Badge>}
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={async () => await exportarLeadsCRMExcel(orcamentosAtivosFiltrados)}
+            className="gap-2 h-9"
+            size="sm"
+            title="Exportar leads filtrados para Excel"
+          >
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
+
+          {isAdminOrMaster && (
+            <Button
+              variant="outline"
+              onClick={() => setModalApropriar(true)}
+              disabled={cardsSelecionados.size === 0}
+              className="gap-2 h-9"
+              size="sm"
+            >
+              <UserCheck className="h-4 w-4" />
+              Apropriar ({cardsSelecionados.size})
+            </Button>
+          )}
+        </div>
 
         {isFiltrandoFornecedores && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">

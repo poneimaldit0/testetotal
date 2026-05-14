@@ -280,8 +280,8 @@ export const ListaOrcamentos: React.FC = () => {
     else if (etapaFiltro !== 'todos') arr.push({ key: 'etapa', label: `Etapa: ${etapaFiltro}`, clear: () => setEtapaFiltro('todos') });
     if (periodoFiltro !== 'todos') arr.push({ key: 'periodo', label: `Últimos ${periodoFiltro} dias`, clear: () => setPeriodoFiltro('todos') });
     if (compatFiltro === 'em_andamento') arr.push({ key: 'compat', label: 'Compat. em andamento', clear: () => setCompatFiltro('todos') });
-    if (compatFiltro === 'revisao')      arr.push({ key: 'compat', label: 'Pendente revisão',    clear: () => setCompatFiltro('todos') });
-    if (compatFiltro === 'cliente')      arr.push({ key: 'compat', label: 'Em revisão interna',  clear: () => setCompatFiltro('todos') });
+    if (compatFiltro === 'revisao')      arr.push({ key: 'compat', label: 'IA concluída',    clear: () => setCompatFiltro('todos') });
+    if (compatFiltro === 'cliente')      arr.push({ key: 'compat', label: 'Enviada ao cliente',  clear: () => setCompatFiltro('todos') });
     if (compatFiltro === 'aprovada')     arr.push({ key: 'compat', label: 'Compat. aprovada',    clear: () => setCompatFiltro('todos') });
     if (compatFiltro === 'sem')          arr.push({ key: 'compat', label: 'Sem compatibilização', clear: () => setCompatFiltro('todos') });
     return arr;
@@ -428,7 +428,7 @@ export const ListaOrcamentos: React.FC = () => {
         />
         <KpiCardAdmin
           icon={<Eye className="h-4 w-4" />}
-          label="Em revisão"
+          label="IA concluída"
           value={counts.kpis.revisao}
           color="lj"
           active={compatFiltro === 'revisao'}
@@ -436,7 +436,7 @@ export const ListaOrcamentos: React.FC = () => {
         />
         <KpiCardAdmin
           icon={<Hourglass className="h-4 w-4" />}
-          label="Em revisão interna"
+          label="Enviada ao cliente"
           value={counts.kpis.cliente}
           color="rx"
           active={compatFiltro === 'cliente'}
@@ -507,8 +507,8 @@ export const ListaOrcamentos: React.FC = () => {
           <option value="todos">Compatibilização</option>
           <option value="sem">Sem ({counts.compat.sem})</option>
           <option value="em_andamento">Em andamento ({counts.compat.em_andamento})</option>
-          <option value="revisao">Pendente revisão ({counts.compat.revisao})</option>
-          <option value="cliente">Em revisão interna ({counts.compat.cliente})</option>
+          <option value="revisao">IA concluída ({counts.compat.revisao})</option>
+          <option value="cliente">Enviada ao cliente ({counts.compat.cliente})</option>
           <option value="aprovada">Aprovada ({counts.compat.aprovada})</option>
         </select>
 
