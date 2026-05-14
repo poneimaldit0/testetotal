@@ -20,13 +20,70 @@ import { OrcamentoCRMComChecklist, HistoricoMovimentacao, FiltrosCRM, EtapaCRM, 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Loader2, Filter, RefreshCw, Eye, EyeOff, UserCheck, AlertTriangle, Download } from 'lucide-react';
+import { Loader2, Filter, RefreshCw, Eye, EyeOff, UserCheck, AlertTriangle, Download, Inbox, Hourglass, X as XIcon, BarChart2 } from 'lucide-react';
 import { exportarLeadsCRMExcel } from '@/utils/exportacaoCRM';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEtapasConfig } from '@/hooks/useEtapasConfig';
 import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
+
+// P3: filtros premium do Kanban (paralelos ao Gerenciar)
+type PeriodoP3 = 'todos' | '7' | '30' | '90';
+type CompatP3 = 'todos' | 'sem' | 'em_andamento' | 'revisao' | 'cliente' | 'aprovada';
+type TarefasP3 = 'todos' | 'atrasadas';
+
+const STATUS_PARA_BUCKET_COMPAT_P3 = (s: string | undefined): CompatP3 => {
+  if (!s || s === 'idle') return 'sem';
+  if (['pending', 'processando', 'compatibilizando'].includes(s)) return 'em_andamento';
+  if (['concluida', 'completed', 'pendente_revisao', 'revisado'].includes(s)) return 'revisao';
+  if (s === 'enviado') return 'cliente';
+  if (s === 'aprovado') return 'aprovada';
+  return 'sem';
+};
+
+// P3: KPI card clicável (mesmo padrão do KpiCardAdmin do Gerenciar)
+function KpiCardCRM({
+  icon, label, value, color, active, onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  color: 'azul' | 'lj' | 'rx' | 'cz' | 'vm' | 'vd';
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const palette = {
+    azul: { bd: '#2D3395', tint: 'rgba(45,51,149,0.06)' },
+    lj:   { bd: '#F7A226', tint: 'rgba(247,162,38,0.07)' },
+    rx:   { bd: '#534AB7', tint: 'rgba(83,74,183,0.07)' },
+    cz:   { bd: '#6B7280', tint: 'rgba(107,114,128,0.07)' },
+    vm:   { bd: '#C0392B', tint: 'rgba(192,57,43,0.07)' },
+    vd:   { bd: '#1B7A4A', tint: 'rgba(27,122,74,0.07)' },
+  }[color];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={!!active}
+      className="text-left rounded-xl p-3 border transition-all"
+      style={{
+        background: active ? palette.tint : '#fff',
+        borderColor: active ? palette.bd : '#E5E7EB',
+        borderTopWidth: 3,
+        borderTopColor: palette.bd,
+        boxShadow: active ? `0 0 0 2px ${palette.bd}30` : '0 1px 4px rgba(0,0,0,0.04)',
+        cursor: onClick ? 'pointer' : 'default',
+      }}
+    >
+      <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: palette.bd, fontFamily: "'Syne', sans-serif" }}>
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className="mt-1 text-2xl font-bold leading-none text-foreground">{value}</div>
+    </button>
+  );
+}
 
 // Fase D: adapter de OrcamentoCRMComChecklist → Orcamento (tipo global).
 // Não cria adapter de dados perdidos — apenas mapeia campos comuns. A
@@ -103,6 +160,21 @@ export const CRMKanbanOrcamentos = () => {
   const [modalPerdido, setModalPerdido] = useState<OrcamentoCRMComChecklist | null>(null);
   const [modalCongelar, setModalCongelar] = useState<OrcamentoCRMComChecklist | null>(null);
   const [modalApropriar, setModalApropriar] = useState(false);
+
+  // P3: filtros premium com persistência URL
+  const [buscaP3, setBuscaP3] = useState(() => searchParams.get('q') ?? '');
+  const [periodoP3, setPeriodoP3] = useState<PeriodoP3>(() => {
+    const v = searchParams.get('periodo');
+    return (v === '7' || v === '30' || v === '90') ? v : 'todos';
+  });
+  const [compatP3, setCompatP3] = useState<CompatP3>(() => {
+    const v = searchParams.get('compat');
+    return (v === 'sem' || v === 'em_andamento' || v === 'revisao' || v === 'cliente' || v === 'aprovada') ? v : 'todos';
+  });
+  const [tarefasP3, setTarefasP3] = useState<TarefasP3>(() => {
+    return searchParams.get('tarefas') === 'atrasadas' ? 'atrasadas' : 'todos';
+  });
+  const [compatStatusMapP3, setCompatStatusMapP3] = useState<Record<string, string>>({});
   const [isFiltrandoFornecedores, setIsFiltrandoFornecedores] = useState(false);
   const [compatCRMOrcamento, setCompatCRMOrcamento] = useState<OrcamentoCRMComChecklist | null>(null);
   const [compatCRMModalOpen, setCompatCRMModalOpen] = useState(false);
@@ -412,12 +484,125 @@ export const CRMKanbanOrcamentos = () => {
     return map;
   }, [etapasConfigBanco]);
 
+  // P3: batch fetch do status de compatibilização para todos os orçamentos ativos
+  useEffect(() => {
+    const ids = orcamentosAtivos.map(o => o.id);
+    if (ids.length === 0) return;
+    let cancelado = false;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('compatibilizacoes_analises_ia')
+        .select('orcamento_id, status')
+        .in('orcamento_id', ids)
+        .order('created_at', { ascending: false });
+      if (cancelado || !data) return;
+      const map: Record<string, string> = {};
+      for (const row of data) {
+        if (!map[row.orcamento_id]) map[row.orcamento_id] = row.status;
+      }
+      setCompatStatusMapP3(map);
+    })();
+    return () => { cancelado = true; };
+  }, [orcamentosAtivos]);
+
+  // P3: sincronizar filtros premium → URL (separado do filtros.* legado)
+  useEffect(() => {
+    const current = new URLSearchParams(window.location.search);
+    const next = new URLSearchParams(current);
+    const setOrDel = (k: string, v: string | null) => {
+      if (v === null || v === '') next.delete(k);
+      else next.set(k, v);
+    };
+    setOrDel('q',       buscaP3.trim() || null);
+    setOrDel('periodo', periodoP3 === 'todos' ? null : periodoP3);
+    setOrDel('compat',  compatP3 === 'todos' ? null : compatP3);
+    setOrDel('tarefas', tarefasP3 === 'todos' ? null : tarefasP3);
+    if (next.toString() !== current.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [buscaP3, periodoP3, compatP3, tarefasP3, setSearchParams]);
+
+  // P3: aplicação dos filtros premium em cima de orcamentosAtivos
+  const orcamentosAtivosFiltrados = useMemo(() => {
+    const q = buscaP3.trim().toLowerCase();
+    const cutoffMs = periodoP3 === 'todos' ? 0 : Date.now() - Number(periodoP3) * 86_400_000;
+
+    return orcamentosAtivos.filter(o => {
+      if (q) {
+        const necessidade = (o.necessidade ?? '').toLowerCase();
+        const local       = (o.local ?? '').toLowerCase();
+        const codigo      = o.id.toLowerCase();
+        const cliente     = (o.dados_contato?.nome ?? '').toLowerCase();
+        if (!necessidade.includes(q) && !local.includes(q) && !codigo.includes(q) && !cliente.includes(q)) return false;
+      }
+      if (cutoffMs > 0) {
+        const dt = new Date(o.created_at).getTime();
+        if (dt < cutoffMs) return false;
+      }
+      if (compatP3 !== 'todos') {
+        const bucket = STATUS_PARA_BUCKET_COMPAT_P3(compatStatusMapP3[o.id]);
+        if (bucket !== compatP3) return false;
+      }
+      if (tarefasP3 === 'atrasadas' && (o.tarefas_atrasadas ?? 0) === 0) return false;
+      return true;
+    });
+  }, [orcamentosAtivos, buscaP3, periodoP3, compatP3, tarefasP3, compatStatusMapP3]);
+
+  // P3: contagens absolutas para KPIs e dropdowns
+  const countsP3 = useMemo(() => {
+    const k = { total: orcamentosAtivos.length, revisao: 0, cliente: 0, atrasadas: 0 };
+    const periodos = { '7': 0, '30': 0, '90': 0 };
+    const compat = { sem: 0, em_andamento: 0, revisao: 0, cliente: 0, aprovada: 0 };
+    const agora = Date.now();
+    orcamentosAtivos.forEach(o => {
+      const ms = new Date(o.created_at).getTime();
+      const dias = (agora - ms) / 86_400_000;
+      if (dias <= 7) periodos['7']++;
+      if (dias <= 30) periodos['30']++;
+      if (dias <= 90) periodos['90']++;
+
+      const bucket = STATUS_PARA_BUCKET_COMPAT_P3(compatStatusMapP3[o.id]);
+      compat[bucket]++;
+      if (bucket === 'revisao') k.revisao++;
+      if (bucket === 'cliente') k.cliente++;
+
+      if ((o.tarefas_atrasadas ?? 0) > 0) k.atrasadas++;
+    });
+    return { kpis: k, periodos, compat };
+  }, [orcamentosAtivos, compatStatusMapP3]);
+
+  const filtrosP3Ativos = buscaP3.trim() !== ''
+    || periodoP3 !== 'todos'
+    || compatP3 !== 'todos'
+    || tarefasP3 !== 'todos';
+
+  const limparP3 = () => {
+    setBuscaP3('');
+    setPeriodoP3('todos');
+    setCompatP3('todos');
+    setTarefasP3('todos');
+  };
+
+  const chipsP3Ativos = useMemo(() => {
+    const arr: Array<{ key: string; label: string; clear: () => void }> = [];
+    const q = buscaP3.trim();
+    if (q) arr.push({ key: 'q', label: `Busca: ${q}`, clear: () => setBuscaP3('') });
+    if (periodoP3 !== 'todos') arr.push({ key: 'periodo', label: `Últimos ${periodoP3} dias`, clear: () => setPeriodoP3('todos') });
+    if (compatP3 === 'em_andamento') arr.push({ key: 'compat', label: 'Compat. em andamento', clear: () => setCompatP3('todos') });
+    if (compatP3 === 'revisao')      arr.push({ key: 'compat', label: 'Pendente revisão',    clear: () => setCompatP3('todos') });
+    if (compatP3 === 'cliente')      arr.push({ key: 'compat', label: 'Aguardando cliente',  clear: () => setCompatP3('todos') });
+    if (compatP3 === 'aprovada')     arr.push({ key: 'compat', label: 'Compat. aprovada',    clear: () => setCompatP3('todos') });
+    if (compatP3 === 'sem')          arr.push({ key: 'compat', label: 'Sem compatibilização', clear: () => setCompatP3('todos') });
+    if (tarefasP3 === 'atrasadas')   arr.push({ key: 'tarefas', label: 'Tarefas atrasadas',  clear: () => setTarefasP3('todos') });
+    return arr;
+  }, [buscaP3, periodoP3, compatP3, tarefasP3]);
+
   const orcamentosPorEtapa = useMemo(() => {
     return etapasAtivas.reduce((acc, etapa) => {
-      acc[etapa.valor] = orcamentosAtivos.filter((orc) => orc.etapa_crm === etapa.valor);
+      acc[etapa.valor] = orcamentosAtivosFiltrados.filter((orc) => orc.etapa_crm === etapa.valor);
       return acc;
     }, {} as Record<string, OrcamentoCRMComChecklist[]>);
-  }, [orcamentosAtivos, etapasAtivas]);
+  }, [orcamentosAtivosFiltrados, etapasAtivas]);
 
   const orcamentosArquivadosPorEtapa = useMemo(() => {
     return etapasArquivadas.reduce((acc, etapa) => {
@@ -578,12 +763,104 @@ export const CRMKanbanOrcamentos = () => {
         style={{ borderRadius: 0, marginBottom: 0 }}
       />
 
-      <div className="flex items-center gap-3 flex-wrap px-4 py-3 border-b bg-background">
+      {/* KPIs operacionais clicáveis (P3 — alinhados ao Gerenciar) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-4 pt-3">
+        <KpiCardCRM
+          icon={<Inbox className="h-4 w-4" />}
+          label="Total"
+          value={countsP3.kpis.total}
+          color="azul"
+          active={!filtrosP3Ativos}
+          onClick={limparP3}
+        />
+        <KpiCardCRM
+          icon={<Eye className="h-4 w-4" />}
+          label="Em revisão"
+          value={countsP3.kpis.revisao}
+          color="lj"
+          active={compatP3 === 'revisao'}
+          onClick={() => setCompatP3(compatP3 === 'revisao' ? 'todos' : 'revisao')}
+        />
+        <KpiCardCRM
+          icon={<Hourglass className="h-4 w-4" />}
+          label="Aguardando cliente"
+          value={countsP3.kpis.cliente}
+          color="rx"
+          active={compatP3 === 'cliente'}
+          onClick={() => setCompatP3(compatP3 === 'cliente' ? 'todos' : 'cliente')}
+        />
+        <KpiCardCRM
+          icon={<AlertTriangle className="h-4 w-4" />}
+          label="Tarefas atrasadas"
+          value={countsP3.kpis.atrasadas}
+          color="vm"
+          active={tarefasP3 === 'atrasadas'}
+          onClick={() => setTarefasP3(tarefasP3 === 'atrasadas' ? 'todos' : 'atrasadas')}
+        />
+      </div>
+
+      {/* Busca + dropdowns premium (P3) */}
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b bg-background">
+        <div className="relative flex-1 min-w-[240px]">
+          <input
+            type="search"
+            value={buscaP3}
+            onChange={(e) => setBuscaP3(e.target.value)}
+            placeholder="Buscar por necessidade, local, código ou cliente…"
+            className="w-full h-10 pl-3 pr-9 rounded-lg border border-border bg-white text-sm outline-none focus:border-primary"
+          />
+          {buscaP3 && (
+            <button
+              type="button"
+              onClick={() => setBuscaP3('')}
+              aria-label="Limpar busca"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-muted hover:bg-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <XIcon className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        <select
+          value={periodoP3}
+          onChange={(e) => setPeriodoP3(e.target.value as PeriodoP3)}
+          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+        >
+          <option value="todos">Todo o período</option>
+          <option value="7">Últimos 7 dias ({countsP3.periodos['7']})</option>
+          <option value="30">Últimos 30 dias ({countsP3.periodos['30']})</option>
+          <option value="90">Últimos 90 dias ({countsP3.periodos['90']})</option>
+        </select>
+
+        <select
+          value={compatP3}
+          onChange={(e) => setCompatP3(e.target.value as CompatP3)}
+          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+        >
+          <option value="todos">Compatibilização</option>
+          <option value="sem">Sem ({countsP3.compat.sem})</option>
+          <option value="em_andamento">Em andamento ({countsP3.compat.em_andamento})</option>
+          <option value="revisao">Pendente revisão ({countsP3.compat.revisao})</option>
+          <option value="cliente">Aguardando cliente ({countsP3.compat.cliente})</option>
+          <option value="aprovada">Aprovada ({countsP3.compat.aprovada})</option>
+        </select>
+
+        {filtrosP3Ativos && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={limparP3}
+            className="h-10 text-xs"
+          >
+            Limpar
+          </Button>
+        )}
+
         <Popover open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2 h-10">
               <Filter className="h-4 w-4" />
-              Filtros
+              Avançado
               {contarFiltrosAtivos() > 0 && (
                 <Badge variant="secondary">{contarFiltrosAtivos()}</Badge>
               )}
@@ -610,6 +887,7 @@ export const CRMKanbanOrcamentos = () => {
             });
           }}
           title="Atualizar orçamentos"
+          className="h-10 w-10"
         >
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -617,7 +895,7 @@ export const CRMKanbanOrcamentos = () => {
         <Button
           variant={exibirArquivadas ? 'default' : 'outline'}
           onClick={() => setExibirArquivadas(!exibirArquivadas)}
-          className="gap-2"
+          className="gap-2 h-10"
         >
           {exibirArquivadas ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           {exibirArquivadas ? 'Ocultar' : 'Exibir'} Arquivadas
@@ -627,23 +905,9 @@ export const CRMKanbanOrcamentos = () => {
         </Button>
 
         <Button
-          variant={filtros.temAlerta ? "destructive" : "outline"}
-          onClick={toggleFiltroAlerta}
-          className="gap-2"
-        >
-          <AlertTriangle className={orcamentosComAlerta > 0 && !filtros.temAlerta ? "h-4 w-4 text-orange-500" : "h-4 w-4"} />
-          <span>Tarefas Atrasadas</span>
-          {orcamentosComAlerta > 0 && (
-            <Badge variant={filtros.temAlerta ? "secondary" : "destructive"}>
-              {orcamentosComAlerta}
-            </Badge>
-          )}
-        </Button>
-
-        <Button
           variant="outline"
-          onClick={async () => await exportarLeadsCRMExcel(orcamentosFiltrados)}
-          className="gap-2"
+          onClick={async () => await exportarLeadsCRMExcel(orcamentosAtivosFiltrados)}
+          className="gap-2 h-10"
           title="Exportar leads filtrados para Excel"
         >
           <Download className="h-4 w-4" />
@@ -655,30 +919,42 @@ export const CRMKanbanOrcamentos = () => {
             variant="outline"
             onClick={() => setModalApropriar(true)}
             disabled={cardsSelecionados.size === 0}
-            className="gap-2"
+            className="gap-2 h-10"
           >
             <UserCheck className="h-4 w-4" />
             Apropriar Selecionados
           </Button>
         )}
 
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-muted-foreground">
-            {orcamentosAtivos.length} orçamento(s) em andamento
-            {contarFiltrosAtivos() > 0 && (
-              <span className="ml-2 text-primary">
-                • {contarFiltrosAtivos()} filtro(s) ativo(s)
-              </span>
-            )}
-          </p>
-          {isFiltrandoFornecedores && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Aplicando filtros...</span>
-            </div>
-          )}
-        </div>
+        {isFiltrandoFornecedores && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Aplicando filtros...</span>
+          </div>
+        )}
       </div>
+
+      {/* Chips de filtros ativos P3 */}
+      {chipsP3Ativos.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b bg-background">
+          {chipsP3Ativos.map(f => (
+            <button
+              key={`${f.key}-${f.label}`}
+              type="button"
+              onClick={f.clear}
+              aria-label={`Remover filtro: ${f.label}`}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-bold hover:bg-primary/15 transition-colors"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              {f.label}
+              <span className="opacity-60 text-sm leading-none">×</span>
+            </button>
+          ))}
+          <span className="text-xs text-muted-foreground self-center ml-1">
+            {orcamentosAtivosFiltrados.length} de {orcamentosAtivos.length} leads
+          </span>
+        </div>
+      )}
 
       {/* Card de produtividade - apenas para concierges */}
       {(profile?.tipo_usuario === 'gestor_conta' || profile?.tipo_usuario === 'customer_success') && profile.id && (
