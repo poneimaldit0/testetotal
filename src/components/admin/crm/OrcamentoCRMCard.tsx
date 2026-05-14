@@ -18,6 +18,10 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { EtapaConfig } from '@/hooks/useEtapasConfig';
 
+// Fase A do sprint admin UX: oculta a pill de valor_estimado_ia_medio
+// no card do CRM Kanban. Dados continuam no banco — só sai da UI.
+const MOSTRAR_VALOR_ESTIMATIVA_LEGADA = false;
+
 interface OrcamentoCRMCardProps {
   orcamento: OrcamentoCRMComChecklist;
   onAtualizarStatusContato: (orcamentoId: string, novoStatus: StatusContato) => void;
@@ -100,7 +104,7 @@ export const OrcamentoCRMCard = ({
 
         {/* Status badges — compact secondary row */}
         <div className="flex flex-wrap gap-1 mb-2">
-          {orcamento.valor_estimado_ia_medio ? (
+          {MOSTRAR_VALOR_ESTIMATIVA_LEGADA && orcamento.valor_estimado_ia_medio ? (
             <span className="r100-pill r100-pill-green"><DollarSign className="w-3 h-3" />{formatarMoeda(orcamento.valor_estimado_ia_medio)}</span>
           ) : orcamento.valor_lead_estimado ? (
             <span className="r100-pill r100-pill-gray"><DollarSign className="w-3 h-3" />{formatarMoeda(orcamento.valor_lead_estimado)}</span>

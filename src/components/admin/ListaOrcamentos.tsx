@@ -313,14 +313,6 @@ export const ListaOrcamentos: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Debug dos anexos */}
-                  {(() => {
-                    console.log(`📂 [ListaOrcamentos] ${orcamento.id}: arquivos=${orcamento.arquivos?.length}, fotos=${orcamento.fotos?.length}`);
-                    console.log(`📂 [ListaOrcamentos] ${orcamento.id}: arquivos=`, orcamento.arquivos);
-                    console.log(`📂 [ListaOrcamentos] ${orcamento.id}: fotos=`, orcamento.fotos);
-                    return null;
-                  })()}
-
                   {/* Exibir anexos quando disponíveis */}
                   {(orcamento.arquivos?.length > 0 || orcamento.fotos?.length > 0) && (
                     <AnexosOrcamento 

@@ -194,6 +194,12 @@ interface ModalDetalhesOrcamentoCRMProps {
   onEstimativaAtualizada?: () => void;
 }
 
+// Fase A do sprint admin UX: estimativa IA legada (gerar-estimativa-tecnica)
+// fica oculta da UI operacional do CRM. Dados, edge function e usos no
+// DashboardOperacional/SDR permanecem intactos. Para reativar visualmente,
+// trocar para true.
+const MOSTRAR_ESTIMATIVA_IA_LEGADA = false;
+
 export const ModalDetalhesOrcamentoCRM = ({
   orcamento,
   historico,
@@ -503,8 +509,8 @@ export const ModalDetalhesOrcamentoCRM = ({
                 </p>
               )}
             </div>
-            {/* â”€â”€ Estimativa IA â”€â”€ */}
-            {podeRecalcularIA && (
+            {/* Estimativa IA legada — oculta na UI do CRM (Fase A admin UX) */}
+            {MOSTRAR_ESTIMATIVA_IA_LEGADA && podeRecalcularIA && (
               <div className="border rounded-lg p-4 bg-violet-50/50 border-violet-200">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-sm flex items-center gap-2 text-violet-800">
