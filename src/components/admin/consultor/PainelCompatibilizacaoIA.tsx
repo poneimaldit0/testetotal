@@ -1,13 +1,29 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart2, Clock, RefreshCw } from 'lucide-react';
+import { BarChart2, Clock, RefreshCw, AlertTriangle, Trophy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompatibilizacaoIA, type CompatibilizacaoIA } from '@/hooks/useCompatibilizacaoIA';
 import { ModalCompatibilizacao, StatusBadge } from './ModalCompatibilizacao';
+
+// Buckets de filtro derivados dos status canônicos da máquina de estados
+type FiltroStatus = 'todos' | 'em_andamento' | 'pendente_revisao' | 'aprovados' | 'enviados' | 'erros';
+
+const STATUS_PARA_BUCKET = (s: string): FiltroStatus => {
+  if (['pending', 'processando', 'compatibilizando'].includes(s)) return 'em_andamento';
+  if (['concluida', 'completed', 'pendente_revisao', 'revisado'].includes(s)) return 'pendente_revisao';
+  if (s === 'aprovado') return 'aprovados';
+  if (s === 'enviado') return 'enviados';
+  if (['erro', 'failed', 'cancelada'].includes(s)) return 'erros';
+  return 'todos';
+};
+
+function diasDesde(iso: string): number {
+  return (Date.now() - new Date(iso).getTime()) / 86_400_000;
+}
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
 
@@ -39,15 +55,19 @@ function useListaCompatibilizacoes() {
       setItems(
         (data ?? []).map((row: any) => ({
           compat: {
-            id:               row.id,
-            orcamento_id:     row.orcamento_id,
-            candidaturas_ids: row.candidaturas_ids ?? [],
-            status:           row.status,
-            nota_consultor:   row.nota_consultor ?? null,
-            ajuste_leitura:   row.ajuste_leitura ?? null,
-            aprovado_em:      row.aprovado_em ?? null,
-            analise_completa: row.analise_completa ?? null,
-            created_at:       row.created_at,
+            id:                   row.id,
+            orcamento_id:         row.orcamento_id,
+            candidaturas_ids:     row.candidaturas_ids ?? [],
+            status:               row.status,
+            nota_consultor:       row.nota_consultor ?? null,
+            ajuste_leitura:       row.ajuste_leitura ?? null,
+            aprovado_em:          row.aprovado_em ?? null,
+            analise_completa:     row.analise_completa ?? null,
+            ranking_ajustado:     row.ranking_ajustado ?? null,
+            justificativa_ajuste: row.justificativa_ajuste ?? null,
+            ajuste_por:           row.ajuste_por ?? null,
+            ajuste_em:            row.ajuste_em ?? null,
+            created_at:           row.created_at,
           } as CompatibilizacaoIA,
           orcamentoNome:
             row.orcamentos?.nome_contato ||
@@ -77,42 +97,80 @@ function CompatRow({
 }) {
   const { compat, orcamentoNome } = item;
   const needsAction = ['concluida', 'completed', 'pendente_revisao'].includes(compat.status);
+  const ativo = ['pending', 'processando', 'compatibilizando'].includes(compat.status);
+  const aguardandoCliente = compat.status === 'enviado';
+  const dias = diasDesde(compat.created_at);
+  const slaCritico = (ativo && dias > 1) || (needsAction && dias > 3) || (aguardandoCliente && dias > 5);
+
+  // Top 3 do ranking (S3.4 mini-comparativo)
+  const ranking = compat.ranking_ajustado && compat.ranking_ajustado.length > 0
+    ? compat.ranking_ajustado
+    : (compat.analise_completa?.ranking ?? []);
+  const top3 = ranking.slice().sort((a, b) => a.posicao - b.posicao).slice(0, 3);
+  const recomendadaId = compat.analise_completa?.empresa_recomendada_id ?? null;
 
   return (
-    <div className={`flex items-start justify-between gap-4 p-4 border rounded-lg transition-colors
+    <div className={`flex flex-col gap-3 p-4 border rounded-lg transition-colors
       ${needsAction ? 'border-orange-200 bg-orange-50/40 hover:bg-orange-50' : 'bg-muted/20 hover:bg-muted/40'}`}>
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-medium text-sm truncate">{orcamentoNome}</p>
-          <StatusBadge status={compat.status} />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {compat.candidaturas_ids.length} empresa{compat.candidaturas_ids.length !== 1 ? 's' : ''} comparadas
-        </p>
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {format(new Date(compat.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-        </p>
-        {compat.analise_completa?.empresa_recomendada_id && (
-          <p className="text-xs text-green-700 font-medium">
-            Recomendada: {
-              compat.analise_completa.ranking?.find(
-                r => r.candidatura_id === compat.analise_completa!.empresa_recomendada_id
-              )?.empresa ?? '—'
-            }
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-medium text-sm truncate">{orcamentoNome}</p>
+            <StatusBadge status={compat.status} />
+            {slaCritico && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                <AlertTriangle className="h-3 w-3" />
+                {Math.floor(dias)}d aguardando
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {compat.candidaturas_ids.length} empresa{compat.candidaturas_ids.length !== 1 ? 's' : ''} comparadas
           </p>
-        )}
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {format(new Date(compat.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          </p>
+        </div>
+
+        <Button
+          size="sm"
+          variant={needsAction ? 'default' : 'outline'}
+          className="shrink-0 text-xs"
+          onClick={() => onAbrir(item)}
+          disabled={ativo}
+        >
+          {ativo ? 'Processando...' : 'Revisar'}
+        </Button>
       </div>
 
-      <Button
-        size="sm"
-        variant={needsAction ? 'default' : 'outline'}
-        className="shrink-0 text-xs"
-        onClick={() => onAbrir(item)}
-        disabled={['pending', 'processando', 'compatibilizando'].includes(compat.status)}
-      >
-        {['pending', 'processando', 'compatibilizando'].includes(compat.status) ? 'Processando...' : 'Revisar'}
-      </Button>
+      {/* Mini ranking preview — S3.4 */}
+      {top3.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap pl-1">
+          {top3.map(r => {
+            const isRec = r.candidatura_id === recomendadaId;
+            return (
+              <span
+                key={r.candidatura_id}
+                className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border
+                  ${isRec
+                    ? 'bg-green-50 border-green-300 text-green-800 font-bold'
+                    : 'bg-white border-border text-foreground'}`}
+              >
+                {isRec && <Trophy className="h-3 w-3" />}
+                <span className="font-bold">{r.posicao}º</span>
+                <span className="truncate max-w-[150px]">{r.empresa}</span>
+                {typeof r.score_composto === 'number' && (
+                  <span className="text-muted-foreground">· {Math.round(r.score_composto)}</span>
+                )}
+              </span>
+            );
+          })}
+          {ranking.length > 3 && (
+            <span className="text-xs text-muted-foreground">+{ranking.length - 3}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -158,10 +216,36 @@ function ModalWrapper({
 export function PainelCompatibilizacaoIA() {
   const { items, loading, recarregar } = useListaCompatibilizacoes();
   const [aberto, setAberto] = useState<CompatItem | null>(null);
+  const [filtro, setFiltro] = useState<FiltroStatus>('todos');
 
-  const pendentesRevisao = items.filter(i =>
-    ['concluida', 'completed', 'pendente_revisao'].includes(i.compat.status)
-  ).length;
+  const counts = useMemo(() => {
+    const c: Record<FiltroStatus, number> = {
+      todos: items.length,
+      em_andamento: 0,
+      pendente_revisao: 0,
+      aprovados: 0,
+      enviados: 0,
+      erros: 0,
+    };
+    items.forEach(i => { c[STATUS_PARA_BUCKET(i.compat.status)]++; });
+    return c;
+  }, [items]);
+
+  const itensFiltrados = useMemo(() => {
+    if (filtro === 'todos') return items;
+    return items.filter(i => STATUS_PARA_BUCKET(i.compat.status) === filtro);
+  }, [items, filtro]);
+
+  const pendentesRevisao = counts.pendente_revisao;
+
+  const chips: Array<{ v: FiltroStatus; l: string; cor: string }> = [
+    { v: 'todos',            l: 'Todas',           cor: 'bg-blue-500'   },
+    { v: 'em_andamento',     l: 'Em andamento',    cor: 'bg-yellow-500' },
+    { v: 'pendente_revisao', l: 'Pend. revisão',   cor: 'bg-orange-500' },
+    { v: 'aprovados',        l: 'Aprovadas',       cor: 'bg-green-500'  },
+    { v: 'enviados',         l: 'Enviadas',        cor: 'bg-slate-500'  },
+    { v: 'erros',            l: 'Erros',           cor: 'bg-red-500'    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -182,6 +266,32 @@ export function PainelCompatibilizacaoIA() {
               Atualizar
             </Button>
           </div>
+
+          {/* S3.2: chips de filtro por bucket de status */}
+          {!loading && items.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap pt-2">
+              {chips.map(c => {
+                const ativo = filtro === c.v;
+                const n = counts[c.v];
+                return (
+                  <button
+                    key={c.v}
+                    onClick={() => setFiltro(c.v)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5
+                      ${ativo
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-foreground border-border hover:bg-muted'}`}
+                  >
+                    {c.l}
+                    <span className={`text-[10px] font-bold px-1.5 py-0 rounded-full
+                      ${ativo ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      {n}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {loading && (
@@ -196,9 +306,15 @@ export function PainelCompatibilizacaoIA() {
             </p>
           )}
 
-          {!loading && items.length > 0 && (
+          {!loading && items.length > 0 && itensFiltrados.length === 0 && (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              Nenhuma compatibilização neste filtro.
+            </p>
+          )}
+
+          {!loading && itensFiltrados.length > 0 && (
             <div className="space-y-3">
-              {items.map(item => (
+              {itensFiltrados.map(item => (
                 <CompatRow
                   key={item.compat.id}
                   item={item}
