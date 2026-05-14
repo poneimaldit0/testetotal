@@ -28,6 +28,18 @@ export interface CompatStatusFornecedor {
   aprovado_em: string | null;
   /** True se este fornecedor está incluído na análise atual (via candidaturas_ids). */
   incluido: boolean;
+  /** Total de candidaturas (propostas) na análise. 0 quando indisponível. */
+  total_propostas: number;
+  /** Posição do fornecedor no ranking ajustado (ou IA original); null se não disponível. */
+  posicao: number | null;
+  /** Score composto (0-100) do fornecedor no ranking; null quando indisponível. */
+  score: number | null;
+  /** True se o fornecedor é a empresa recomendada pelo consultor/IA. */
+  recomendado: boolean;
+  /** Diferença vs mercado (% acima/abaixo); null se indisponível. */
+  diferenca_mercado: number | null;
+  /** Valor da proposta deste fornecedor segundo a análise; null se indisponível. */
+  valor_proposta: number | null;
 }
 
 export function useCompatStatusFornecedor(orcamentoId: string | undefined, candidaturaId: string | undefined) {
@@ -47,7 +59,7 @@ export function useCompatStatusFornecedor(orcamentoId: string | undefined, candi
       try {
         const { data: row, error } = await (supabase as any)
           .from('compatibilizacoes_analises_ia')
-          .select('id, status, created_at, aprovado_em, candidaturas_ids')
+          .select('id, status, created_at, aprovado_em, candidaturas_ids, analise_completa, ranking_ajustado')
           .eq('orcamento_id', orcamentoId)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -63,12 +75,42 @@ export function useCompatStatusFornecedor(orcamentoId: string | undefined, candi
           ? row.candidaturas_ids.includes(candidaturaId)
           : false;
 
+        // Ranking ajustado tem prioridade sobre o ranking IA original
+        const rankingAtivo: Array<any> | null =
+          (Array.isArray(row.ranking_ajustado) && row.ranking_ajustado.length > 0)
+            ? row.ranking_ajustado
+            : (row.analise_completa?.ranking ?? null);
+
+        const empresaRecomendadaId: string | null =
+          row.analise_completa?.empresa_recomendada_id ?? null;
+
+        let posicao: number | null = null;
+        let score: number | null = null;
+        let diferenca_mercado: number | null = null;
+        let valor_proposta: number | null = null;
+
+        if (rankingAtivo && candidaturaId) {
+          const r = rankingAtivo.find((e: any) => e.candidatura_id === candidaturaId);
+          if (r) {
+            posicao = typeof r.posicao === 'number' ? r.posicao : null;
+            score = typeof r.score_composto === 'number' ? r.score_composto : null;
+            diferenca_mercado = typeof r.diferenca_mercado === 'number' ? r.diferenca_mercado : null;
+            valor_proposta = typeof r.valor_proposta === 'number' ? r.valor_proposta : null;
+          }
+        }
+
         setData({
           id: row.id,
           status: row.status as CompatStatusCanonico,
           created_at: row.created_at,
           aprovado_em: row.aprovado_em ?? null,
           incluido,
+          total_propostas: Array.isArray(row.candidaturas_ids) ? row.candidaturas_ids.length : 0,
+          posicao,
+          score,
+          recomendado: incluido && empresaRecomendadaId === candidaturaId,
+          diferenca_mercado,
+          valor_proposta,
         });
       } catch {
         if (!cancelado) setData(null);
@@ -90,7 +132,8 @@ export type PropostaFase =
   | 'em_compatibilizacao'
   | 'em_revisao_consultor'
   | 'aguardando_cliente'
-  | 'aprovada'
+  | 'vencedor'        // proposta aprovada E este fornecedor é o recomendado
+  | 'aprovada'        // compat aprovada mas não somos a empresa recomendada (ou indeterminado)
   | 'recusada'
   | 'erro';
 
@@ -113,9 +156,9 @@ export function deriveFasePropostaFromCompat(
     case 'revisado':
       return 'em_revisao_consultor';
     case 'aprovado':
-      return 'aprovada';
+      return compat.recomendado ? 'vencedor' : 'aprovada';
     case 'enviado':
-      return 'aguardando_cliente';
+      return compat.recomendado ? 'vencedor' : 'aguardando_cliente';
     case 'erro':
     case 'failed':
       return 'erro';

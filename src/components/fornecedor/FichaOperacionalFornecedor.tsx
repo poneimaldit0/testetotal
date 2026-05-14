@@ -81,10 +81,15 @@ const FASE_VISUAL: Record<PropostaFase, FaseVisual> = {
     titulo: 'Cliente analisando',
     descricao: 'O comparativo foi enviado ao cliente. Aguarde a decisão.',
   },
+  vencedor: {
+    tom: 'done', icone: '🏆',
+    titulo: 'Você foi recomendado para esta obra',
+    descricao: 'O cliente recebeu seu nome como fornecedor recomendado. Aguarde o contato para fechamento.',
+  },
   aprovada: {
     tom: 'done', icone: '✅',
-    titulo: 'Proposta aprovada',
-    descricao: 'Sua proposta foi aprovada. Aguarde os próximos passos do contrato.',
+    titulo: 'Compatibilização aprovada',
+    descricao: 'A análise foi concluída e enviada ao cliente. Aguarde a decisão final.',
   },
   recusada: {
     tom: 'neutral', icone: '⚫',
@@ -182,8 +187,11 @@ function deriveProximaAcao(c: CandidaturaOrcamento, fase: PropostaFase): Proxima
   if (fase === 'aguardando_cliente') {
     return { tom: 'wait', icone: '🤔', titulo: 'Cliente analisando — aguarde a decisão', ancora: 'proposta' };
   }
+  if (fase === 'vencedor') {
+    return { tom: 'done', icone: '🏆', titulo: 'Você foi recomendado para esta obra — aguarde contato' };
+  }
   if (fase === 'aprovada') {
-    return { tom: 'done', icone: '🎉', titulo: 'Proposta aprovada — aguarde próximos passos' };
+    return { tom: 'done', icone: '✅', titulo: 'Compatibilização aprovada — cliente decidindo' };
   }
   if (fase === 'recusada' || s === 'negocio_perdido') {
     return { tom: 'neutral', icone: '⚫', titulo: 'Processo encerrado' };
@@ -904,7 +912,7 @@ function SecaoProposta({
     );
   }
 
-  const visual = FASE_VISUAL[isDone ? (s === 'negocio_fechado' ? 'aprovada' : 'recusada') : fase];
+  const visual = FASE_VISUAL[fase];
   const cor = TOM_COLORS_FASE[visual.tom];
   const sla = !isDone ? deriveSLA(fase, arquivos, compat) : null;
 
@@ -949,6 +957,11 @@ function SecaoProposta({
           </div>
         </div>
       </div>
+
+      {/* S3.4: comparativo — posição/score/total quando análise contém dados deste fornecedor */}
+      {compat && compat.incluido && compat.posicao !== null && (
+        <CompatPosicaoCard compat={compat} fase={fase} />
+      )}
 
       {/* Feedback pós-envio (volátil, 3.5s) */}
       {feedbackEnvio && (
@@ -1235,6 +1248,97 @@ function ArquivoCard({
   );
 }
 
+// ── Comparativo: posição/score do fornecedor na compatibilização (S3.4) ───────
+function CompatPosicaoCard({
+  compat, fase,
+}: {
+  compat: CompatStatusFornecedor;
+  fase: PropostaFase;
+}) {
+  const pos = compat.posicao ?? 0;
+  const total = compat.total_propostas || 0;
+  const score = compat.score;
+  const isWinner = compat.recomendado;
+  const podridao = (compat.diferenca_mercado !== null && Math.abs(compat.diferenca_mercado) > 15);
+
+  const bg = isWinner ? I.vd2 : pos === 1 ? I.vd2 : pos === 2 || pos === 3 ? I.am2 : I.cz2;
+  const bd = isWinner ? I.vd : pos === 1 ? I.vd : pos === 2 || pos === 3 ? I.am : I.bd;
+  const fg = isWinner ? I.vd : pos === 1 ? I.vd : pos === 2 || pos === 3 ? I.am : I.cz;
+
+  const posLabel = pos === 1 ? '1º lugar' : pos === 2 ? '2º lugar' : pos === 3 ? '3º lugar' : `${pos}º`;
+
+  return (
+    <div style={{
+      marginBottom: 12,
+      borderRadius: 10,
+      border: `1.5px solid ${bd}`,
+      background: bg,
+      padding: '12px 14px',
+    }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: fg, opacity: .85, marginBottom: 6 }}>
+        Sua posição na compatibilização
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          minWidth: 56, height: 40, borderRadius: 8,
+          background: fg, color: '#fff',
+          fontSize: 16, fontWeight: 800,
+          fontFamily: "'Syne',sans-serif",
+          padding: '0 10px',
+        }}>
+          {posLabel}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: I.nv, fontFamily: "'Syne',sans-serif" }}>
+            {total > 1 ? `Entre ${total} propostas avaliadas` : 'Avaliação concluída'}
+          </div>
+          {score !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <div style={{
+                flex: 1, height: 6, borderRadius: 3,
+                background: I.bd, overflow: 'hidden',
+                maxWidth: 160,
+              }}>
+                <div style={{
+                  width: `${Math.max(0, Math.min(100, score))}%`,
+                  height: '100%',
+                  background: score >= 75 ? I.vd : score >= 50 ? I.am : I.vm,
+                }} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: I.cz, fontFamily: "'DM Sans',sans-serif" }}>
+                {Math.round(score)}/100
+              </span>
+            </div>
+          )}
+        </div>
+
+        {isWinner && (
+          <span style={{
+            fontSize: 11, fontWeight: 700,
+            padding: '4px 10px', borderRadius: 999,
+            background: I.vd, color: '#fff',
+            fontFamily: "'Syne',sans-serif",
+            whiteSpace: 'nowrap',
+          }}>
+            🏆 Recomendado
+          </span>
+        )}
+      </div>
+
+      {podridao && fase !== 'vencedor' && fase !== 'recusada' && (
+        <div style={{ fontSize: 11, color: fg, marginTop: 8, lineHeight: 1.4 }}>
+          {compat.diferenca_mercado! > 0
+            ? `Seu valor está ${compat.diferenca_mercado!.toFixed(0)}% acima da média do mercado para este escopo.`
+            : `Seu valor está ${Math.abs(compat.diferenca_mercado!).toFixed(0)}% abaixo da média — pode soar conservador para o cliente.`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const iconBtnStyle = (cor: string) => ({
   background: 'transparent',
   border: 'none',
@@ -1435,11 +1539,14 @@ export function FichaOperacionalFornecedor({ candidatura, onClose }: FichaOperac
 
   const confirmedAt = candidatura?.preConfirmadoEm ?? null;
 
-  // Sprint S2: status de compatibilização + fase visual derivada
+  // Sprint S2 + S3: status de compatibilização + fase visual derivada
   const { compat } = useCompatStatusFornecedor(candidatura?.id, candidatura?.candidaturaId);
   const fase: PropostaFase = useMemo(() => {
     if (!candidatura) return 'sem_proposta';
-    if (candidatura.statusAcompanhamento === 'negocio_fechado') return 'aprovada';
+    // S3: negocio_fechado + recomendado → vencedor; senão → aprovada (compat enviada mas cliente ainda decidindo entre opções)
+    if (candidatura.statusAcompanhamento === 'negocio_fechado') {
+      return compat?.recomendado ? 'vencedor' : 'aprovada';
+    }
     if (candidatura.statusAcompanhamento === 'negocio_perdido') return 'recusada';
     return deriveFasePropostaFromCompat(!!candidatura.propostaEnviada, compat);
   }, [candidatura, compat]);
