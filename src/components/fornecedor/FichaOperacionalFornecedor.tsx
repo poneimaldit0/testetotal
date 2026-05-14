@@ -610,6 +610,52 @@ function SecaoResultado({ s }: { s: string | null }) {
   return null;
 }
 
+// Fallback quando horarioVisitaAgendado é null — comum em candidaturas
+// anteriores a 2026-03-26 (criação de horarios_visita_orcamento) ou casos em
+// que o agendamento foi feito por canal externo (WhatsApp).
+function FallbackHorario({
+  statusAcompanhamento,
+  preConfirmadoEm,
+  dataCandidatura,
+}: {
+  statusAcompanhamento: string | null;
+  preConfirmadoEm: string | null;
+  dataCandidatura: Date | string;
+}) {
+  const s = statusAcompanhamento;
+  const candDate = dataCandidatura instanceof Date
+    ? dataCandidatura
+    : new Date(dataCandidatura);
+
+  // Caso 1: presença já confirmada mas horário não registrado.
+  if (preConfirmadoEm) {
+    return (
+      <span style={{ fontWeight: 500, fontStyle: 'italic', color: I.cz, fontFamily: "'DM Sans',sans-serif" }}>
+        Presença confirmada em {fmtDt(preConfirmadoEm)} às {fmtTm(preConfirmadoEm)} ·{' '}
+        <span style={{ color: I.am }}>horário do atendimento a confirmar com a Reforma100</span>
+      </span>
+    );
+  }
+
+  // Caso 2: visita/reunião marcada mas sem slot registrado (candidatura legada).
+  if (s === 'visita_agendada' || s === 'reuniao_agendada' || s === 'visita_realizada' || s === 'reuniao_realizada') {
+    return (
+      <span style={{ fontWeight: 500, fontStyle: 'italic', color: I.cz, fontFamily: "'DM Sans',sans-serif" }}>
+        Horário a confirmar com a Reforma100 ·{' '}
+        <span style={{ color: I.cz }}>inscrito em {fmtDt(candDate.toISOString())}</span>
+      </span>
+    );
+  }
+
+  // Caso 3: candidatura recém-criada sem agendamento ainda.
+  return (
+    <span style={{ fontWeight: 500, fontStyle: 'italic', color: I.cz, fontFamily: "'DM Sans',sans-serif" }}>
+      Aguardando agendamento pela Reforma100 ·{' '}
+      <span style={{ color: I.cz }}>inscrito em {fmtDt(candDate.toISOString())}</span>
+    </span>
+  );
+}
+
 // ── Seção: ação urgente (visita / reunião) ────────────────────────────────────
 function SecaoAtendimento({
   candidatura, preConfirmadoEm, onPreConfirmar,
@@ -624,12 +670,19 @@ function SecaoAtendimento({
   const isVR = s === 'visita_realizada';
   const isRA = s === 'reuniao_agendada';
   const isRR = s === 'reuniao_realizada';
-
-  if (!isVA && !isVR && !isRA && !isRR) return null;
-
-  const isPresencial = isVA || isVR;
-  const feito = isVR || isRR;
   const dt = candidatura.horarioVisitaAgendado;
+
+  // Mostra a seção sempre que o fornecedor já tem horário de atendimento,
+  // mesmo que o statusAcompanhamento ainda não tenha avançado para
+  // visita_agendada/reuniao_agendada (caso comum logo após a inscrição).
+  const temHorarioMarcado = !!dt;
+  if (!isVA && !isVR && !isRA && !isRR && !temHorarioMarcado) return null;
+
+  // Tipo do atendimento — quando o status ainda não diferencia, decide pelo
+  // sinal mais forte: linkReuniao → online; caso contrário, presencial.
+  const isReuniao = isRA || isRR || (!isVA && !isVR && !!candidatura.linkReuniao);
+  const isPresencial = !isReuniao;
+  const feito = isVR || isRR;
   const horas = dt ? horasRestantes(dt) : null;
   const urgente = horas !== null && horas > 0 && horas <= 24;
 
@@ -643,7 +696,8 @@ function SecaoAtendimento({
         {feito ? 'Atendimento realizado' : 'Atendimento agendado'}
       </div>
       <div style={{ borderRadius: 10, background: feito ? I.vd2 : acBg, border: `1.5px solid ${feito ? I.vd : acBd}`, padding: '14px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: feito ? 0 : 10, flexWrap: 'wrap' }}>
+        {/* Linha 1: tipo + badges (Concluído / Hoje / Presença confirmada) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 16 }}>{isPresencial ? '📅' : '🎥'}</span>
           <span style={{ fontWeight: 700, fontSize: 13, color: feito ? I.vd : acFg, fontFamily: "'Syne',sans-serif" }}>
             {isPresencial
@@ -652,36 +706,49 @@ function SecaoAtendimento({
           </span>
           {feito && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: I.vd2, color: I.vd }}>✓ Concluído</span>}
           {urgente && !feito && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: I.vm2, color: I.vm }}>⚡ Hoje</span>}
+          {preConfirmadoEm && !feito && (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: I.vd2, color: I.vd }}>
+              ✅ Presença confirmada
+            </span>
+          )}
         </div>
 
-        {!feito && dt && (
-          <div style={{ fontSize: 12, color: acFg, fontWeight: 600, marginBottom: 12 }}>
-            {fmtDt(dt)} às {fmtTm(dt)}
-            {horas !== null && horas > 0 && (
-              <span style={{ marginLeft: 8, fontWeight: 400, color: horas <= 24 ? I.vm : I.cz }}>
-                (em {horas < 24 ? `${horas}h` : `${Math.round(horas / 24)} dia(s)`})
-              </span>
-            )}
-          </div>
-        )}
-
-        {!feito && isPresencial && (
-          preConfirmadoEm ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: I.vd2, borderRadius: 8, padding: '10px 14px' }}>
-              <span style={{ fontSize: 16 }}>✅</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: I.vd }}>Presença confirmada</span>
-            </div>
+        {/* Linha 2: data + hora SEMPRE visíveis (Sprint S2 fix) */}
+        <div style={{
+          fontSize: 13, fontWeight: 700,
+          color: feito ? I.vd : acFg,
+          marginBottom: !feito ? 12 : 0,
+          fontFamily: "'Syne',sans-serif",
+        }}>
+          {dt ? (
+            <>
+              {fmtDt(dt)} às {fmtTm(dt)}
+              {!feito && horas !== null && horas > 0 && (
+                <span style={{ marginLeft: 8, fontWeight: 400, color: horas <= 24 ? I.vm : I.cz, fontFamily: "'DM Sans',sans-serif" }}>
+                  (em {horas < 24 ? `${horas}h` : `${Math.round(horas / 24)} dia(s)`})
+                </span>
+              )}
+            </>
           ) : (
-            <button
-              style={{ background: I.azul, color: '#fff', border: 'none', borderRadius: 8, padding: '13px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%', minHeight: 48 }}
-              onClick={() => onPreConfirmar('plataforma')}
-            >
-              ✓ Confirmar presença na plataforma
-            </button>
-          )
+            <FallbackHorario
+              statusAcompanhamento={s}
+              preConfirmadoEm={preConfirmadoEm}
+              dataCandidatura={candidatura.dataCandidatura}
+            />
+          )}
+        </div>
+
+        {/* CTA confirmar presença — apenas presencial, não realizada, não pré-confirmada */}
+        {!feito && isPresencial && !preConfirmadoEm && (
+          <button
+            style={{ background: I.azul, color: '#fff', border: 'none', borderRadius: 8, padding: '13px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%', minHeight: 48 }}
+            onClick={() => onPreConfirmar('plataforma')}
+          >
+            ✓ Confirmar presença na plataforma
+          </button>
         )}
 
-        {!feito && isRA && (
+        {!feito && isReuniao && (
           candidatura.linkReuniao && candidatura.tokenVisita ? (
             <button
               style={{ background: I.azul, color: '#fff', border: 'none', borderRadius: 8, padding: '13px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer', width: '100%', minHeight: 48 }}
@@ -784,7 +851,6 @@ function SecaoProposta({
   } = usePropostasArquivos(candidatura.candidaturaId, candidatura.id);
 
   const { toast } = useToast();
-  const [preview, setPreview] = useState<PropostaArquivo | null>(null);
   const [confirmarSubstituir, setConfirmarSubstituir] = useState(false);
   const [verHistorico, setVerHistorico] = useState(false);
   const [feedbackEnvio, setFeedbackEnvio] = useState(false);
@@ -938,7 +1004,6 @@ function SecaoProposta({
           arquivo={versaoAtual}
           destaque
           podeRemover={podeEnviar}
-          onPreview={() => setPreview(versaoAtual)}
           onDownload={() => downloadArquivo(versaoAtual)}
           onRemover={() => removerArquivo(versaoAtual)}
         />
@@ -971,7 +1036,6 @@ function SecaoProposta({
                   arquivo={a}
                   destaque={false}
                   podeRemover={podeEnviar}
-                  onPreview={() => setPreview(a)}
                   onDownload={() => downloadArquivo(a)}
                   onRemover={() => removerArquivo(a)}
                 />
@@ -1050,51 +1114,6 @@ function SecaoProposta({
         </div>
       )}
 
-      {/* Modal: preview da proposta */}
-      {preview && (
-        <Dialog open onOpenChange={open => { if (!open) setPreview(null); }}>
-          <DialogContent className="max-w-3xl h-[85vh] sm:h-[80vh] flex flex-col p-0 overflow-hidden">
-            <div className="flex-shrink-0 p-4 border-b flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <DialogTitle className="text-sm font-bold truncate">{preview.nome_arquivo}</DialogTitle>
-                <DialogDescription className="text-xs">
-                  {fmtBytes(preview.tamanho)} · {fmtDt(preview.created_at)} {fmtTm(preview.created_at)}
-                </DialogDescription>
-              </div>
-              <a
-                href={preview.url_arquivo}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-bold whitespace-nowrap px-3 py-1.5 rounded border border-border hover:bg-muted transition-colors"
-                style={{ marginRight: 36 }}
-                aria-label="Abrir proposta em nova aba"
-              >
-                ↗ Nova aba
-              </a>
-            </div>
-            <div className="flex-1 bg-muted overflow-auto">
-              {preview.tipo_arquivo === 'application/pdf' ? (
-                <iframe
-                  src={preview.url_arquivo}
-                  title={preview.nome_arquivo}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                />
-              ) : preview.tipo_arquivo.startsWith('image/') ? (
-                <img
-                  src={preview.url_arquivo}
-                  alt={preview.nome_arquivo}
-                  style={{ maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto' }}
-                />
-              ) : (
-                <div className="p-8 text-center text-sm text-muted-foreground">
-                  Preview não disponível para este tipo de arquivo.
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
       {/* Modal: confirmar substituição */}
       {confirmarSubstituir && (
         <Dialog open onOpenChange={open => { if (!open) setConfirmarSubstituir(false); }}>
@@ -1137,13 +1156,15 @@ function SecaoProposta({
 }
 
 // ── Card de arquivo de proposta ───────────────────────────────────────────────
+// Preview removido propositalmente para o fornecedor (Sprint S2 fix): o iframe
+// embutido apresentava erros de bucket em alguns cenários e o caso de uso
+// crítico de pré-visualização será o painel do consultor/admin, não da Ficha.
 function ArquivoCard({
-  arquivo, destaque, podeRemover, onPreview, onDownload, onRemover,
+  arquivo, destaque, podeRemover, onDownload, onRemover,
 }: {
   arquivo: PropostaArquivo;
   destaque: boolean;
   podeRemover: boolean;
-  onPreview: () => void;
   onDownload: () => void;
   onRemover: () => void;
 }) {
@@ -1191,19 +1212,10 @@ function ArquivoCard({
       <div style={{ display: 'flex', gap: 4 }}>
         <button
           type="button"
-          onClick={onPreview}
-          title="Visualizar"
-          aria-label={`Visualizar ${arquivo.nome_arquivo}`}
-          style={iconBtnStyle(I.azul)}
-        >
-          👁
-        </button>
-        <button
-          type="button"
           onClick={onDownload}
           title="Baixar"
           aria-label={`Baixar ${arquivo.nome_arquivo}`}
-          style={iconBtnStyle(I.cz)}
+          style={iconBtnStyle(I.azul)}
         >
           ⤓
         </button>
