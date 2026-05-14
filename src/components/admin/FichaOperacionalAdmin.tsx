@@ -710,42 +710,102 @@ function SecaoVisitaTecnica({ orcamento }: { orcamento: Orcamento }) {
   );
 }
 
-// ── Sub-componente: Rota100 ──────────────────────────────────────────────────
-function SecaoRota100({ orcamento }: { orcamento: Orcamento }) {
+// ── Sub-componente: Rota100 (com progresso e etapa) ──────────────────────────
+const R100_PCT_POR_ETAPA: Record<string, number> = {
+  orcamento_postado:    14,
+  contato_agendamento:  29,
+  em_orcamento:         43,
+  propostas_enviadas:   57,
+  compatibilizacao:     71,
+  fechamento_contrato:  86,
+  pos_venda_feedback:   100,
+  ganho:                100,
+  perdido:              100,
+};
+const R100_LABEL_POR_ETAPA: Record<string, string> = {
+  orcamento_postado:    'Publicado',
+  contato_agendamento:  'Em contato',
+  em_orcamento:         'Em orçamento',
+  propostas_enviadas:   'Propostas recebidas',
+  compatibilizacao:     'Compatibilização',
+  fechamento_contrato:  'Fechamento',
+  pos_venda_feedback:   'Pós-venda',
+  ganho:                'Concluído',
+  perdido:              'Encerrado',
+};
+
+function SecaoRota100({ orcamento, etapaCrm }: { orcamento: Orcamento; etapaCrm: string | null }) {
   if (!orcamento.rota100_token) return null;
   const url = `${window.location.origin}/rota100/${orcamento.rota100_token}`;
+  const pct = etapaCrm ? (R100_PCT_POR_ETAPA[etapaCrm] ?? 14) : 14;
+  const etapaLabel = etapaCrm ? (R100_LABEL_POR_ETAPA[etapaCrm] ?? 'Publicado') : 'Publicado';
 
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 8 }}>
         Rota100 do cliente
       </div>
-      <div style={{ background: I.bg, borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 11, color: I.cz, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
-          {url}
-        </span>
-        <button
-          type="button"
-          onClick={() => { navigator.clipboard.writeText(url); toast.success('Link copiado'); }}
-          aria-label="Copiar link Rota100"
-          style={{
-            background: 'transparent', border: 'none', color: I.azul,
-            cursor: 'pointer', padding: 6, borderRadius: 6,
-            display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700,
-          }}
-        >
-          <Copy className="h-3 w-3" /> Copiar
-        </button>
-        <a
-          href={url} target="_blank" rel="noopener noreferrer"
-          aria-label="Abrir Rota100 em nova aba"
-          style={{
-            color: I.azul, padding: 6, borderRadius: 6,
-            display: 'inline-flex', alignItems: 'center',
-          }}
-        >
-          <ExternalLink className="h-3 w-3" />
-        </a>
+      <div style={{ background: I.bg, borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Linha 1: etapa atual + percentual + barra */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: I.cz, fontWeight: 600 }}>Etapa atual</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: I.nv, fontFamily: "'Syne',sans-serif" }}>{etapaLabel}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 10, color: I.cz, fontWeight: 600 }}>Progresso</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#6B21A8', fontFamily: "'Syne',sans-serif", fontVariantNumeric: 'tabular-nums' }}>
+              {pct}%
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de progresso */}
+        <div style={{ background: I.bd, height: 6, borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{
+            width: `${pct}%`, height: '100%',
+            background: pct >= 86 ? I.vd : pct >= 43 ? '#A855F7' : I.azul,
+            transition: 'width .3s ease-out',
+          }} />
+        </div>
+
+        {/* Linha 3: link + CTAs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            fontSize: 10, color: I.cz, flex: 1, minWidth: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            fontFamily: 'monospace',
+          }}>
+            /rota100/{orcamento.rota100_token.slice(0, 12)}…
+          </span>
+          <button
+            type="button"
+            onClick={() => { navigator.clipboard.writeText(url); toast.success('Link copiado'); }}
+            aria-label="Copiar link Rota100"
+            style={{
+              background: 'transparent', border: 'none', color: I.azul,
+              cursor: 'pointer', padding: '4px 8px', borderRadius: 6,
+              display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700,
+              fontFamily: "'Syne',sans-serif",
+            }}
+          >
+            <Copy className="h-3 w-3" /> Copiar
+          </button>
+          <a
+            href={url} target="_blank" rel="noopener noreferrer"
+            aria-label="Abrir Rota100 em nova aba"
+            style={{
+              color: '#fff', background: '#6B21A8',
+              padding: '6px 10px', borderRadius: 8,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 700,
+              fontFamily: "'Syne',sans-serif",
+              textDecoration: 'none',
+            }}
+          >
+            <ExternalLink className="h-3 w-3" /> Abrir Rota100
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -1114,7 +1174,7 @@ export function FichaOperacionalAdmin({
 
               <SecaoVisitaTecnica orcamento={orcamento} />
 
-              <SecaoRota100 orcamento={orcamento} />
+              <SecaoRota100 orcamento={orcamento} etapaCrm={etapaCrm} />
 
               <SecaoContato orcamento={orcamento} />
 

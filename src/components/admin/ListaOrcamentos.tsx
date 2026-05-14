@@ -1,14 +1,14 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useOrcamento } from '@/context/OrcamentoContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Trash2, Clock, Timer, BarChart2 } from 'lucide-react';
+import { Trash2, Clock, Timer, BarChart2, AlertTriangle, Eye, Hourglass, Inbox, X as XIcon } from 'lucide-react';
 import { ModalFornecedoresOrcamento } from './ModalFornecedoresOrcamento';
-import { FiltroAvancadoOrcamentos } from './FiltroAvancadoOrcamentos';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { ApropriacaoGestorModal } from './ApropriacaoGestorModal';
 import { EditarOrcamentoModal } from './EditarOrcamentoModal';
@@ -44,14 +44,91 @@ function CompatStatusBadge({ status }: { status: string | undefined }) {
   );
 }
 
+// ── Filtros P2 ───────────────────────────────────────────────────────────────
+type StatusFiltro = 'todos' | 'aberto' | 'pausado' | 'fechado';
+type PeriodoFiltro = 'todos' | '7' | '30' | '90';
+type CompatFiltro = 'todos' | 'sem' | 'em_andamento' | 'revisao' | 'cliente' | 'aprovada';
+
+const STATUS_PARA_BUCKET_COMPAT = (s: string | undefined): CompatFiltro => {
+  if (!s || s === 'idle') return 'sem';
+  if (['pending', 'processando', 'compatibilizando'].includes(s)) return 'em_andamento';
+  if (['concluida', 'completed', 'pendente_revisao', 'revisado'].includes(s)) return 'revisao';
+  if (s === 'enviado') return 'cliente';
+  if (s === 'aprovado') return 'aprovada';
+  return 'sem';
+};
+
+const ETAPAS_PRE_SDR = ['orcamento_postado', 'contato_agendamento'];
+
+// Rota100 % simplificado por etapa (alinhado a ETAPA_TO_STEP do useRota100Data).
+// É uma estimativa rápida para o card; o painel real usa fórmula completa.
+const R100_PCT_POR_ETAPA: Record<string, number> = {
+  orcamento_postado:    14,
+  contato_agendamento:  29,
+  em_orcamento:         43,
+  propostas_enviadas:   57,
+  compatibilizacao:     71,
+  fechamento_contrato:  86,
+  pos_venda_feedback:   100,
+  ganho:                100,
+  perdido:              100,
+};
+function r100Percentual(etapa: string | null | undefined): number {
+  if (!etapa) return 14;
+  return R100_PCT_POR_ETAPA[etapa] ?? 14;
+}
+
+// ── KPI Card (P2) ────────────────────────────────────────────────────────────
+function KpiCardAdmin({
+  icon, label, value, color, active, onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  color: 'azul' | 'lj' | 'rx' | 'cz' | 'vm' | 'vd';
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const palette = {
+    azul: { bd: '#2D3395', tint: 'rgba(45,51,149,0.06)' },
+    lj:   { bd: '#F7A226', tint: 'rgba(247,162,38,0.07)' },
+    rx:   { bd: '#534AB7', tint: 'rgba(83,74,183,0.07)' },
+    cz:   { bd: '#6B7280', tint: 'rgba(107,114,128,0.07)' },
+    vm:   { bd: '#C0392B', tint: 'rgba(192,57,43,0.07)' },
+    vd:   { bd: '#1B7A4A', tint: 'rgba(27,122,74,0.07)' },
+  }[color];
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={!!active}
+      className="text-left rounded-xl p-3 border transition-all"
+      style={{
+        background: active ? palette.tint : '#fff',
+        borderColor: active ? palette.bd : '#E5E7EB',
+        borderTopWidth: 3,
+        borderTopColor: palette.bd,
+        boxShadow: active ? `0 0 0 2px ${palette.bd}30` : '0 1px 4px rgba(0,0,0,0.04)',
+        cursor: onClick ? 'pointer' : 'default',
+      }}
+    >
+      <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: palette.bd, fontFamily: "'Syne', sans-serif" }}>
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className="mt-1 text-2xl font-bold leading-none text-foreground">{value}</div>
+    </button>
+  );
+}
+
 export const ListaOrcamentos: React.FC = () => {
   const { orcamentos, excluirOrcamento, isDeleting, carregarOrcamentos, recarregarComRetry, hasMore, carregarMais, isLoadingMore, totalCount } = useOrcamento();
   const canManage = useCanManageOrcamentos();
   const isMaster = useIsMaster();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedOrcamento, setSelectedOrcamento] = useState<Orcamento | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filteredOrcamentos, setFilteredOrcamentos] = useState<Orcamento[]>([]);
-  const [isFiltered, setIsFiltered] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orcamentoToDelete, setOrcamentoToDelete] = useState<string | null>(null);
   const [apropriacaoModalOpen, setApropriacaoModalOpen] = useState(false);
@@ -67,9 +144,148 @@ export const ListaOrcamentos: React.FC = () => {
   // Fase C: drawer Ficha (clique no card abre)
   const [fichaAberta, setFichaAberta] = useState<Orcamento | null>(null);
 
+  // P2: filtros premium com persistência URL
+  const [busca, setBusca] = useState(() => searchParams.get('q') ?? '');
+  const [statusFiltro, setStatusFiltro] = useState<StatusFiltro>(() => {
+    const v = searchParams.get('status');
+    return (v === 'aberto' || v === 'pausado' || v === 'fechado') ? v : 'todos';
+  });
+  const [etapaFiltro, setEtapaFiltro] = useState<string>(() => searchParams.get('etapa') ?? 'todos');
+  const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>(() => {
+    const v = searchParams.get('periodo');
+    return (v === '7' || v === '30' || v === '90') ? v : 'todos';
+  });
+  const [compatFiltro, setCompatFiltro] = useState<CompatFiltro>(() => {
+    const v = searchParams.get('compat');
+    return (v === 'sem' || v === 'em_andamento' || v === 'revisao' || v === 'cliente' || v === 'aprovada') ? v : 'todos';
+  });
+
   const { pausarOrcamento, reabrirOrcamento, fecharOrcamentoManualmente, isLoading: isActionLoading } = useOrcamentoActions(recarregarComRetry);
 
-  const orcamentosToShow = isFiltered ? filteredOrcamentos : orcamentos;
+  // P2: sincronizar filtros → URL
+  useEffect(() => {
+    const current = new URLSearchParams(window.location.search);
+    const next = new URLSearchParams(current);
+    const setOrDel = (k: string, v: string | null) => {
+      if (v === null || v === '') next.delete(k);
+      else next.set(k, v);
+    };
+    setOrDel('q',       busca.trim() || null);
+    setOrDel('status',  statusFiltro === 'todos' ? null : statusFiltro);
+    setOrDel('etapa',   etapaFiltro === 'todos' ? null : etapaFiltro);
+    setOrDel('periodo', periodoFiltro === 'todos' ? null : periodoFiltro);
+    setOrDel('compat',  compatFiltro === 'todos' ? null : compatFiltro);
+    if (next.toString() !== current.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [busca, statusFiltro, etapaFiltro, periodoFiltro, compatFiltro, setSearchParams]);
+
+  // P2: filtro client-side combinado
+  const orcamentosFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    const cutoffMs = periodoFiltro === 'todos' ? 0 : Date.now() - Number(periodoFiltro) * 86_400_000;
+
+    return orcamentos.filter(o => {
+      // Busca textual
+      if (q) {
+        const necessidade = (o.necessidade ?? '').toLowerCase();
+        const local       = (o.local ?? '').toLowerCase();
+        const codigo      = o.id.toLowerCase();
+        const cliente     = (o.dadosContato?.nome ?? '').toLowerCase();
+        if (!necessidade.includes(q) && !local.includes(q) && !codigo.includes(q) && !cliente.includes(q)) return false;
+      }
+      // Status
+      if (statusFiltro !== 'todos' && o.status !== statusFiltro) return false;
+      // Etapa CRM (pre-sdr / etapa específica)
+      if (etapaFiltro !== 'todos') {
+        const etapa = crmStageMap[o.id];
+        if (etapaFiltro === 'pre-sdr') {
+          if (etapa !== null && etapa !== undefined && !ETAPAS_PRE_SDR.includes(etapa)) return false;
+        } else {
+          if (etapa !== etapaFiltro) return false;
+        }
+      }
+      // Período
+      if (cutoffMs > 0) {
+        const dt = o.dataPublicacao instanceof Date ? o.dataPublicacao.getTime() : new Date(o.dataPublicacao).getTime();
+        if (dt < cutoffMs) return false;
+      }
+      // Compat
+      if (compatFiltro !== 'todos') {
+        const bucket = STATUS_PARA_BUCKET_COMPAT(compatStatusMap[o.id]);
+        if (bucket !== compatFiltro) return false;
+      }
+      return true;
+    });
+  }, [orcamentos, busca, statusFiltro, etapaFiltro, periodoFiltro, compatFiltro, crmStageMap, compatStatusMap]);
+
+  // P2: contagens absolutas para chips/dropdowns/KPIs
+  const counts = useMemo(() => {
+    const k = { total: orcamentos.length, revisao: 0, cliente: 0, preSDR: 0 };
+    const status = { aberto: 0, pausado: 0, fechado: 0 };
+    const periodos = { '7': 0, '30': 0, '90': 0 };
+    const compat = { sem: 0, em_andamento: 0, revisao: 0, cliente: 0, aprovada: 0 };
+    const etapas: Record<string, number> = {};
+    const agora = Date.now();
+    orcamentos.forEach(o => {
+      if (o.status === 'aberto') status.aberto++;
+      else if (o.status === 'pausado') status.pausado++;
+      else if (o.status === 'fechado') status.fechado++;
+
+      const ms = o.dataPublicacao instanceof Date ? o.dataPublicacao.getTime() : new Date(o.dataPublicacao).getTime();
+      const dias = (agora - ms) / 86_400_000;
+      if (dias <= 7) periodos['7']++;
+      if (dias <= 30) periodos['30']++;
+      if (dias <= 90) periodos['90']++;
+
+      const compatBucket = STATUS_PARA_BUCKET_COMPAT(compatStatusMap[o.id]);
+      compat[compatBucket]++;
+      if (compatBucket === 'revisao') k.revisao++;
+      if (compatBucket === 'cliente') k.cliente++;
+
+      const etapa = crmStageMap[o.id];
+      if (etapa === undefined) {
+        // ainda carregando
+      } else if (etapa === null || ETAPAS_PRE_SDR.includes(etapa)) {
+        k.preSDR++;
+      }
+      if (etapa) etapas[etapa] = (etapas[etapa] ?? 0) + 1;
+    });
+    return { kpis: k, status, periodos, compat, etapas };
+  }, [orcamentos, crmStageMap, compatStatusMap]);
+
+  const filtrosAtivos = busca.trim() !== ''
+    || statusFiltro !== 'todos'
+    || etapaFiltro !== 'todos'
+    || periodoFiltro !== 'todos'
+    || compatFiltro !== 'todos';
+
+  const limparTudo = () => {
+    setBusca('');
+    setStatusFiltro('todos');
+    setEtapaFiltro('todos');
+    setPeriodoFiltro('todos');
+    setCompatFiltro('todos');
+  };
+
+  // Chips de filtros ativos (removíveis individualmente)
+  const chipsAtivos = useMemo(() => {
+    const arr: Array<{ key: string; label: string; clear: () => void }> = [];
+    const q = busca.trim();
+    if (q) arr.push({ key: 'q', label: `Busca: ${q}`, clear: () => setBusca('') });
+    if (statusFiltro === 'aberto')  arr.push({ key: 'status', label: 'Aberto',  clear: () => setStatusFiltro('todos') });
+    if (statusFiltro === 'pausado') arr.push({ key: 'status', label: 'Pausado', clear: () => setStatusFiltro('todos') });
+    if (statusFiltro === 'fechado') arr.push({ key: 'status', label: 'Fechado', clear: () => setStatusFiltro('todos') });
+    if (etapaFiltro === 'pre-sdr')  arr.push({ key: 'etapa', label: 'Pré-SDR',  clear: () => setEtapaFiltro('todos') });
+    else if (etapaFiltro !== 'todos') arr.push({ key: 'etapa', label: `Etapa: ${etapaFiltro}`, clear: () => setEtapaFiltro('todos') });
+    if (periodoFiltro !== 'todos') arr.push({ key: 'periodo', label: `Últimos ${periodoFiltro} dias`, clear: () => setPeriodoFiltro('todos') });
+    if (compatFiltro === 'em_andamento') arr.push({ key: 'compat', label: 'Compat. em andamento', clear: () => setCompatFiltro('todos') });
+    if (compatFiltro === 'revisao')      arr.push({ key: 'compat', label: 'Pendente revisão',    clear: () => setCompatFiltro('todos') });
+    if (compatFiltro === 'cliente')      arr.push({ key: 'compat', label: 'Aguardando cliente',  clear: () => setCompatFiltro('todos') });
+    if (compatFiltro === 'aprovada')     arr.push({ key: 'compat', label: 'Compat. aprovada',    clear: () => setCompatFiltro('todos') });
+    if (compatFiltro === 'sem')          arr.push({ key: 'compat', label: 'Sem compatibilização', clear: () => setCompatFiltro('todos') });
+    return arr;
+  }, [busca, statusFiltro, etapaFiltro, periodoFiltro, compatFiltro]);
 
   // Batch-fetch latest compat status for all visible orcamentos (single query)
   const fetchCompatStatus = useCallback(async (ids: string[]) => {
@@ -103,10 +319,10 @@ export const ListaOrcamentos: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const ids = orcamentosToShow.map(o => o.id);
+    const ids = orcamentos.map(o => o.id);
     fetchCompatStatus(ids);
     fetchCrmStages(ids);
-  }, [orcamentosToShow, fetchCompatStatus, fetchCrmStages]);
+  }, [orcamentos, fetchCompatStatus, fetchCrmStages]);
 
   const getStatusColor = (status: string) => {
     if (status === 'aberto') return 'bg-primary';
@@ -125,16 +341,6 @@ export const ListaOrcamentos: React.FC = () => {
   const handleVerFornecedores = (orcamento: Orcamento) => {
     setSelectedOrcamento(orcamento);
     setIsModalOpen(true);
-  };
-
-  const handleFilteredResults = (filtered: Orcamento[]) => {
-    setFilteredOrcamentos(filtered);
-    setIsFiltered(true);
-  };
-
-  const handleClearFilter = () => {
-    setFilteredOrcamentos([]);
-    setIsFiltered(false);
   };
 
   const handleDeleteClick = (orcamentoId: string) => {
@@ -205,36 +411,156 @@ export const ListaOrcamentos: React.FC = () => {
         style={{ marginBottom: 0 }}
         right={totalCount > 0 ? (
           <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
-            {orcamentosToShow.length} de {totalCount}
+            {orcamentosFiltrados.length} de {totalCount}
           </span>
         ) : undefined}
       />
-      
-      <FiltroAvancadoOrcamentos 
-        onFilteredResults={handleFilteredResults}
-        onClearFilter={handleClearFilter}
-      />
 
-      {isFiltered && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-blue-800 text-sm">
-            Exibindo {filteredOrcamentos.length} orçamento(s) filtrado(s).
-          </p>
+      {/* KPIs operacionais clicáveis (P2) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCardAdmin
+          icon={<Inbox className="h-4 w-4" />}
+          label="Total"
+          value={counts.kpis.total}
+          color="azul"
+          active={!filtrosAtivos}
+          onClick={limparTudo}
+        />
+        <KpiCardAdmin
+          icon={<Eye className="h-4 w-4" />}
+          label="Em revisão"
+          value={counts.kpis.revisao}
+          color="lj"
+          active={compatFiltro === 'revisao'}
+          onClick={() => setCompatFiltro(compatFiltro === 'revisao' ? 'todos' : 'revisao')}
+        />
+        <KpiCardAdmin
+          icon={<Hourglass className="h-4 w-4" />}
+          label="Aguardando cliente"
+          value={counts.kpis.cliente}
+          color="rx"
+          active={compatFiltro === 'cliente'}
+          onClick={() => setCompatFiltro(compatFiltro === 'cliente' ? 'todos' : 'cliente')}
+        />
+        <KpiCardAdmin
+          icon={<AlertTriangle className="h-4 w-4" />}
+          label="Pré-SDR"
+          value={counts.kpis.preSDR}
+          color="cz"
+          active={etapaFiltro === 'pre-sdr'}
+          onClick={() => setEtapaFiltro(etapaFiltro === 'pre-sdr' ? 'todos' : 'pre-sdr')}
+        />
+      </div>
+
+      {/* Busca + dropdowns (P2) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[240px]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+            <BarChart2 className="h-4 w-4 opacity-0" />
+          </span>
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por necessidade, local, código ou cliente…"
+            className="w-full h-10 pl-3 pr-9 rounded-lg border border-border bg-white text-sm outline-none focus:border-primary"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca('')}
+              aria-label="Limpar busca"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-muted hover:bg-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <XIcon className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        <select
+          value={statusFiltro}
+          onChange={(e) => setStatusFiltro(e.target.value as StatusFiltro)}
+          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+        >
+          <option value="todos">Todos status ({orcamentos.length})</option>
+          <option value="aberto">Aberto ({counts.status.aberto})</option>
+          <option value="pausado">Pausado ({counts.status.pausado})</option>
+          <option value="fechado">Fechado ({counts.status.fechado})</option>
+        </select>
+
+        <select
+          value={periodoFiltro}
+          onChange={(e) => setPeriodoFiltro(e.target.value as PeriodoFiltro)}
+          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+        >
+          <option value="todos">Todo o período</option>
+          <option value="7">Últimos 7 dias ({counts.periodos['7']})</option>
+          <option value="30">Últimos 30 dias ({counts.periodos['30']})</option>
+          <option value="90">Últimos 90 dias ({counts.periodos['90']})</option>
+        </select>
+
+        <select
+          value={compatFiltro}
+          onChange={(e) => setCompatFiltro(e.target.value as CompatFiltro)}
+          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+        >
+          <option value="todos">Compatibilização</option>
+          <option value="sem">Sem ({counts.compat.sem})</option>
+          <option value="em_andamento">Em andamento ({counts.compat.em_andamento})</option>
+          <option value="revisao">Pendente revisão ({counts.compat.revisao})</option>
+          <option value="cliente">Aguardando cliente ({counts.compat.cliente})</option>
+          <option value="aprovada">Aprovada ({counts.compat.aprovada})</option>
+        </select>
+
+        {filtrosAtivos && (
+          <button
+            type="button"
+            onClick={limparTudo}
+            className="h-10 px-3 rounded-lg border border-border bg-white text-xs font-bold text-muted-foreground hover:text-foreground"
+          >
+            Limpar
+          </button>
+        )}
+      </div>
+
+      {/* Chips de filtros ativos (P2 / padrão B5.23) */}
+      {chipsAtivos.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {chipsAtivos.map(f => (
+            <button
+              key={`${f.key}-${f.label}`}
+              type="button"
+              onClick={f.clear}
+              aria-label={`Remover filtro: ${f.label}`}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-bold hover:bg-primary/15 transition-colors font-syne"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              {f.label}
+              <span className="opacity-60 text-sm leading-none">×</span>
+            </button>
+          ))}
         </div>
       )}
-      
-      {orcamentosToShow.length === 0 ? (
+
+      {orcamentosFiltrados.length === 0 ? (
         <Card className="r100-card">
-          <CardContent className="p-6 text-center text-muted-foreground">
-            {isFiltered ? 
-              "Nenhum orçamento encontrado para o filtro aplicado." :
-              "Nenhum orçamento cadastrado ainda."
-            }
+          <CardContent className="p-6 text-center text-muted-foreground text-sm">
+            {filtrosAtivos
+              ? (busca.trim()
+                  ? <>Nenhum orçamento encontrado para <strong className="text-foreground">"{busca.trim()}"</strong>.</>
+                  : compatFiltro === 'revisao'  ? 'Nenhuma compatibilização aguardando revisão.'
+                  : compatFiltro === 'cliente'  ? 'Nenhum lead aguardando cliente neste momento.'
+                  : compatFiltro === 'aprovada' ? 'Nenhuma compatibilização aprovada ainda.'
+                  : etapaFiltro === 'pre-sdr'   ? 'Nenhum lead em pré-atendimento SDR.'
+                  : statusFiltro === 'pausado'  ? 'Nenhum orçamento pausado.'
+                  : statusFiltro === 'fechado'  ? 'Nenhum orçamento fechado.'
+                  : 'Nenhum orçamento corresponde aos filtros aplicados.')
+              : 'Nenhum orçamento cadastrado ainda.'}
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 max-w-full overflow-hidden">
-          {orcamentosToShow.map((orcamento) => (
+          {orcamentosFiltrados.map((orcamento) => (
             <Card
               key={orcamento.id}
               role="button"
@@ -274,6 +600,17 @@ export const ListaOrcamentos: React.FC = () => {
                           ⏳ Pré-atendimento SDR
                         </Badge>
                       ) : null;
+                    })()}
+                    {/* Badge R100 % — estimativa rápida por etapa */}
+                    {(() => {
+                      const etapa = crmStageMap[orcamento.id];
+                      if (etapa === undefined) return null;
+                      const pct = r100Percentual(etapa);
+                      return (
+                        <Badge variant="outline" className="border-purple-300 bg-purple-50 text-purple-700 font-mono text-[10px] px-2">
+                          R100 {pct}%
+                        </Badge>
+                      );
                     })()}
                     {orcamento.categorias.map((categoria, index) => (
                       <Badge key={index} variant="secondary" className="max-w-[150px] truncate">
@@ -325,8 +662,8 @@ export const ListaOrcamentos: React.FC = () => {
               </CardContent>
             </Card>
           ))}
-          {/* Load more button */}
-          {hasMore && !isFiltered && (
+          {/* Load more button — só quando não há filtros locais ativos */}
+          {hasMore && !filtrosAtivos && (
             <div className="flex justify-center pt-4">
               <Button
                 onClick={carregarMais}
@@ -390,7 +727,7 @@ export const ListaOrcamentos: React.FC = () => {
         onClose={() => {
           setCompatModalOpen(false);
           // Refresh compat status after modal closes (user may have approved/sent)
-          const ids = orcamentosToShow.map(o => o.id);
+          const ids = orcamentos.map(o => o.id);
           fetchCompatStatus(ids);
         }}
       />

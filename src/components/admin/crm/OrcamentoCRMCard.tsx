@@ -22,6 +22,19 @@ import type { EtapaConfig } from '@/hooks/useEtapasConfig';
 // no card do CRM Kanban. Dados continuam no banco — só sai da UI.
 const MOSTRAR_VALOR_ESTIMATIVA_LEGADA = false;
 
+// Rota100 % estimado por etapa CRM
+const R100_PCT_POR_ETAPA: Record<string, number> = {
+  orcamento_postado:    14,
+  contato_agendamento:  29,
+  em_orcamento:         43,
+  propostas_enviadas:   57,
+  compatibilizacao:     71,
+  fechamento_contrato:  86,
+  pos_venda_feedback:   100,
+  ganho:                100,
+  perdido:              100,
+};
+
 interface OrcamentoCRMCardProps {
   orcamento: OrcamentoCRMComChecklist;
   onAtualizarStatusContato: (orcamentoId: string, novoStatus: StatusContato) => void;
@@ -129,6 +142,10 @@ export const OrcamentoCRMCard = ({
           {orcamento.total_tarefas > 0 && (
             <span className="r100-pill r100-pill-gray">✓ {orcamento.tarefas_concluidas}/{orcamento.total_tarefas}</span>
           )}
+          {/* Rota100 % estimado */}
+          <span className="r100-pill" style={{ background: '#F3E8FF', color: '#6B21A8', borderColor: '#D8B4FE', fontVariantNumeric: 'tabular-nums' }}>
+            R100 {R100_PCT_POR_ETAPA[orcamento.etapa_crm] ?? 14}%
+          </span>
         </div>
 
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
