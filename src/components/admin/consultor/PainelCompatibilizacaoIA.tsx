@@ -277,6 +277,8 @@ export function PainelCompatibilizacaoIA() {
                   <button
                     key={c.v}
                     onClick={() => setFiltro(c.v)}
+                    aria-pressed={ativo}
+                    aria-label={`Filtrar por ${c.l}, ${n} item${n !== 1 ? 'ns' : ''}`}
                     className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5
                       ${ativo
                         ? 'bg-blue-600 text-white border-blue-600'
@@ -308,7 +310,12 @@ export function PainelCompatibilizacaoIA() {
 
           {!loading && items.length > 0 && itensFiltrados.length === 0 && (
             <p className="text-sm text-muted-foreground py-6 text-center">
-              Nenhuma compatibilização neste filtro.
+              {filtro === 'em_andamento'     ? 'Nenhuma compatibilização em andamento agora.'
+              : filtro === 'pendente_revisao' ? 'Nenhuma compatibilização aguardando sua revisão.'
+              : filtro === 'aprovados'        ? 'Nenhuma compatibilização aprovada ainda.'
+              : filtro === 'enviados'         ? 'Nenhuma compatibilização enviada ao cliente.'
+              : filtro === 'erros'            ? 'Nenhuma compatibilização com erro.'
+              : 'Nenhuma compatibilização neste filtro.'}
             </p>
           )}
 

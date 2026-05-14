@@ -963,6 +963,36 @@ function SecaoProposta({
         <CompatPosicaoCard compat={compat} fase={fase} />
       )}
 
+      {/* S3.7: bloco de próximos passos quando o fornecedor é o vencedor */}
+      {fase === 'vencedor' && (
+        <div style={{
+          background: I.vd2, border: `1.5px solid ${I.vd}`, borderRadius: 10,
+          padding: '12px 14px', marginBottom: 12,
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: I.vd, opacity: .85, marginBottom: 6 }}>
+            Próximos passos
+          </div>
+          <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: I.nv, lineHeight: 1.6 }}>
+            <li>A Reforma100 entrará em contato para alinhar o fechamento.</li>
+            <li>Mantenha sua proposta acessível para eventuais ajustes do contrato.</li>
+            <li>Aguarde a confirmação oficial antes de iniciar qualquer execução.</li>
+          </ol>
+        </div>
+      )}
+
+      {/* S3.7: bloco quando recusada — explica e aponta para Disponíveis */}
+      {fase === 'recusada' && (
+        <div style={{
+          background: I.cz2, border: `1.5px solid ${I.bd}`, borderRadius: 10,
+          padding: '12px 14px', marginBottom: 12,
+        }}>
+          <div style={{ fontSize: 12, color: I.cz, lineHeight: 1.5 }}>
+            Esta proposta não foi a escolhida pelo cliente. Continue acompanhando outros
+            orçamentos disponíveis na sua Central.
+          </div>
+        </div>
+      )}
+
       {/* Feedback pós-envio (volátil, 3.5s) */}
       {feedbackEnvio && (
         <div style={{
