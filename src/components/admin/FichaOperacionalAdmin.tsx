@@ -10,7 +10,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { R as I } from '@/styles/tokens';
 import type { Orcamento } from '@/types';
-import { Copy, ExternalLink, Edit, UserCheck, BarChart2 } from 'lucide-react';
+import { Copy, ExternalLink, Edit, UserCheck, BarChart2, MessageCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -40,9 +40,21 @@ interface CandidaturaResumo {
   id: string;
   fornecedor_id: string | null;
   fornecedor_nome: string | null;
+  fornecedor_empresa: string | null;
+  fornecedor_telefone: string | null;
+  fornecedor_email: string | null;
   proposta_enviada: boolean;
   status_acompanhamento: string | null;
   data_candidatura: string;
+}
+
+// Abre WhatsApp com mensagem padrão (DDI 55 quando o número não tiver).
+function abrirWhatsApp(telefone: string, nome: string | null) {
+  const apenasDigitos = telefone.replace(/\D/g, '');
+  if (!apenasDigitos) return;
+  const numero = apenasDigitos.startsWith('55') ? apenasDigitos : `55${apenasDigitos}`;
+  const msg = encodeURIComponent(`Olá${nome ? ` ${nome}` : ''}, entrando em contato sobre o orçamento.`);
+  window.open(`https://api.whatsapp.com/send/?phone=${numero}&text=${msg}`, '_blank', 'noopener,noreferrer');
 }
 
 interface CompatResumo {
@@ -406,7 +418,7 @@ function SecaoResumo({ orcamento }: { orcamento: Orcamento }) {
   );
 }
 
-// ── Sub-componente: Fornecedores inscritos ───────────────────────────────────
+// ── Sub-componente: Fornecedores inscritos (com contato + ações rápidas) ─────
 function SecaoFornecedores({ candidaturas }: { candidaturas: CandidaturaResumo[] }) {
   const enviadas = candidaturas.filter(c => c.proposta_enviada).length;
 
@@ -424,36 +436,125 @@ function SecaoFornecedores({ candidaturas }: { candidaturas: CandidaturaResumo[]
           Nenhum fornecedor inscrito ainda.
         </div>
       ) : (
-        <div style={{ background: I.bg, borderRadius: 10, padding: '10px 12px' }}>
+        <>
           <div style={{ fontSize: 11, color: I.cz, marginBottom: 8 }}>
             <strong style={{ color: I.vd }}>{enviadas}</strong> de {candidaturas.length} já enviaram proposta
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {candidaturas.map(c => (
-              <li key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: I.nv }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: c.proposta_enviada ? I.vd : I.cz,
-                  flexShrink: 0,
-                }} />
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.fornecedor_nome ?? 'Fornecedor sem nome'}
-                </span>
-                <span style={{
-                  fontSize: 10, fontWeight: 700,
-                  padding: '1px 7px', borderRadius: 10,
-                  background: c.proposta_enviada ? I.vd2 : I.cz2,
-                  color: c.proposta_enviada ? I.vd : I.cz,
-                  whiteSpace: 'nowrap',
-                }}>
-                  {c.proposta_enviada ? 'Proposta enviada' : 'Sem proposta'}
-                </span>
-              </li>
+              <FornecedorRow key={c.id} candidatura={c} />
             ))}
           </ul>
-        </div>
+        </>
       )}
     </div>
+  );
+}
+
+function FornecedorRow({ candidatura }: { candidatura: CandidaturaResumo }) {
+  const empresa = candidatura.fornecedor_empresa ?? candidatura.fornecedor_nome ?? 'Fornecedor sem nome';
+  const contatoNome = candidatura.fornecedor_empresa ? candidatura.fornecedor_nome : null;
+  const tel = candidatura.fornecedor_telefone;
+  const email = candidatura.fornecedor_email;
+  const enviou = candidatura.proposta_enviada;
+
+  return (
+    <li style={{
+      background: I.bg,
+      border: `1px solid ${I.bd}`,
+      borderRadius: 10,
+      padding: '10px 12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+    }}>
+      {/* Indicador de status */}
+      <span style={{
+        width: 8, height: 8, borderRadius: '50%',
+        background: enviou ? I.vd : I.cz,
+        flexShrink: 0,
+      }} aria-hidden />
+
+      {/* Identidade + contato */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 12, fontWeight: 700, color: I.nv,
+          fontFamily: "'Syne',sans-serif",
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {empresa}
+          {contatoNome && (
+            <span style={{ fontWeight: 500, color: I.cz, marginLeft: 6, fontFamily: "'DM Sans',sans-serif" }}>
+              · {contatoNome}
+            </span>
+          )}
+        </div>
+        {(tel || email) && (
+          <div style={{
+            fontSize: 10, color: I.cz, marginTop: 2,
+            display: 'flex', gap: 8, flexWrap: 'wrap',
+            fontFamily: "'DM Sans',sans-serif",
+          }}>
+            {tel && <span style={{ whiteSpace: 'nowrap' }}>📞 {tel}</span>}
+            {email && (
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                ✉ {email}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Status + ações discretas */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        <span style={{
+          fontSize: 9, fontWeight: 700,
+          padding: '2px 7px', borderRadius: 10,
+          background: enviou ? I.vd2 : I.cz2,
+          color: enviou ? I.vd : I.cz,
+          whiteSpace: 'nowrap',
+          letterSpacing: '.03em',
+          textTransform: 'uppercase',
+          fontFamily: "'Syne',sans-serif",
+        }}>
+          {enviou ? 'Proposta' : 'Pendente'}
+        </span>
+
+        {tel && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); abrirWhatsApp(tel, candidatura.fornecedor_nome ?? null); }}
+            aria-label={`Abrir WhatsApp com ${empresa}`}
+            title="WhatsApp"
+            style={{
+              background: 'transparent', border: 'none',
+              color: '#25D366', cursor: 'pointer',
+              padding: 6, borderRadius: 6,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: 28, minHeight: 28,
+            }}
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {email && (
+          <a
+            href={`mailto:${email}`}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Enviar email para ${empresa}`}
+            title="Email"
+            style={{
+              color: I.azul,
+              padding: 6, borderRadius: 6,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: 28, minHeight: 28,
+            }}
+          >
+            <Mail className="h-3.5 w-3.5" />
+          </a>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -658,7 +759,7 @@ export function FichaOperacionalAdmin({
         const [candRes, compatRes, crmRes] = await Promise.all([
           (supabase as any)
             .from('candidaturas_fornecedores')
-            .select('id, fornecedor_id, proposta_enviada, status_acompanhamento, data_candidatura, profiles!fornecedor_id(nome, empresa)')
+            .select('id, fornecedor_id, proposta_enviada, status_acompanhamento, data_candidatura, profiles!fornecedor_id(nome, empresa, telefone, email)')
             .eq('orcamento_id', orcId)
             .order('data_candidatura', { ascending: false }),
           (supabase as any)
@@ -682,7 +783,10 @@ export function FichaOperacionalAdmin({
           setCandidaturas(candRes.data.map((row: any) => ({
             id: row.id,
             fornecedor_id: row.fornecedor_id ?? null,
-            fornecedor_nome: row.profiles?.empresa || row.profiles?.nome || null,
+            fornecedor_nome: row.profiles?.nome ?? null,
+            fornecedor_empresa: row.profiles?.empresa ?? null,
+            fornecedor_telefone: row.profiles?.telefone ?? null,
+            fornecedor_email: row.profiles?.email ?? null,
             proposta_enviada: !!row.proposta_enviada,
             status_acompanhamento: row.status_acompanhamento ?? null,
             data_candidatura: row.data_candidatura,

@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useOrcamento } from '@/context/OrcamentoContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageCircle, Mail, Users, Eye, Trash2, Clock, UserCheck, Edit, Timer, CalendarClock, Copy, ExternalLink, BarChart2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Trash2, Clock, Timer, BarChart2 } from 'lucide-react';
 import { ModalFornecedoresOrcamento } from './ModalFornecedoresOrcamento';
 import { FiltroAvancadoOrcamentos } from './FiltroAvancadoOrcamentos';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
@@ -19,10 +18,10 @@ import { useCanManageOrcamentos } from '@/hooks/useCanManageOrcamentos';
 import { useIsMaster } from '@/hooks/useIsMaster';
 import { useOrcamentoActions } from '@/hooks/useOrcamentoActions';
 import { Orcamento } from '@/types';
-import { AnexosOrcamento } from '../fornecedor/AnexosOrcamento';
 import { supabase } from '@/integrations/supabase/client';
 import { ModalCompatibilizacaoConsultor } from './consultor/ModalCompatibilizacaoConsultor';
 import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
+import { FichaOperacionalAdmin } from './FichaOperacionalAdmin';
 
 // ── Badge de status de compatibilização ──────────────────────────────────────
 function CompatStatusBadge({ status }: { status: string | undefined }) {
@@ -65,6 +64,8 @@ export const ListaOrcamentos: React.FC = () => {
   const [compatModalOpen, setCompatModalOpen] = useState(false);
   const [compatStatusMap, setCompatStatusMap] = useState<Record<string, string>>({});
   const [crmStageMap, setCrmStageMap] = useState<Record<string, string | null>>({});
+  // Fase C: drawer Ficha (clique no card abre)
+  const [fichaAberta, setFichaAberta] = useState<Orcamento | null>(null);
 
   const { pausarOrcamento, reabrirOrcamento, fecharOrcamentoManualmente, isLoading: isActionLoading } = useOrcamentoActions(recarregarComRetry);
 
@@ -234,7 +235,14 @@ export const ListaOrcamentos: React.FC = () => {
       ) : (
         <div className="grid gap-4 max-w-full overflow-hidden">
           {orcamentosToShow.map((orcamento) => (
-            <Card key={orcamento.id} className="r100-card w-full max-w-full box-border overflow-hidden">
+            <Card
+              key={orcamento.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setFichaAberta(orcamento)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFichaAberta(orcamento); } }}
+              className="r100-card w-full max-w-full box-border overflow-hidden cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
+            >
               <CardHeader className="max-w-full overflow-hidden pb-3 space-y-0">
                 <div className="flex flex-col gap-2 max-w-full overflow-hidden mb-0">
                   <div className="min-w-0 flex-1 overflow-hidden">
@@ -274,10 +282,10 @@ export const ListaOrcamentos: React.FC = () => {
                     ))}
                   </div>
                 </div>
-            </CardHeader>
-            <CardContent className="max-w-full overflow-hidden pt-2 pb-4">
-              <div className="space-y-3 max-w-full overflow-hidden">
-                  <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
+              </CardHeader>
+              <CardContent className="max-w-full overflow-hidden pt-2 pb-4">
+                <div className="flex items-center justify-between gap-3 max-w-full overflow-hidden">
+                  <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground min-w-0">
                     {orcamento.tamanhoImovel && (
                       <span><span className="font-medium text-foreground">{orcamento.tamanhoImovel} m²</span></span>
                     )}
@@ -288,213 +296,29 @@ export const ListaOrcamentos: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Seção Visita Técnica */}
-                  {orcamento.horariosVisita && orcamento.horariosVisita.length > 0 && (
-                    <div className="mt-2 p-3 bg-accent/10 rounded-lg border border-accent/20">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CalendarClock className="h-4 w-4 text-primary" />
-                        <span className="font-medium text-sm text-primary">Visita Técnica</span>
-                      </div>
-                      <div className="space-y-1">
-                        {orcamento.horariosVisita.map((h) => (
-                          <div key={h.id} className="flex items-center gap-2 text-sm">
-                            {h.fornecedor_id ? (
-                              <Badge className="bg-green-100 text-green-800 border-green-300 hover:bg-green-100">
-                                ✅ {format(new Date(h.data_hora), "EEE, dd/MM 'às' HH:mm", { locale: ptBR })} — {h.fornecedor_nome || 'Fornecedor'}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700">
-                                ⏳ {format(new Date(h.data_hora), "EEE, dd/MM 'às' HH:mm", { locale: ptBR })} — Disponível
-                              </Badge>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Exibir anexos quando disponíveis */}
-                  {(orcamento.arquivos?.length > 0 || orcamento.fotos?.length > 0) && (
-                    <AnexosOrcamento 
-                      arquivos={orcamento.arquivos?.map((file: any) => ({
-                        id: file.id || '',
-                        nome_arquivo: file.name || file.nome_arquivo || '',
-                        tipo_arquivo: file.type || file.tipo_arquivo || '',
-                        tamanho: file.size || file.tamanho || 0,
-                        url_arquivo: file.url || file.url_arquivo || (file instanceof File ? URL.createObjectURL(file) : '')
-                      })) || []} 
-                      fotos={orcamento.fotos?.map((file: any) => ({
-                        id: file.id || '',
-                        nome_arquivo: file.name || file.nome_arquivo || '',
-                        tipo_arquivo: file.type || file.tipo_arquivo || '',
-                        tamanho: file.size || file.tamanho || 0,
-                        url_arquivo: file.url || file.url_arquivo || (file instanceof File ? URL.createObjectURL(file) : '')
-                      })) || []} 
-                    />
-                  )}
-
-                  <div className="flex gap-2 pt-3 flex-wrap max-w-full">
-                    <Button
-                      onClick={() => handleVerFornecedores(orcamento)}
-                      variant="outline"
-                      size="sm"
-                      className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-sm"
+                  {/* Ações destrutivas: mantidas no card com stopPropagation para não disparar abertura do drawer */}
+                  {canManage && (
+                    <div
+                      className="flex items-center gap-1 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
                     >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver Fornecedores ({orcamento.quantidadeEmpresas})
-                    </Button>
-
-                    {canManage && (
+                      <AcoesOrcamentoDropdown
+                        orcamento={orcamento}
+                        onPausar={handlePausarClick}
+                        onReabrir={handleReabrirClick}
+                        onFecharManualmente={handleFecharManualmenteClick}
+                      />
                       <Button
-                        onClick={() => { setCompatOrcamento(orcamento); setCompatModalOpen(true); }}
+                        onClick={() => handleDeleteClick(orcamento.id)}
                         variant="outline"
                         size="sm"
-                        className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 text-xs sm:text-sm"
+                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                        disabled={isDeleting || isActionLoading}
+                        aria-label="Excluir orçamento"
                       >
-                        <BarChart2 className="h-4 w-4 mr-1" />
-                        Compatibilização IA
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    )}
-                    
-                    {canManage && (
-                      <Button
-                        onClick={() => handleEditClick(orcamento)}
-                        variant="outline"
-                        size="sm"
-                        className="border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                    )}
-                    
-                    {canManage && (
-                      <>
-                        <Button
-                          onClick={() => handleApropriacaoClick(orcamento)}
-                          variant="outline"
-                          size="sm"
-                          className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-                        >
-                          <UserCheck className="h-4 w-4 mr-1" />
-                          {orcamento.gestor_conta ? 'Alterar Gestor' : 'Apropriar Gestor'}
-                        </Button>
-                        
-                        {orcamento.gestor_conta && (
-                          <Badge variant="outline" className="border-primary text-primary">
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            {orcamento.gestor_conta.nome}
-                          </Badge>
-                        )}
-
-                        {/* Rota100 — link do painel do cliente */}
-                        {orcamento.rota100_token && (
-                          <div className="flex gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
-                              onClick={() => {
-                                const url = `${window.location.origin}/rota100/${orcamento.rota100_token}`;
-                                navigator.clipboard.writeText(url);
-                                toast.success('Link Rota100 copiado!');
-                              }}
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Rota100
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-orange-200 text-orange-600 hover:bg-orange-50"
-                              asChild
-                            >
-                              <a href={`/rota100/${orcamento.rota100_token}`} target="_blank" rel="noreferrer">
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          </div>
-                        )}
-
-
-                        {/* Dropdown de ações para pausar/fechar manualmente */}
-                        <AcoesOrcamentoDropdown
-                          orcamento={orcamento}
-                          onPausar={handlePausarClick}
-                          onReabrir={handleReabrirClick}
-                          onFecharManualmente={handleFecharManualmenteClick}
-                        />
-                      </>
-                    )}
-                    
-                    <Button
-                      onClick={() => handleDeleteClick(orcamento.id)}
-                      variant="outline"
-                      size="sm"
-                      className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                      disabled={isDeleting || isActionLoading}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Excluir
-                    </Button>
-                  </div>
-
-                  {orcamento.status === 'fechado' && orcamento.fornecedoresInscritos.length > 0 && (
-                    <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                      <h4 className="font-medium mb-2 text-primary">Fornecedores Inscritos:</h4>
-                      <div className="space-y-3">
-                        {orcamento.fornecedoresInscritos.slice(0, 2).map((fornecedor) => (
-                          <div key={fornecedor.id} className="flex justify-between items-center bg-white p-3 rounded border">
-                            <div className="text-sm">
-                              <div className="font-medium">{fornecedor.empresa}</div>
-                              <div className="text-muted-foreground">
-                                {fornecedor.nome} | {fornecedor.email} | {fornecedor.telefone}
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                onClick={() => abrirWhatsApp(fornecedor.telefone, fornecedor.nome)}
-                                size="sm"
-                                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                              >
-                                <MessageCircle className="h-4 w-4 mr-1" />
-                                WhatsApp
-                              </Button>
-                              <Button
-                                onClick={() => window.open(`mailto:${fornecedor.email}`, '_blank')}
-                                variant="outline"
-                                size="sm"
-                                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                              >
-                                <Mail className="h-4 w-4 mr-1" />
-                                E-mail
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                        {orcamento.fornecedoresInscritos.length > 2 && (
-                          <div className="text-center">
-                            <Button
-                              onClick={() => handleVerFornecedores(orcamento)}
-                              variant="outline"
-                              size="sm"
-                              className="text-primary"
-                            >
-                              Ver todos os {orcamento.fornecedoresInscritos.length} fornecedores
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {orcamento.dadosContato && (
-                        <div className="mt-4 p-3 bg-secondary/10 rounded border-l-4 border-secondary">
-                          <h5 className="font-medium text-secondary">Dados do Cliente:</h5>
-                          <p className="text-sm text-secondary/80">
-                            <strong>{orcamento.dadosContato.nome}</strong><br />
-                            {orcamento.dadosContato.telefone} | {orcamento.dadosContato.email}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -569,6 +393,27 @@ export const ListaOrcamentos: React.FC = () => {
           const ids = orcamentosToShow.map(o => o.id);
           fetchCompatStatus(ids);
         }}
+      />
+
+      {/* Fase C: drawer lateral premium — clique no card abre aqui */}
+      <FichaOperacionalAdmin
+        orcamento={fichaAberta}
+        onClose={() => setFichaAberta(null)}
+        onEditar={canManage ? () => {
+          if (!fichaAberta) return;
+          setOrcamentoParaEditar(fichaAberta);
+          setEditModalOpen(true);
+        } : undefined}
+        onApropriar={canManage ? () => {
+          if (!fichaAberta) return;
+          setOrcamentoParaApropriacao(fichaAberta);
+          setApropriacaoModalOpen(true);
+        } : undefined}
+        onAbrirCompat={canManage ? () => {
+          if (!fichaAberta) return;
+          setCompatOrcamento(fichaAberta);
+          setCompatModalOpen(true);
+        } : undefined}
       />
     </div>
   );
