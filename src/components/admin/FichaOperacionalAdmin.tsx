@@ -7,10 +7,19 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Sheet, SheetContent, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { R as I } from '@/styles/tokens';
 import type { Orcamento } from '@/types';
-import { Copy, ExternalLink, Edit, UserCheck, BarChart2, MessageCircle, Mail } from 'lucide-react';
+import type { OrcamentoCRMComChecklist } from '@/types/crm';
+import { NotasCRMTab } from './crm/NotasCRMTab';
+import { TarefasCRMTab } from './crm/TarefasCRMTab';
+import { ChecklistEtapaCRM } from './crm/ChecklistEtapaCRM';
+import { AvaliacaoInternaLead } from './crm/AvaliacaoInternaLead';
+import { ETAPAS_CRM, ETAPAS_ARQUIVADAS, isEtapaArquivada } from '@/constants/crmEtapas';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { EtapaCRM } from '@/types/crm';
+import { Copy, ExternalLink, Edit, UserCheck, BarChart2, MessageCircle, Trophy, X, Snowflake, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -42,7 +51,6 @@ interface CandidaturaResumo {
   fornecedor_nome: string | null;
   fornecedor_empresa: string | null;
   fornecedor_telefone: string | null;
-  fornecedor_email: string | null;
   proposta_enviada: boolean;
   status_acompanhamento: string | null;
   data_candidatura: string;
@@ -251,21 +259,80 @@ function deriveEventosAdmin(args: {
   return out;
 }
 
+// ── Resize do drawer (P1) ────────────────────────────────────────────────────
+// Apenas 2 presets — o intermediário "largo" foi removido por não gerar
+// diferença visual perceptível.
+export type LarguraFicha = 'normal' | 'expandido';
+
+const LARGURA_KEY = 'ficha-admin-largura';
+const LARGURA_CLS: Record<LarguraFicha, string> = {
+  normal:    'sm:w-[700px]',
+  expandido: 'sm:w-[1240px] sm:max-w-[95vw]',
+};
+const LARGURA_NEXT: Record<LarguraFicha, LarguraFicha> = {
+  normal:    'expandido',
+  expandido: 'normal',
+};
+const LARGURA_LABEL: Record<LarguraFicha, string> = {
+  normal:    'Normal',
+  expandido: 'Expandido',
+};
+
+function readLarguraInicial(): LarguraFicha {
+  if (typeof window === 'undefined') return 'normal';
+  const v = window.localStorage.getItem(LARGURA_KEY);
+  return (v === 'expandido' || v === 'normal') ? v : 'normal';
+}
+
 // ── Sub-componente: Header ───────────────────────────────────────────────────
-function FichaAdminHeader({ orcamento }: { orcamento: Orcamento }) {
+function FichaAdminHeader({
+  orcamento, largura, onCiclarLargura,
+}: {
+  orcamento: Orcamento;
+  largura: LarguraFicha;
+  onCiclarLargura: () => void;
+}) {
   const nome = orcamento.dadosContato?.nome ?? 'Cliente sem nome';
   const codigo = orcamento.id.slice(0, 8);
+
+  const Icone = largura === 'normal' ? Maximize2 : Minimize2;
+  const proximo = LARGURA_NEXT[largura];
 
   return (
     <div style={{
       background: `linear-gradient(150deg, ${I.azul} 0%, ${I.azul2} 100%)`,
       padding: '20px 20px 16px',
       flexShrink: 0,
+      position: 'relative',
     }}>
+      {/* Toggle de largura — discreto, ao lado do × do Radix */}
+      <button
+        type="button"
+        onClick={onCiclarLargura}
+        title={`Largura: ${LARGURA_LABEL[largura]} (clique para ${LARGURA_LABEL[proximo].toLowerCase()})`}
+        aria-label={`Alternar largura do painel — atualmente ${LARGURA_LABEL[largura]}`}
+        className="hidden sm:flex"
+        style={{
+          position: 'absolute',
+          top: 12, right: 60,
+          width: 44, height: 44,
+          background: 'rgba(255,255,255,0.18)',
+          border: 'none', borderRadius: 8,
+          color: '#fff',
+          cursor: 'pointer',
+          alignItems: 'center', justifyContent: 'center',
+          transition: 'background .15s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.30)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
+      >
+        <Icone className="h-4 w-4" />
+      </button>
+
       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', opacity: .6, color: '#fff', marginBottom: 6 }}>
         Ficha Operacional · #{codigo}
       </div>
-      <div className="r100-clamp-2" style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, color: '#fff', lineHeight: 1.35, marginBottom: 10, paddingRight: 44 }}>
+      <div className="r100-clamp-2" style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, color: '#fff', lineHeight: 1.35, marginBottom: 10, paddingRight: 108 }}>
         {nome}
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -455,7 +522,6 @@ function FornecedorRow({ candidatura }: { candidatura: CandidaturaResumo }) {
   const empresa = candidatura.fornecedor_empresa ?? candidatura.fornecedor_nome ?? 'Fornecedor sem nome';
   const contatoNome = candidatura.fornecedor_empresa ? candidatura.fornecedor_nome : null;
   const tel = candidatura.fornecedor_telefone;
-  const email = candidatura.fornecedor_email;
   const enviou = candidatura.proposta_enviada;
 
   return (
@@ -489,18 +555,13 @@ function FornecedorRow({ candidatura }: { candidatura: CandidaturaResumo }) {
             </span>
           )}
         </div>
-        {(tel || email) && (
+        {tel && (
           <div style={{
             fontSize: 10, color: I.cz, marginTop: 2,
-            display: 'flex', gap: 8, flexWrap: 'wrap',
             fontFamily: "'DM Sans',sans-serif",
+            whiteSpace: 'nowrap',
           }}>
-            {tel && <span style={{ whiteSpace: 'nowrap' }}>📞 {tel}</span>}
-            {email && (
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
-                ✉ {email}
-              </span>
-            )}
+            📞 {tel}
           </div>
         )}
       </div>
@@ -536,22 +597,6 @@ function FornecedorRow({ candidatura }: { candidatura: CandidaturaResumo }) {
           >
             <MessageCircle className="h-3.5 w-3.5" />
           </button>
-        )}
-        {email && (
-          <a
-            href={`mailto:${email}`}
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Enviar email para ${empresa}`}
-            title="Email"
-            style={{
-              color: I.azul,
-              padding: 6, borderRadius: 6,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              minWidth: 28, minHeight: 28,
-            }}
-          >
-            <Mail className="h-3.5 w-3.5" />
-          </a>
         )}
       </div>
     </li>
@@ -706,6 +751,200 @@ function SecaoRota100({ orcamento }: { orcamento: Orcamento }) {
   );
 }
 
+// ── Sub-componente: Avanço do funil (mover etapa / ganho / perdido / congelar) ─
+function SecaoFunilCRM({
+  crm,
+  onMoverEtapa, onMarcarGanho, onMarcarPerdido, onCongelar, onDescongelar,
+}: {
+  crm: OrcamentoCRMComChecklist;
+  onMoverEtapa?: (novaEtapa: EtapaCRM, observacao?: string) => void;
+  onMarcarGanho?: () => void;
+  onMarcarPerdido?: () => void;
+  onCongelar?: () => void;
+  onDescongelar?: () => void;
+}) {
+  const etapaArquivada = isEtapaArquivada(crm.etapa_crm);
+  const etapaConfig = ETAPAS_CRM.find(e => e.valor === crm.etapa_crm)
+    ?? ETAPAS_ARQUIVADAS.find(e => e.valor === crm.etapa_crm);
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 8 }}>
+        Avanço do funil
+      </div>
+      <div style={{ background: I.bg, borderRadius: 10, padding: '12px 14px' }}>
+        {/* Etapa atual */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          <span style={{ fontSize: 10, color: I.cz, fontWeight: 600 }}>Etapa atual:</span>
+          <span style={{
+            fontSize: 11, fontWeight: 700,
+            padding: '3px 9px', borderRadius: 20,
+            background: I.azul3, color: I.azul,
+            fontFamily: "'Syne',sans-serif",
+          }}>
+            {etapaConfig?.icone ?? '•'} {etapaConfig?.titulo ?? crm.etapa_crm}
+          </span>
+          {crm.tempo_na_etapa_dias > 0 && (
+            <span style={{ fontSize: 10, color: I.cz }}>
+              · há {crm.tempo_na_etapa_dias} dia{crm.tempo_na_etapa_dias === 1 ? '' : 's'}
+            </span>
+          )}
+          {crm.congelado && (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#dbeafe', color: '#1e40af', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Snowflake className="h-3 w-3" /> Congelado
+            </span>
+          )}
+        </div>
+
+        {/* Mover etapa (só para etapas ativas) */}
+        {!etapaArquivada && onMoverEtapa && (
+          <div style={{ marginBottom: 10 }}>
+            <Select
+              value={crm.etapa_crm}
+              onValueChange={(v) => onMoverEtapa(v as EtapaCRM)}
+            >
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder="Mover etapa…" />
+              </SelectTrigger>
+              <SelectContent>
+                {ETAPAS_CRM.map(e => (
+                  <SelectItem key={e.valor} value={e.valor} className="text-xs">
+                    {e.icone} {e.titulo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Ações terminais */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {!etapaArquivada && onMarcarGanho && (
+            <button
+              type="button"
+              onClick={onMarcarGanho}
+              style={{
+                background: I.vd, color: '#fff', border: 'none',
+                borderRadius: 8, padding: '7px 12px',
+                fontSize: 11, fontWeight: 700,
+                fontFamily: "'Syne',sans-serif",
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              <Trophy className="h-3 w-3" /> Marcar ganho
+            </button>
+          )}
+          {!etapaArquivada && onMarcarPerdido && (
+            <button
+              type="button"
+              onClick={onMarcarPerdido}
+              style={{
+                background: '#fff', color: I.vm,
+                border: `1.5px solid ${I.vm}`,
+                borderRadius: 8, padding: '7px 12px',
+                fontSize: 11, fontWeight: 700,
+                fontFamily: "'Syne',sans-serif",
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              <X className="h-3 w-3" /> Marcar perdido
+            </button>
+          )}
+          {!etapaArquivada && !crm.congelado && onCongelar && (
+            <button
+              type="button"
+              onClick={onCongelar}
+              style={{
+                background: '#fff', color: '#1e40af',
+                border: `1.5px solid #1e40af`,
+                borderRadius: 8, padding: '7px 12px',
+                fontSize: 11, fontWeight: 700,
+                fontFamily: "'Syne',sans-serif",
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              <Snowflake className="h-3 w-3" /> Congelar
+            </button>
+          )}
+          {!etapaArquivada && crm.congelado && onDescongelar && (
+            <button
+              type="button"
+              onClick={onDescongelar}
+              style={{
+                background: '#fff', color: I.am,
+                border: `1.5px solid ${I.am}`,
+                borderRadius: 8, padding: '7px 12px',
+                fontSize: 11, fontWeight: 700,
+                fontFamily: "'Syne',sans-serif",
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              Descongelar
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sub-componente: CRM tabs (apenas quando crm presente) ────────────────────
+// Tabs compactas com lazy mount: o conteúdo só é renderizado quando a tab
+// está ativa, evitando 4 queries simultâneas e mantendo performance.
+function SecaoCRM({ crm, gestorNome }: { crm: OrcamentoCRMComChecklist; gestorNome?: string }) {
+  // Ordem operacional: processo → execução → anotação → análise
+  const [tab, setTab] = useState<'checklist' | 'tarefas' | 'notas' | 'avaliacao'>('checklist');
+
+  return (
+    <div style={{ marginBottom: 16, marginTop: 4, borderTop: `1px dashed ${I.bd}`, paddingTop: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 10 }}>
+        Operação CRM
+      </div>
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+        <TabsList className="w-full justify-start h-9 p-1 bg-muted/50 mb-3">
+          <TabsTrigger value="checklist" className="text-xs px-3 h-7 data-[state=active]:bg-white">Checklist</TabsTrigger>
+          <TabsTrigger value="tarefas"   className="text-xs px-3 h-7 data-[state=active]:bg-white">Tarefas</TabsTrigger>
+          <TabsTrigger value="notas"     className="text-xs px-3 h-7 data-[state=active]:bg-white">Notas</TabsTrigger>
+          <TabsTrigger value="avaliacao" className="text-xs px-3 h-7 data-[state=active]:bg-white">Avaliação</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="checklist" className="mt-0">
+          {tab === 'checklist' && (
+            <ChecklistEtapaCRM
+              orcamentoId={crm.id}
+              etapaAtual={crm.etapa_crm}
+              temAlertas={crm.tem_alertas}
+              diasNaEtapa={crm.tempo_na_etapa_dias}
+              dadosCliente={crm.dados_contato ? {
+                nome: crm.dados_contato.nome,
+                telefone: crm.dados_contato.telefone,
+              } : undefined}
+              nomeGestor={crm.concierge_nome ?? gestorNome}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="tarefas" className="mt-0">
+          {tab === 'tarefas' && <TarefasCRMTab orcamentoId={crm.id} />}
+        </TabsContent>
+
+        <TabsContent value="notas" className="mt-0">
+          {tab === 'notas' && <NotasCRMTab orcamentoId={crm.id} />}
+        </TabsContent>
+
+        <TabsContent value="avaliacao" className="mt-0">
+          {tab === 'avaliacao' && <AvaliacaoInternaLead orcamentoId={crm.id} />}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
 // ── Sub-componente: Contato ──────────────────────────────────────────────────
 function SecaoContato({ orcamento }: { orcamento: Orcamento }) {
   const d = orcamento.dadosContato;
@@ -728,19 +967,35 @@ function SecaoContato({ orcamento }: { orcamento: Orcamento }) {
 // ── Componente principal ─────────────────────────────────────────────────────
 export interface FichaOperacionalAdminProps {
   orcamento: Orcamento | null;
+  /** Dados extras de CRM. Quando presente, ativa a seção "Operação CRM" com tabs. */
+  crm?: OrcamentoCRMComChecklist | null;
   onClose: () => void;
   onEditar?: () => void;
   onApropriar?: () => void;
   onAbrirCompat?: () => void;
+  /** Callbacks operacionais do CRM (aparecem apenas quando crm está presente) */
+  onMoverEtapa?: (novaEtapa: EtapaCRM, observacao?: string) => void;
+  onMarcarGanho?: () => void;
+  onMarcarPerdido?: () => void;
+  onCongelar?: () => void;
+  onDescongelar?: () => void;
 }
 
 export function FichaOperacionalAdmin({
-  orcamento, onClose, onEditar, onApropriar, onAbrirCompat,
+  orcamento, crm, onClose, onEditar, onApropriar, onAbrirCompat,
+  onMoverEtapa, onMarcarGanho, onMarcarPerdido, onCongelar, onDescongelar,
 }: FichaOperacionalAdminProps) {
   const [candidaturas, setCandidaturas] = useState<CandidaturaResumo[]>([]);
   const [compat, setCompat] = useState<CompatResumo | null>(null);
   const [etapaCrm, setEtapaCrm] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // P1: largura do drawer com persistência (rollover normal → largo → expandido)
+  const [largura, setLargura] = useState<LarguraFicha>(readLarguraInicial);
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem(LARGURA_KEY, largura);
+  }, [largura]);
+  const ciclarLargura = () => setLargura(prev => LARGURA_NEXT[prev]);
 
   const isOpen = orcamento !== null;
   const orcId = orcamento?.id;
@@ -759,7 +1014,7 @@ export function FichaOperacionalAdmin({
         const [candRes, compatRes, crmRes] = await Promise.all([
           (supabase as any)
             .from('candidaturas_fornecedores')
-            .select('id, fornecedor_id, proposta_enviada, status_acompanhamento, data_candidatura, profiles!fornecedor_id(nome, empresa, telefone, email)')
+            .select('id, fornecedor_id, proposta_enviada, status_acompanhamento, data_candidatura, profiles!fornecedor_id(nome, empresa, telefone)')
             .eq('orcamento_id', orcId)
             .order('data_candidatura', { ascending: false }),
           (supabase as any)
@@ -786,7 +1041,6 @@ export function FichaOperacionalAdmin({
             fornecedor_nome: row.profiles?.nome ?? null,
             fornecedor_empresa: row.profiles?.empresa ?? null,
             fornecedor_telefone: row.profiles?.telefone ?? null,
-            fornecedor_email: row.profiles?.email ?? null,
             proposta_enviada: !!row.proposta_enviada,
             status_acompanhamento: row.status_acompanhamento ?? null,
             data_candidatura: row.data_candidatura,
@@ -834,14 +1088,18 @@ export function FichaOperacionalAdmin({
     <Sheet open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
       <SheetContent
         side="right"
-        className="w-full sm:w-[700px] max-w-full p-0 flex flex-col overflow-hidden [&>button]:text-white [&>button]:opacity-90 [&>button]:bg-white/20 [&>button]:rounded-lg [&>button]:w-11 [&>button]:h-11 [&>button]:top-3 [&>button]:right-3"
+        className={`w-full ${LARGURA_CLS[largura]} max-w-full p-0 flex flex-col overflow-hidden transition-[width] duration-200 ease-out [&>button]:text-white [&>button]:opacity-90 [&>button]:bg-white/20 [&>button]:rounded-lg [&>button]:w-11 [&>button]:h-11 [&>button]:top-3 [&>button]:right-3`}
       >
         <SheetTitle className="sr-only">Ficha Operacional Admin</SheetTitle>
         <SheetDescription className="sr-only">Detalhes operacionais do orçamento</SheetDescription>
 
         {orcamento && (
           <>
-            <FichaAdminHeader orcamento={orcamento} />
+            <FichaAdminHeader
+              orcamento={orcamento}
+              largura={largura}
+              onCiclarLargura={ciclarLargura}
+            />
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 20px' }}>
               {acao && <ProximaAcaoAdminBanner acao={acao} />}
@@ -859,6 +1117,21 @@ export function FichaOperacionalAdmin({
               <SecaoRota100 orcamento={orcamento} />
 
               <SecaoContato orcamento={orcamento} />
+
+              {/* Avanço do funil CRM (Fase D1): mover etapa / ganho / perdido / congelar */}
+              {crm && (
+                <SecaoFunilCRM
+                  crm={crm}
+                  onMoverEtapa={onMoverEtapa}
+                  onMarcarGanho={onMarcarGanho}
+                  onMarcarPerdido={onMarcarPerdido}
+                  onCongelar={onCongelar}
+                  onDescongelar={onDescongelar}
+                />
+              )}
+
+              {/* Operação CRM (Fase D): aparece apenas quando crm é fornecido */}
+              {crm && <SecaoCRM key={crm.id} crm={crm} gestorNome={orcamento.gestor_conta?.nome} />}
 
               {loading && (
                 <div style={{ fontSize: 11, color: I.cz, textAlign: 'center', padding: '8px 0', fontStyle: 'italic' }}>

@@ -1,11 +1,17 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useCRMOrcamentos } from '@/hooks/useCRMOrcamentos';
+import { useCRMOrcamentos, useCongelarOrcamento } from '@/hooks/useCRMOrcamentos';
 import { ColunaKanban } from './crm/ColunaKanban';
-import { ModalDetalhesOrcamentoCRM } from './crm/ModalDetalhesOrcamentoCRM';
+// Fase D: ModalDetalhesOrcamentoCRM mantido importado como fallback temporário
+// (não chamado pela UI atual). Remover em cleanup separado após validação.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { ModalDetalhesOrcamentoCRM as _LegacyModalDetalhes } from './crm/ModalDetalhesOrcamentoCRM';
+import { FichaOperacionalAdmin } from './FichaOperacionalAdmin';
+import type { Orcamento } from '@/types';
 import { FiltrosAvancadosCRM } from './crm/FiltrosAvancadosCRM';
 import { BarraAcoesMassa } from './crm/BarraAcoesMassa';
 import { MarcarPerdidoModal } from './crm/MarcarPerdidoModal';
+import { ModalCongelarOrcamento } from './crm/ModalCongelarOrcamento';
 import { ApropriarOrcamentosGestor } from './crm/ApropriarOrcamentosGestor';
 import { ModalCompatibilizacaoConsultor } from './consultor/ModalCompatibilizacaoConsultor';
 import { CardProdutividadeConcierge } from './crm/CardProdutividadeConcierge';
@@ -21,6 +27,37 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEtapasConfig } from '@/hooks/useEtapasConfig';
 import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
+
+// Fase D: adapter de OrcamentoCRMComChecklist → Orcamento (tipo global).
+// Não cria adapter de dados perdidos — apenas mapeia campos comuns. A
+// FichaOperacionalAdmin recebe esse shim como `orcamento` e o objeto CRM
+// original via prop `crm` para tabs operacionais.
+function crmParaOrcamentoShim(crm: OrcamentoCRMComChecklist): Orcamento {
+  let status: 'aberto' | 'fechado' | 'pausado' = 'aberto';
+  if (crm.congelado) status = 'pausado';
+  else if (isEtapaArquivada(crm.etapa_crm)) status = 'fechado';
+
+  return {
+    id: crm.id,
+    dataPublicacao: new Date(crm.data_publicacao || crm.created_at),
+    necessidade: crm.necessidade,
+    arquivos: [],
+    fotos: [],
+    categorias: crm.categorias,
+    local: crm.local,
+    tamanhoImovel: crm.tamanho_imovel ?? 0,
+    dataInicio: crm.data_inicio ? new Date(crm.data_inicio) : new Date(),
+    prazoInicioTexto: crm.prazo_inicio_texto ?? undefined,
+    quantidadeEmpresas: crm.fornecedores_inscritos_count,
+    status,
+    fornecedoresInscritos: [],
+    gestor_conta_id: crm.gestor_conta_id ?? undefined,
+    gestor_conta: crm.gestor_conta_id && crm.gestor_nome
+      ? { id: crm.gestor_conta_id, nome: crm.gestor_nome, email: '', empresa: '', status: 'aprovado' }
+      : undefined,
+    dadosContato: crm.dados_contato ?? undefined,
+  };
+}
 
 export const CRMKanbanOrcamentos = () => {
   const { profile } = useAuth();
@@ -48,6 +85,9 @@ export const CRMKanbanOrcamentos = () => {
     isApropriando
   } = useCRMOrcamentos(profile);
 
+  // Hook separado para congelar/descongelar (Fase D1)
+  const { congelarOrcamento, descongelarOrcamento } = useCongelarOrcamento();
+
   const [orcamentoSelecionado, setOrcamentoSelecionado] = useState<OrcamentoCRMComChecklist | null>(null);
   const [historico, setHistorico] = useState<HistoricoMovimentacao[]>([]);
   const [fornecedoresInscritos, setFornecedoresInscritos] = useState<FornecedorInscrito[]>([]);
@@ -61,6 +101,7 @@ export const CRMKanbanOrcamentos = () => {
     return saved ? JSON.parse(saved) : false;
   });
   const [modalPerdido, setModalPerdido] = useState<OrcamentoCRMComChecklist | null>(null);
+  const [modalCongelar, setModalCongelar] = useState<OrcamentoCRMComChecklist | null>(null);
   const [modalApropriar, setModalApropriar] = useState(false);
   const [isFiltrandoFornecedores, setIsFiltrandoFornecedores] = useState(false);
   const [compatCRMOrcamento, setCompatCRMOrcamento] = useState<OrcamentoCRMComChecklist | null>(null);
@@ -692,30 +733,35 @@ export const CRMKanbanOrcamentos = () => {
         />
       )}
 
-      <ModalDetalhesOrcamentoCRM
-        orcamento={orcamentoSelecionado}
-        historico={historico}
-        fornecedoresInscritos={fornecedoresInscritos}
+      {/* Fase D: drawer lateral premium substitui ModalDetalhesOrcamentoCRM */}
+      <FichaOperacionalAdmin
+        orcamento={orcamentoSelecionado ? crmParaOrcamentoShim(orcamentoSelecionado) : null}
+        crm={orcamentoSelecionado}
         onClose={handleFecharDetalhes}
-        onMoverEtapa={(id, etapa, obs) => {
-          moverEtapa({ orcamentoId: id, novaEtapa: etapa, observacao: obs });
-          handleFecharDetalhes();
-        }}
-        onRegistrarFeedback={(id, nota, com) => {
-          registrarFeedback({ orcamentoId: id, nota, comentario: com });
-        }}
-        onMarcarGanho={(orc) => {
+        onAbrirCompat={orcamentoSelecionado ? () => {
+          setCompatCRMOrcamento(orcamentoSelecionado);
+          setCompatCRMModalOpen(true);
+        } : undefined}
+        onMoverEtapa={orcamentoSelecionado ? (novaEtapa, obs) => {
+          moverEtapa({ orcamentoId: orcamentoSelecionado.id, novaEtapa, observacao: obs });
+        } : undefined}
+        onMarcarGanho={orcamentoSelecionado ? () => {
           if (confirm('Confirma que este orçamento foi GANHO (fechado)?')) {
-            marcarComoGanho({ orcamentoId: orc.id });
+            marcarComoGanho({ orcamentoId: orcamentoSelecionado.id });
             handleFecharDetalhes();
           }
-        }}
-        onMarcarPerdido={(orc) => {
-          handleAbrirModalPerdido(orc);
-          handleFecharDetalhes();
-        }}
-        onApropriarOrcamento={handleApropriar}
-        onEstimativaAtualizada={refetch}
+        } : undefined}
+        onMarcarPerdido={orcamentoSelecionado ? () => {
+          handleAbrirModalPerdido(orcamentoSelecionado);
+        } : undefined}
+        onCongelar={orcamentoSelecionado ? () => {
+          setModalCongelar(orcamentoSelecionado);
+        } : undefined}
+        onDescongelar={orcamentoSelecionado ? () => {
+          if (confirm('Confirma descongelar este orçamento?')) {
+            descongelarOrcamento({ orcamentoId: orcamentoSelecionado.id });
+          }
+        } : undefined}
       />
 
       <MarcarPerdidoModal
@@ -726,6 +772,14 @@ export const CRMKanbanOrcamentos = () => {
         motivosPerda={motivosPerda}
         isProcessando={isProcessando}
       />
+
+      {modalCongelar && (
+        <ModalCongelarOrcamento
+          orcamento={modalCongelar}
+          open={!!modalCongelar}
+          onClose={() => setModalCongelar(null)}
+        />
+      )}
 
       <ApropriarOrcamentosGestor
         isOpen={modalApropriar}

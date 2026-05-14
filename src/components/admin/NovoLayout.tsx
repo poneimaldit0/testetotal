@@ -64,7 +64,6 @@ export function NovoLayout({ activeView, onViewChange, userRole, userName, onSig
           title: 'Início',
           items: [
             { label: 'Dashboard', view: 'dashboard-operacional', icon: '🏠' },
-            { label: 'Atendimento SDR', view: 'sdr-atendimento', icon: '📋' },
           ]
         },
         {
@@ -90,7 +89,6 @@ export function NovoLayout({ activeView, onViewChange, userRole, userName, onSig
         title: 'Início',
         items: [
           { label: 'Dashboard', view: 'dashboard-operacional', icon: '🏠' },
-          { label: 'Atendimento SDR', view: 'sdr-atendimento', icon: '📋' },
           { label: 'Inteligência CEP', view: 'sdr-inteligencia', icon: '🗺️' },
         ]
       },
