@@ -17,36 +17,40 @@ export const ETAPAS_CRM: ConfiguracaoEtapa[] = [
   },
   {
     valor: 'em_orcamento',
-    titulo: 'Em Orçamento',
-    descricao: 'Fornecedores elaborando propostas',
+    titulo: 'Agendar compatibilização',
+    descricao: 'Propostas recebidas; agendar apresentação ao cliente',
+    cor: 'bg-orange-500',
+    icone: '🟧'
+  },
+  // propostas_enviadas mantém ID interno mas no Kanban operacional é fundido
+  // visualmente em "Agendar compatibilização" (mesma coluna). Label aqui é
+  // usado em telas auxiliares (checklist config, BarraAcoesMassa, etc.).
+  {
+    valor: 'propostas_enviadas',
+    titulo: 'Agendar compatibilização',
+    descricao: 'Propostas recebidas aguardando agendamento da compatibilização',
     cor: 'bg-orange-500',
     icone: '🟧'
   },
   {
-    valor: 'propostas_enviadas',
-    titulo: 'Propostas Enviadas',
-    descricao: 'Propostas recebidas aguardando análise',
-    cor: 'bg-purple-500',
-    icone: '🟪'
-  },
-  {
     valor: 'compatibilizacao',
-    titulo: 'Compatibilização',
-    descricao: 'Cliente analisando comparativo',
+    titulo: 'Compatibilização realizada',
+    descricao: 'Compatibilização concluída — Reforma100 conduzindo',
     cor: 'bg-amber-700',
     icone: '🟫'
   },
   {
     valor: 'fechamento_contrato',
-    titulo: 'Fechamento / Contrato',
-    descricao: 'Cliente escolheu fornecedor',
+    titulo: 'Grupo criado',
+    descricao: 'Cliente escolheu fornecedor — grupo operacional formado',
     cor: 'bg-red-500',
     icone: '🟥'
   },
+  // pos_venda_feedback reaproveitado como "Contrato" (decisão da nova esteira)
   {
     valor: 'pos_venda_feedback',
-    titulo: 'Pós-venda / Feedback',
-    descricao: 'Coleta de satisfação e reputação',
+    titulo: 'Contrato',
+    descricao: 'Contrato assinado e em execução',
     cor: 'bg-gray-500',
     icone: '⚫'
   }

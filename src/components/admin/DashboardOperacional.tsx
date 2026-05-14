@@ -250,11 +250,11 @@ function PendenciasBadges({
 const ETAPA_LABEL: Record<string, string> = {
   orcamento_postado:    'Novo',
   contato_agendamento:  'Contato',
-  em_orcamento:         'Em Orçamento',
-  propostas_enviadas:   'Propostas',
-  compatibilizacao:     'Compat.',
-  fechamento_contrato:  'Fechamento',
-  pos_venda_feedback:   'Pós-Venda',
+  em_orcamento:         'Agendar compat.',
+  propostas_enviadas:   'Agendar compat.',
+  compatibilizacao:     'Compat. realizada',
+  fechamento_contrato:  'Grupo criado',
+  pos_venda_feedback:   'Contrato',
   ganho:                'Fechado ✓',
   perdido:              'Perdido',
 };

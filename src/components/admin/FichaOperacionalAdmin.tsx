@@ -136,8 +136,8 @@ function deriveProximaAcaoAdmin(args: {
     }
     if (compat.status === 'enviado') {
       return dias > 5
-        ? { tom: 'urgent', icone: '⚡', titulo: `Cliente sem resposta há ${Math.floor(dias)}d` }
-        : { tom: 'wait', icone: '🤔', titulo: 'Cliente analisando a compatibilização' };
+        ? { tom: 'urgent', icone: '⚡', titulo: `Sem follow-up interno há ${Math.floor(dias)}d` }
+        : { tom: 'wait', icone: '👁️', titulo: 'Em revisão interna — Reforma100 conduzindo' };
     }
   }
 
@@ -725,11 +725,11 @@ const R100_PCT_POR_ETAPA: Record<string, number> = {
 const R100_LABEL_POR_ETAPA: Record<string, string> = {
   orcamento_postado:    'Publicado',
   contato_agendamento:  'Em contato',
-  em_orcamento:         'Em orçamento',
-  propostas_enviadas:   'Propostas recebidas',
-  compatibilizacao:     'Compatibilização',
-  fechamento_contrato:  'Fechamento',
-  pos_venda_feedback:   'Pós-venda',
+  em_orcamento:         'Agendar compatibilização',
+  propostas_enviadas:   'Agendar compatibilização',
+  compatibilizacao:     'Compatibilização realizada',
+  fechamento_contrato:  'Grupo criado',
+  pos_venda_feedback:   'Contrato',
   ganho:                'Concluído',
   perdido:              'Encerrado',
 };

@@ -102,14 +102,15 @@ const ETAPA_TO_STEP: Record<string, number> = {
 // ── Builders ─────────────────────────────────────────────────────────────────
 
 // Status exibido baseado no último step concluído (index 0-6)
+// Nova esteira: Publicado → Inscrições → Atendimento → Agendar compat → Compat realizada → Grupo criado → Contrato
 const STEP_STATUS_LABEL = [
-  'Publicado',    // 0
-  'Em orçamento', // 1
-  'Em orçamento', // 2
-  'Em orçamento', // 3
-  'Em análise',   // 4
-  'Aprovado',     // 5
-  'Fechamento',   // 6
+  'Publicado',                  // 0
+  'Inscrições',                 // 1
+  'Atendimento',                // 2
+  'Agendar compatibilização',   // 3
+  'Compatibilização realizada', // 4
+  'Grupo criado',               // 5
+  'Contrato',                   // 6
 ] as const;
 
 function buildTrilha(
@@ -125,7 +126,7 @@ function buildTrilha(
     tipoAtendimento === 'presencial' ? 'Visita'      : 'Atendimento';
 
   const stepDefs = [
-    'Publicado', 'Inscrições', atendimentoLabel, 'Orçamentos', 'Compat.', 'Aprovação', 'Contrato',
+    'Publicado', 'Inscrições', atendimentoLabel, 'Agendar compat.', 'Compat. realizada', 'Grupo criado', 'Contrato',
   ];
 
   const etapaIdx = etapa ? (ETAPA_TO_STEP[etapa] ?? 0) : 0;

@@ -175,6 +175,8 @@ export const CRMKanbanOrcamentos = () => {
     return searchParams.get('tarefas') === 'atrasadas' ? 'atrasadas' : 'todos';
   });
   const [compatStatusMapP3, setCompatStatusMapP3] = useState<Record<string, string>>({});
+  // Pré-SDR: count separado (esses leads NÃO entram no Kanban operacional)
+  const [preSDRCount, setPreSDRCount] = useState<number>(0);
   const [isFiltrandoFornecedores, setIsFiltrandoFornecedores] = useState(false);
   const [compatCRMOrcamento, setCompatCRMOrcamento] = useState<OrcamentoCRMComChecklist | null>(null);
   const [compatCRMModalOpen, setCompatCRMModalOpen] = useState(false);
@@ -505,6 +507,21 @@ export const CRMKanbanOrcamentos = () => {
     return () => { cancelado = true; };
   }, [orcamentosAtivos]);
 
+  // Pré-SDR widget: count de leads em pré-atendimento (etapa null/orcamento_postado/contato_agendamento)
+  // Esses leads não vêm em orcamentosAtivos (filtrados no hook); query separada barata.
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const { count } = await (supabase as any)
+        .from('orcamentos_crm_tracking')
+        .select('orcamento_id', { count: 'exact', head: true })
+        .in('etapa_crm', ['orcamento_postado', 'contato_agendamento']);
+      if (cancelado) return;
+      setPreSDRCount(count ?? 0);
+    })();
+    return () => { cancelado = true; };
+  }, [orcamentos]);
+
   // P3: sincronizar filtros premium → URL (separado do filtros.* legado)
   useEffect(() => {
     const current = new URLSearchParams(window.location.search);
@@ -590,19 +607,32 @@ export const CRMKanbanOrcamentos = () => {
     if (periodoP3 !== 'todos') arr.push({ key: 'periodo', label: `Últimos ${periodoP3} dias`, clear: () => setPeriodoP3('todos') });
     if (compatP3 === 'em_andamento') arr.push({ key: 'compat', label: 'Compat. em andamento', clear: () => setCompatP3('todos') });
     if (compatP3 === 'revisao')      arr.push({ key: 'compat', label: 'Pendente revisão',    clear: () => setCompatP3('todos') });
-    if (compatP3 === 'cliente')      arr.push({ key: 'compat', label: 'Aguardando cliente',  clear: () => setCompatP3('todos') });
+    if (compatP3 === 'cliente')      arr.push({ key: 'compat', label: 'Em revisão interna',  clear: () => setCompatP3('todos') });
     if (compatP3 === 'aprovada')     arr.push({ key: 'compat', label: 'Compat. aprovada',    clear: () => setCompatP3('todos') });
     if (compatP3 === 'sem')          arr.push({ key: 'compat', label: 'Sem compatibilização', clear: () => setCompatP3('todos') });
     if (tarefasP3 === 'atrasadas')   arr.push({ key: 'tarefas', label: 'Tarefas atrasadas',  clear: () => setTarefasP3('todos') });
     return arr;
   }, [buscaP3, periodoP3, compatP3, tarefasP3]);
 
+  // Nova esteira CRM: fusão visual em_orcamento + propostas_enviadas → coluna
+  // "Agendar compatibilização". A coluna canônica é em_orcamento; leads em
+  // propostas_enviadas aparecem nela e somem da própria coluna propostas_enviadas.
+  const etapasKanbanOperacional = useMemo(() => {
+    return etapasAtivas.filter(e => e.valor !== 'propostas_enviadas');
+  }, [etapasAtivas]);
+
   const orcamentosPorEtapa = useMemo(() => {
-    return etapasAtivas.reduce((acc, etapa) => {
-      acc[etapa.valor] = orcamentosAtivosFiltrados.filter((orc) => orc.etapa_crm === etapa.valor);
+    return etapasKanbanOperacional.reduce((acc, etapa) => {
+      acc[etapa.valor] = orcamentosAtivosFiltrados.filter((orc) => {
+        if (etapa.valor === 'em_orcamento') {
+          // coluna "Agendar compatibilização" recebe em_orcamento + propostas_enviadas
+          return orc.etapa_crm === 'em_orcamento' || orc.etapa_crm === 'propostas_enviadas';
+        }
+        return orc.etapa_crm === etapa.valor;
+      });
       return acc;
     }, {} as Record<string, OrcamentoCRMComChecklist[]>);
-  }, [orcamentosAtivosFiltrados, etapasAtivas]);
+  }, [orcamentosAtivosFiltrados, etapasKanbanOperacional]);
 
   const orcamentosArquivadosPorEtapa = useMemo(() => {
     return etapasArquivadas.reduce((acc, etapa) => {
@@ -763,6 +793,30 @@ export const CRMKanbanOrcamentos = () => {
         style={{ borderRadius: 0, marginBottom: 0 }}
       />
 
+      {/* Widget Pré-SDR — atalho para o Gerenciar (não entra no Kanban operacional) */}
+      {preSDRCount > 0 && (
+        <div className="px-4 pt-3">
+          <button
+            type="button"
+            onClick={() => setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.set('view', 'lista');
+              next.set('etapa', 'pre-sdr');
+              return next;
+            }, { replace: false })}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100 transition-colors text-xs font-bold"
+            style={{ fontFamily: "'Syne', sans-serif" }}
+            title="Abrir Gerenciar filtrado em Pré-SDR"
+          >
+            ⏳ Pré-SDR
+            <span className="px-1.5 py-0.5 rounded-full bg-blue-200 text-blue-900 text-[10px] font-bold">
+              {preSDRCount}
+            </span>
+            <span className="text-blue-500 text-sm leading-none">→</span>
+          </button>
+        </div>
+      )}
+
       {/* KPIs operacionais clicáveis (P3 — alinhados ao Gerenciar) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-4 pt-3">
         <KpiCardCRM
@@ -783,7 +837,7 @@ export const CRMKanbanOrcamentos = () => {
         />
         <KpiCardCRM
           icon={<Hourglass className="h-4 w-4" />}
-          label="Aguardando cliente"
+          label="Em revisão interna"
           value={countsP3.kpis.cliente}
           color="rx"
           active={compatP3 === 'cliente'}
@@ -841,7 +895,7 @@ export const CRMKanbanOrcamentos = () => {
           <option value="sem">Sem ({countsP3.compat.sem})</option>
           <option value="em_andamento">Em andamento ({countsP3.compat.em_andamento})</option>
           <option value="revisao">Pendente revisão ({countsP3.compat.revisao})</option>
-          <option value="cliente">Aguardando cliente ({countsP3.compat.cliente})</option>
+          <option value="cliente">Em revisão interna ({countsP3.compat.cliente})</option>
           <option value="aprovada">Aprovada ({countsP3.compat.aprovada})</option>
         </select>
 
@@ -965,7 +1019,7 @@ export const CRMKanbanOrcamentos = () => {
 
       <div className="flex-1 min-w-0 horizontal-scroll-container">
         <div className="crm-kanban-container">
-          {etapasAtivas.map((etapa) => (
+          {etapasKanbanOperacional.map((etapa) => (
             <ColunaKanban
               key={etapa.valor}
               etapa={etapa}

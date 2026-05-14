@@ -77,9 +77,9 @@ const FASE_VISUAL: Record<PropostaFase, FaseVisual> = {
     descricao: 'O consultor está revisando a compatibilização antes de liberar ao cliente.',
   },
   aguardando_cliente: {
-    tom: 'wait', icone: '🤔',
-    titulo: 'Cliente analisando',
-    descricao: 'O comparativo foi enviado ao cliente. Aguarde a decisão.',
+    tom: 'wait', icone: '👁️',
+    titulo: 'Em revisão Reforma100',
+    descricao: 'A Reforma100 está conduzindo a próxima etapa do processo. Aguarde retorno.',
   },
   vencedor: {
     tom: 'done', icone: '🏆',
@@ -185,7 +185,7 @@ function deriveProximaAcao(c: CandidaturaOrcamento, fase: PropostaFase): Proxima
     return { tom: 'wait', icone: '👁️', titulo: 'Em revisão pelo consultor', ancora: 'proposta' };
   }
   if (fase === 'aguardando_cliente') {
-    return { tom: 'wait', icone: '🤔', titulo: 'Cliente analisando — aguarde a decisão', ancora: 'proposta' };
+    return { tom: 'wait', icone: '👁️', titulo: 'Em revisão Reforma100 — aguarde retorno', ancora: 'proposta' };
   }
   if (fase === 'vencedor') {
     return { tom: 'done', icone: '🏆', titulo: 'Você foi recomendado para esta obra — aguarde contato' };
@@ -413,7 +413,7 @@ function deriveEventos(c: CandidaturaOrcamento, compat: CompatStatusFornecedor |
     if (compat.status === 'enviado') {
       out.push({
         tipo: 'aguardando_cliente',
-        label: 'Aguardando decisão do cliente',
+        label: 'Em revisão pela Reforma100',
         data: null,
         icone: '🤔',
         cor: I.rx,
