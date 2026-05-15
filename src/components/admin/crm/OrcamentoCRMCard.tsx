@@ -115,38 +115,139 @@ export const OrcamentoCRMCard = ({
           <span className="r100-pill r100-pill-gray flex-shrink-0">{orcamento.fornecedores_inscritos_count ?? 0} inscr.</span>
         </div>
 
-        {/* Status badges — compact secondary row */}
-        <div className="flex flex-wrap gap-1 mb-2">
-          {MOSTRAR_VALOR_ESTIMATIVA_LEGADA && orcamento.valor_estimado_ia_medio ? (
-            <span className="r100-pill r100-pill-green"><DollarSign className="w-3 h-3" />{formatarMoeda(orcamento.valor_estimado_ia_medio)}</span>
-          ) : orcamento.valor_lead_estimado ? (
-            <span className="r100-pill r100-pill-gray"><DollarSign className="w-3 h-3" />{formatarMoeda(orcamento.valor_lead_estimado)}</span>
-          ) : null}
-          {orcamento.congelado && orcamento.data_reativacao_prevista && (
-            <span className="r100-pill r100-pill-blue"><Snowflake className="w-3 h-3" />Até {format(new Date(orcamento.data_reativacao_prevista), 'dd/MM', { locale: ptBR })}</span>
-          )}
-          <span className="r100-pill r100-pill-gray"><Clock className="w-3 h-3" />{orcamento.tempo_na_etapa_dias}d</span>
-          <StatusChecklistBadge total={orcamento.total_itens_checklist} concluidos={orcamento.itens_checklist_concluidos} temAlertas={orcamento.tem_alertas} />
-          {estaEmAtraso && (
-            <span className="r100-pill r100-pill-red"><AlertTriangle className="w-3 h-3" />{orcamento.tempo_na_etapa_dias}/{configEtapa.dias_limite}d</span>
-          )}
-          {orcamento.total_tarefas === 0 && (
-            <span className="r100-pill r100-pill-orange"><AlertTriangle className="h-3 w-3" />Sem tarefas</span>
-          )}
-          {orcamento.tarefas_atrasadas > 0 && (
-            <span className="r100-pill r100-pill-red">{orcamento.tarefas_atrasadas} atrasada{orcamento.tarefas_atrasadas > 1 ? 's' : ''}</span>
-          )}
-          {orcamento.tarefas_hoje > 0 && (
-            <span className="r100-pill r100-pill-blue">{orcamento.tarefas_hoje} hoje</span>
-          )}
-          {orcamento.total_tarefas > 0 && (
-            <span className="r100-pill r100-pill-gray">✓ {orcamento.tarefas_concluidas}/{orcamento.total_tarefas}</span>
-          )}
-          {/* Rota100 % estimado */}
-          <span className="r100-pill" style={{ background: '#F3E8FF', color: '#6B21A8', borderColor: '#D8B4FE', fontVariantNumeric: 'tabular-nums' }}>
-            R100 {R100_PCT_POR_ETAPA[orcamento.etapa_crm] ?? 14}%
-          </span>
-        </div>
+        {/* Status badges — max 4 visíveis por prioridade operacional (P5b) */}
+        {(() => {
+          type Pill = { key: string; el: React.ReactNode; tooltipLabel: string; priority: number };
+          const pills: Pill[] = [];
+
+          // 1. R100 % — sempre visível, prioridade máxima (referência rápida)
+          const r100 = R100_PCT_POR_ETAPA[orcamento.etapa_crm] ?? 14;
+          pills.push({
+            key: 'r100',
+            tooltipLabel: `Progresso Rota100: ${r100}%`,
+            priority: 1,
+            el: (
+              <span className="r100-pill" title={`Rota100 ${r100}%`} style={{ background: '#F3E8FF', color: '#6B21A8', borderColor: '#D8B4FE', fontVariantNumeric: 'tabular-nums' }}>
+                R100 {r100}%
+              </span>
+            ),
+          });
+
+          // 2. Tarefas atrasadas — urgente
+          if (orcamento.tarefas_atrasadas > 0) {
+            pills.push({
+              key: 'atrasadas',
+              tooltipLabel: `${orcamento.tarefas_atrasadas} tarefa(s) atrasada(s)`,
+              priority: 2,
+              el: (
+                <span className="r100-pill r100-pill-red" title={`${orcamento.tarefas_atrasadas} atrasada(s)`}>
+                  ⚠ {orcamento.tarefas_atrasadas} atrasada{orcamento.tarefas_atrasadas > 1 ? 's' : ''}
+                </span>
+              ),
+            });
+          }
+
+          // 3. Tarefas hoje (não mostra se já tem atrasadas — menos crítico)
+          if (orcamento.tarefas_hoje > 0 && orcamento.tarefas_atrasadas === 0) {
+            pills.push({
+              key: 'hoje',
+              tooltipLabel: `${orcamento.tarefas_hoje} tarefa(s) para hoje`,
+              priority: 3,
+              el: <span className="r100-pill r100-pill-blue" title={`${orcamento.tarefas_hoje} para hoje`}>📅 {orcamento.tarefas_hoje} hoje</span>,
+            });
+          }
+
+          // 4. Etapa em atraso — urgente
+          if (estaEmAtraso) {
+            pills.push({
+              key: 'atraso-etapa',
+              tooltipLabel: `Etapa em atraso: ${orcamento.tempo_na_etapa_dias} de ${configEtapa?.dias_limite} dias`,
+              priority: 2,
+              el: (
+                <span className="r100-pill r100-pill-red" title={`${orcamento.tempo_na_etapa_dias}/${configEtapa?.dias_limite} dias`}>
+                  <AlertTriangle className="w-3 h-3" /> {orcamento.tempo_na_etapa_dias}/{configEtapa?.dias_limite}d
+                </span>
+              ),
+            });
+          }
+
+          // 5. Congelado
+          if (orcamento.congelado && orcamento.data_reativacao_prevista) {
+            const reat = format(new Date(orcamento.data_reativacao_prevista), 'dd/MM', { locale: ptBR });
+            pills.push({
+              key: 'congelado',
+              tooltipLabel: `Congelado até ${reat}`,
+              priority: 2,
+              el: <span className="r100-pill r100-pill-blue" title={`Congelado até ${reat}`}><Snowflake className="w-3 h-3" />Até {reat}</span>,
+            });
+          }
+
+          // 6. Sem tarefas — atenção
+          if (orcamento.total_tarefas === 0) {
+            pills.push({
+              key: 'sem-tarefas',
+              tooltipLabel: 'Sem tarefas cadastradas',
+              priority: 4,
+              el: <span className="r100-pill r100-pill-orange" title="Sem tarefas cadastradas"><AlertTriangle className="h-3 w-3" />Sem tarefas</span>,
+            });
+          }
+
+          // 7. Tempo na etapa — informativo (prioridade baixa)
+          pills.push({
+            key: 'tempo',
+            tooltipLabel: `${orcamento.tempo_na_etapa_dias} dia(s) na etapa atual`,
+            priority: 5,
+            el: <span className="r100-pill r100-pill-gray" title={`${orcamento.tempo_na_etapa_dias}d na etapa`}><Clock className="w-3 h-3" />{orcamento.tempo_na_etapa_dias}d</span>,
+          });
+
+          // 8. Checklist badge — informativo
+          pills.push({
+            key: 'checklist',
+            tooltipLabel: `Checklist: ${orcamento.itens_checklist_concluidos}/${orcamento.total_itens_checklist}`,
+            priority: 5,
+            el: <StatusChecklistBadge total={orcamento.total_itens_checklist} concluidos={orcamento.itens_checklist_concluidos} temAlertas={orcamento.tem_alertas} />,
+          });
+
+          // 9. Tarefas concluídas — informativo
+          if (orcamento.total_tarefas > 0) {
+            pills.push({
+              key: 'tarefas',
+              tooltipLabel: `${orcamento.tarefas_concluidas} de ${orcamento.total_tarefas} tarefas concluídas`,
+              priority: 6,
+              el: <span className="r100-pill r100-pill-gray" title={`${orcamento.tarefas_concluidas}/${orcamento.total_tarefas} tarefas`}>✓ {orcamento.tarefas_concluidas}/{orcamento.total_tarefas}</span>,
+            });
+          }
+
+          // 10. Valor estimado IA legado (oculto por flag)
+          if (MOSTRAR_VALOR_ESTIMATIVA_LEGADA && orcamento.valor_estimado_ia_medio) {
+            pills.push({
+              key: 'valor-ia',
+              tooltipLabel: `Estimativa IA: ${formatarMoeda(orcamento.valor_estimado_ia_medio)}`,
+              priority: 7,
+              el: <span className="r100-pill r100-pill-green"><DollarSign className="w-3 h-3" />{formatarMoeda(orcamento.valor_estimado_ia_medio)}</span>,
+            });
+          }
+
+          // Ordenar por prioridade ASC e cortar 4 visíveis
+          pills.sort((a, b) => a.priority - b.priority);
+          const MAX_VISIVEIS = 4;
+          const visiveis = pills.slice(0, MAX_VISIVEIS);
+          const overflow = pills.slice(MAX_VISIVEIS);
+
+          return (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {visiveis.map(p => <span key={p.key}>{p.el}</span>)}
+              {overflow.length > 0 && (
+                <span
+                  className="r100-pill r100-pill-gray cursor-help"
+                  title={overflow.map(p => p.tooltipLabel).join('\n')}
+                >
+                  +{overflow.length}
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
           <MapPin className="h-3 w-3 flex-shrink-0" />

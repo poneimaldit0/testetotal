@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, Snowflake } from 'lucide-react';
 import { useState } from 'react';
+import { crmEtapaColor } from '@/styles/tokens';
 
 interface ColunaKanbanProps {
   etapa: ConfiguracaoEtapa;
@@ -41,29 +42,49 @@ export const ColunaKanban = ({
   const orcamentosAtivos = orcamentos.filter(o => !o.congelado);
   const orcamentosCongelados = orcamentos.filter(o => o.congelado);
 
+  const corEtapa = crmEtapaColor[etapa.valor] ?? '#9CA3AF';
+
   return (
-    <div className={`crm-kanban-column bg-muted/50 rounded-lg p-4 flex flex-col h-full ${arquivada ? 'opacity-90 border-2 border-dashed' : ''}`}>
-      <div className="mb-4 flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">{etapa.icone}</span>
-            <h3 className="font-semibold">{etapa.titulo}</h3>
+    <div
+      className={`crm-kanban-column bg-white rounded-xl flex flex-col h-full ${arquivada ? 'opacity-90 border-2 border-dashed border-border' : 'border border-border'}`}
+      style={{ borderTop: `3px solid ${corEtapa}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+    >
+      {/* Header da coluna — hierarquia premium */}
+      <div className="px-4 pt-4 pb-3 flex-shrink-0 border-b border-border/50">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="flex items-start gap-2 min-w-0 flex-1">
+            <span className="text-lg leading-none mt-0.5" aria-hidden>{etapa.icone}</span>
+            <h3
+              className="font-bold text-sm leading-tight line-clamp-2 text-foreground"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+              title={etapa.titulo}
+            >
+              {etapa.titulo}
+            </h3>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{orcamentosAtivos.length}</Badge>
+          <div className="flex items-center gap-1 shrink-0">
+            <span
+              className="inline-flex items-center justify-center min-w-[26px] h-[22px] px-2 rounded-full text-xs font-bold text-white tabular-nums"
+              style={{ background: corEtapa, fontFamily: "'Syne', sans-serif" }}
+            >
+              {orcamentosAtivos.length}
+            </span>
             {orcamentosCongelados.length > 0 && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                <Snowflake className="h-3 w-3 mr-1" />
+              <span
+                className="inline-flex items-center gap-1 h-[22px] px-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold"
+                title={`${orcamentosCongelados.length} congelado(s)`}
+              >
+                <Snowflake className="h-3 w-3" />
                 {orcamentosCongelados.length}
-              </Badge>
+              </span>
             )}
-            {arquivada && <Badge variant="outline" className="text-xs">Arquivada</Badge>}
+            {arquivada && <Badge variant="outline" className="text-[10px] h-[22px]">Arquivada</Badge>}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">{etapa.descricao}</p>
+        <p className="text-[11px] text-muted-foreground line-clamp-1 leading-snug pl-7">{etapa.descricao}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 min-h-0">
+      <div className="flex-1 overflow-y-auto px-3 py-3 min-h-0">
         <div className="space-y-3">
           {orcamentosAtivos.length === 0 && orcamentosCongelados.length === 0 ? (
             <div className="text-center text-sm text-muted-foreground py-8">
