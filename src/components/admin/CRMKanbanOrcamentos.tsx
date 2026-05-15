@@ -638,7 +638,7 @@ export const CRMKanbanOrcamentos = () => {
     if (q) arr.push({ key: 'q', label: `Busca: ${q}`, clear: () => setBuscaP3('') });
     if (periodoP3 !== 'todos') arr.push({ key: 'periodo', label: `Últimos ${periodoP3} dias`, clear: () => setPeriodoP3('todos') });
     if (compatP3 === 'em_andamento') arr.push({ key: 'compat', label: 'Compat. em andamento', clear: () => setCompatP3('todos') });
-    if (compatP3 === 'revisao')      arr.push({ key: 'compat', label: 'IA concluída',    clear: () => setCompatP3('todos') });
+    if (compatP3 === 'revisao')      arr.push({ key: 'compat', label: 'Compat. pronta',  clear: () => setCompatP3('todos') });
     if (compatP3 === 'cliente')      arr.push({ key: 'compat', label: 'Enviada ao cliente',  clear: () => setCompatP3('todos') });
     if (compatP3 === 'aprovada')     arr.push({ key: 'compat', label: 'Compat. aprovada',    clear: () => setCompatP3('todos') });
     if (compatP3 === 'sem')          arr.push({ key: 'compat', label: 'Sem compatibilização', clear: () => setCompatP3('todos') });
@@ -901,7 +901,7 @@ export const CRMKanbanOrcamentos = () => {
           <option value="todos">Compatibilização</option>
           <option value="sem">Sem ({countsP3.compat.sem})</option>
           <option value="em_andamento">Em andamento ({countsP3.compat.em_andamento})</option>
-          <option value="revisao">IA concluída ({countsP3.compat.revisao})</option>
+          <option value="revisao">Compat. pronta ({countsP3.compat.revisao})</option>
           <option value="cliente">Enviada ao cliente ({countsP3.compat.cliente})</option>
           <option value="aprovada">Aprovada ({countsP3.compat.aprovada})</option>
         </select>
