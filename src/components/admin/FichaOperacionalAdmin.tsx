@@ -72,6 +72,8 @@ interface CompatResumo {
   aprovado_em: string | null;
   empresa_recomendada_id: string | null;
   total: number;
+  apresentacao_agendada_em: string | null;
+  apresentacao_canal: string | null;
 }
 
 // ── Próxima ação derivada (regras admin) ─────────────────────────────────────
@@ -128,11 +130,28 @@ function deriveProximaAcaoAdmin(args: {
         ? { tom: 'urgent', icone: '⚡', titulo: `Compat. travada há ${Math.floor(dias)}d` }
         : { tom: 'wait', icone: '🔍', titulo: 'Compatibilização em andamento' };
     }
+    // D10: agendamento de apresentação tem prioridade sobre o "pronta para revisão"
+    if (compat.apresentacao_agendada_em) {
+      const dt = new Date(compat.apresentacao_agendada_em);
+      const diffH = (dt.getTime() - Date.now()) / 3_600_000;
+      const dia = String(dt.getDate()).padStart(2, '0');
+      const mes = String(dt.getMonth() + 1).padStart(2, '0');
+      const hh = String(dt.getHours()).padStart(2, '0');
+      const mm = String(dt.getMinutes()).padStart(2, '0');
+      if (diffH > 48) {
+        return { tom: 'wait', icone: '📅', titulo: `Apresentação agendada para ${dia}/${mes} ${hh}h${mm}` };
+      }
+      if (diffH > 0) {
+        return { tom: 'action', icone: '⚡', titulo: `Apresentar ao cliente ${dia}/${mes} ${hh}h${mm}` };
+      }
+      // já passou — cobrar follow-up
+      return { tom: 'urgent', icone: '🔁', titulo: `Apresentação de ${dia}/${mes} pendente de feedback` };
+    }
     if (['concluida', 'completed', 'pendente_revisao', 'revisado'].includes(compat.status)) {
       return { tom: 'action', icone: '👁️', titulo: 'Compatibilização pronta para revisão' };
     }
     if (compat.status === 'aprovado') {
-      return { tom: 'action', icone: '📤', titulo: 'Aprovada — enviar ao cliente' };
+      return { tom: 'action', icone: '📤', titulo: 'Aprovada — agendar apresentação ao cliente' };
     }
     if (compat.status === 'enviado') {
       return dias > 5
@@ -227,6 +246,17 @@ function deriveEventosAdmin(args: {
         data: new Date(compat.aprovado_em),
         icone: '✓',
         cor: I.vd,
+      });
+    }
+    if (compat.apresentacao_agendada_em) {
+      const dt = new Date(compat.apresentacao_agendada_em);
+      const futuro = dt.getTime() > Date.now();
+      out.push({
+        tipo: 'compat_apresentacao_agendada',
+        label: futuro ? 'Apresentação ao cliente agendada' : 'Apresentação ao cliente realizada',
+        data: dt,
+        icone: '📅',
+        cor: futuro ? I.am : I.rx,
       });
     }
     if (compat.status === 'enviado') {
@@ -1079,7 +1109,7 @@ export function FichaOperacionalAdmin({
             .order('data_candidatura', { ascending: false }),
           (supabase as any)
             .from('compatibilizacoes_analises_ia')
-            .select('id, status, created_at, aprovado_em, candidaturas_ids, analise_completa')
+            .select('id, status, created_at, aprovado_em, candidaturas_ids, analise_completa, apresentacao_agendada_em, apresentacao_canal')
             .eq('orcamento_id', orcId)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -1117,6 +1147,8 @@ export function FichaOperacionalAdmin({
             aprovado_em: row.aprovado_em ?? null,
             empresa_recomendada_id: row.analise_completa?.empresa_recomendada_id ?? null,
             total: Array.isArray(row.candidaturas_ids) ? row.candidaturas_ids.length : 0,
+            apresentacao_agendada_em: row.apresentacao_agendada_em ?? null,
+            apresentacao_canal:       row.apresentacao_canal ?? null,
           });
         } else {
           setCompat(null);

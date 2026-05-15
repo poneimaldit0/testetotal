@@ -40,6 +40,10 @@ export interface CompatStatusFornecedor {
   diferenca_mercado: number | null;
   /** Valor da proposta deste fornecedor segundo a análise; null se indisponível. */
   valor_proposta: number | null;
+  /** D10: data/hora marcada para apresentar a compatibilização ao cliente. */
+  apresentacao_agendada_em: string | null;
+  /** D10: canal da apresentação (presencial/online/whatsapp/email). */
+  apresentacao_canal: string | null;
 }
 
 export function useCompatStatusFornecedor(orcamentoId: string | undefined, candidaturaId: string | undefined) {
@@ -59,7 +63,7 @@ export function useCompatStatusFornecedor(orcamentoId: string | undefined, candi
       try {
         const { data: row, error } = await (supabase as any)
           .from('compatibilizacoes_analises_ia')
-          .select('id, status, created_at, aprovado_em, candidaturas_ids, analise_completa, ranking_ajustado')
+          .select('id, status, created_at, aprovado_em, candidaturas_ids, analise_completa, ranking_ajustado, apresentacao_agendada_em, apresentacao_canal')
           .eq('orcamento_id', orcamentoId)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -111,6 +115,8 @@ export function useCompatStatusFornecedor(orcamentoId: string | undefined, candi
           recomendado: incluido && empresaRecomendadaId === candidaturaId,
           diferenca_mercado,
           valor_proposta,
+          apresentacao_agendada_em: row.apresentacao_agendada_em ?? null,
+          apresentacao_canal:       row.apresentacao_canal ?? null,
         });
       } catch {
         if (!cancelado) setData(null);

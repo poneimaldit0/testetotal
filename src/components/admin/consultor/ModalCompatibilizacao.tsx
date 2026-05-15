@@ -12,12 +12,13 @@ import {
 } from '@/components/ui/accordion';
 import {
   CheckCircle2, Send, Loader2, Star, TrendingUp, TrendingDown,
-  Info, ChevronUp, ChevronDown, Pencil, X, AlertCircle, History,
+  Info, ChevronUp, ChevronDown, Pencil, X, AlertCircle, History, Calendar,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { CompatibilizacaoIA, EmpresaRanking } from '@/hooks/useCompatibilizacaoIA';
+import type { CompatibilizacaoIA, EmpresaRanking, CompatApresentacaoCanal } from '@/hooks/useCompatibilizacaoIA';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -388,11 +389,18 @@ interface Props {
   onSalvarNota:        (nota: string, ajuste: string) => Promise<void>;
   onAprovar:           () => Promise<void>;
   onMarcarEnviado:     () => Promise<void>;
+  /** D10: agendar/atualizar a apresentação da compatibilização ao cliente */
+  onSalvarApresentacao?: (input: {
+    apresentacao_agendada_em: string | null;
+    apresentacao_canal:       CompatApresentacaoCanal | null;
+    apresentacao_link:        string | null;
+    apresentacao_observacao:  string | null;
+  }) => Promise<void>;
 }
 
 export function ModalCompatibilizacao({
   compat, orcamentoNome, open, onClose,
-  onSalvarAjuste, onSalvarNota, onAprovar, onMarcarEnviado,
+  onSalvarAjuste, onSalvarNota, onAprovar, onMarcarEnviado, onSalvarApresentacao,
 }: Props) {
   const ac = compat.analise_completa;
   const [nota,       setNota]       = useState(compat.nota_consultor ?? '');
@@ -401,6 +409,19 @@ export function ModalCompatibilizacao({
   const [salvando,   setSalvando]   = useState(false);
   const [aprovando,  setAprovando]  = useState(false);
   const [enviando,   setEnviando]   = useState(false);
+
+  // D10: form de agendamento da apresentação
+  const toDateTimeLocalValue = (iso: string | null | undefined): string => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+  const [apresDataLocal,  setApresDataLocal]  = useState(toDateTimeLocalValue(compat.apresentacao_agendada_em));
+  const [apresCanal,      setApresCanal]      = useState<CompatApresentacaoCanal | ''>(compat.apresentacao_canal ?? '');
+  const [apresLink,       setApresLink]       = useState(compat.apresentacao_link ?? '');
+  const [apresObs,        setApresObs]        = useState(compat.apresentacao_observacao ?? '');
+  const [salvandoApres,   setSalvandoApres]   = useState(false);
 
   const canEdit    = !['aprovado', 'enviado'].includes(compat.status);
   // COMPAT-003: 'concluida' é o estado terminal pós-bloco2 (antes era 'completed')
@@ -459,6 +480,46 @@ export function ModalCompatibilizacao({
       toast.error('Erro ao marcar como enviado.');
     } finally {
       setEnviando(false);
+    }
+  };
+
+  const handleSalvarApresentacao = async () => {
+    if (!onSalvarApresentacao) return;
+    setSalvandoApres(true);
+    try {
+      await onSalvarApresentacao({
+        apresentacao_agendada_em: apresDataLocal ? new Date(apresDataLocal).toISOString() : null,
+        apresentacao_canal:       apresCanal || null,
+        apresentacao_link:        apresLink.trim() || null,
+        apresentacao_observacao:  apresObs.trim() || null,
+      });
+      toast.success('Apresentação salva.');
+    } catch {
+      toast.error('Erro ao salvar apresentação.');
+    } finally {
+      setSalvandoApres(false);
+    }
+  };
+
+  const handleLimparApresentacao = async () => {
+    if (!onSalvarApresentacao) return;
+    setSalvandoApres(true);
+    try {
+      await onSalvarApresentacao({
+        apresentacao_agendada_em: null,
+        apresentacao_canal:       null,
+        apresentacao_link:        null,
+        apresentacao_observacao:  null,
+      });
+      setApresDataLocal('');
+      setApresCanal('');
+      setApresLink('');
+      setApresObs('');
+      toast.success('Apresentação removida.');
+    } catch {
+      toast.error('Erro ao remover apresentação.');
+    } finally {
+      setSalvandoApres(false);
     }
   };
 
@@ -638,6 +699,103 @@ export function ModalCompatibilizacao({
                   <p className="text-xs text-muted-foreground">
                     Aprovado em {format(new Date(compat.aprovado_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
+                )}
+
+                {/* D10: Apresentação ao cliente */}
+                {onSalvarApresentacao && (
+                  <div className="space-y-3 pt-3 border-t">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-semibold">Apresentação ao cliente</p>
+                      {compat.apresentacao_agendada_em && (
+                        <Badge variant="outline" className="text-[10px] border-green-300 bg-green-50 text-green-700">
+                          Agendada
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Data e hora</label>
+                        <Input
+                          type="datetime-local"
+                          value={apresDataLocal}
+                          onChange={(e) => setApresDataLocal(e.target.value)}
+                          className="text-sm h-9"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Canal</label>
+                        <select
+                          value={apresCanal}
+                          onChange={(e) => setApresCanal(e.target.value as CompatApresentacaoCanal | '')}
+                          className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm outline-none"
+                        >
+                          <option value="">Selecione…</option>
+                          <option value="presencial">Presencial</option>
+                          <option value="online">Online</option>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="email">Email</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {(apresCanal === 'online' || apresCanal === 'whatsapp') && (
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">
+                          {apresCanal === 'online' ? 'Link da reunião' : 'Link WhatsApp (opcional)'}
+                        </label>
+                        <Input
+                          type="url"
+                          placeholder={apresCanal === 'online' ? 'https://meet.google.com/...' : 'https://wa.me/...'}
+                          value={apresLink}
+                          onChange={(e) => setApresLink(e.target.value)}
+                          className="text-sm h-9"
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Observação (opcional)</label>
+                      <Textarea
+                        rows={2}
+                        placeholder="Anotações para o time…"
+                        value={apresObs}
+                        onChange={(e) => setApresObs(e.target.value)}
+                        className="text-sm resize-none"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        className="gap-1"
+                        onClick={handleSalvarApresentacao}
+                        disabled={salvandoApres || !apresDataLocal}
+                      >
+                        {salvandoApres ? <Loader2 className="h-3 w-3 animate-spin" /> : <Calendar className="h-3 w-3" />}
+                        {compat.apresentacao_agendada_em ? 'Atualizar apresentação' : 'Agendar apresentação'}
+                      </Button>
+                      {compat.apresentacao_agendada_em && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleLimparApresentacao}
+                          disabled={salvandoApres}
+                        >
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+
+                    {compat.apresentacao_agendada_em && (
+                      <p className="text-xs text-muted-foreground">
+                        Marcada para {format(new Date(compat.apresentacao_agendada_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {compat.apresentacao_canal ? ` · ${compat.apresentacao_canal}` : ''}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             )}

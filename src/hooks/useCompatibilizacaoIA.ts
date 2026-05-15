@@ -71,6 +71,8 @@ export type StatusCompat =
   | 'aprovado'
   | 'enviado';
 
+export type CompatApresentacaoCanal = 'presencial' | 'online' | 'whatsapp' | 'email';
+
 export interface CompatibilizacaoIA {
   id:                   string;
   orcamento_id:         string;
@@ -88,6 +90,11 @@ export interface CompatibilizacaoIA {
   // Rastreabilidade (Bloco 2)
   erro_detalhe?:        string | null;
   proposta_filtros_log?: Record<string, unknown> | null;
+  // D10: agendamento da apresentação ao cliente (nullable)
+  apresentacao_agendada_em?: string | null;
+  apresentacao_canal?:       CompatApresentacaoCanal | null;
+  apresentacao_link?:        string | null;
+  apresentacao_observacao?:  string | null;
   created_at:           string;
 }
 
@@ -155,6 +162,10 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
         ajuste_em:            data.ajuste_em ?? null,
         erro_detalhe:         data.erro_detalhe ?? null,
         proposta_filtros_log: (data.proposta_filtros_log as Record<string, unknown>) ?? null,
+        apresentacao_agendada_em: data.apresentacao_agendada_em ?? null,
+        apresentacao_canal:       (data.apresentacao_canal as CompatApresentacaoCanal | null) ?? null,
+        apresentacao_link:        data.apresentacao_link ?? null,
+        apresentacao_observacao:  data.apresentacao_observacao ?? null,
         created_at:           data.created_at,
       });
 
@@ -329,6 +340,33 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
     await carregarCompat();
   }, [compat?.id, carregarCompat]);
 
+  // ── D10: Agendar apresentação ao cliente ─────────────────────────────────
+  const salvarApresentacao = useCallback(async (input: {
+    apresentacao_agendada_em: string | null;
+    apresentacao_canal:       CompatApresentacaoCanal | null;
+    apresentacao_link:        string | null;
+    apresentacao_observacao:  string | null;
+  }) => {
+    if (!compat?.id) return;
+
+    const { error } = await (supabase as any)
+      .from('compatibilizacoes_analises_ia')
+      .update({
+        apresentacao_agendada_em: input.apresentacao_agendada_em,
+        apresentacao_canal:       input.apresentacao_canal,
+        apresentacao_link:        input.apresentacao_link,
+        apresentacao_observacao:  input.apresentacao_observacao,
+      })
+      .eq('id', compat.id);
+
+    if (error) {
+      console.error('[useCompatibilizacaoIA] salvarApresentacao:', error);
+      throw error;
+    }
+
+    await carregarCompat();
+  }, [compat?.id, carregarCompat]);
+
   // ── Marcar como enviado ao cliente ───────────────────────────────────────
   const marcarEnviado = useCallback(async () => {
     if (!compat?.id) return;
@@ -364,6 +402,7 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
     solicitarCompatibilizacao,
     salvarAjusteRanking,
     salvarNotaConsultor,
+    salvarApresentacao,
     aprovarCompatibilizacao,
     marcarEnviado,
     recarregar: carregarCompat,

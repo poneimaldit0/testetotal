@@ -77,9 +77,9 @@ const FASE_VISUAL: Record<PropostaFase, FaseVisual> = {
     descricao: 'O consultor está revisando a compatibilização antes de liberar ao cliente.',
   },
   aguardando_cliente: {
-    tom: 'wait', icone: '👁️',
-    titulo: 'Em revisão Reforma100',
-    descricao: 'A Reforma100 está conduzindo a próxima etapa do processo. Aguarde retorno.',
+    tom: 'wait', icone: '📅',
+    titulo: 'Compatibilização em fluxo',
+    descricao: 'A Reforma100 está agendando a apresentação ao cliente. Detalhes abaixo.',
   },
   vencedor: {
     tom: 'done', icone: '🏆',
@@ -963,6 +963,14 @@ function SecaoProposta({
         <CompatPosicaoCard compat={compat} fase={fase} />
       )}
 
+      {/* D10: apresentação agendada (compatibilização marcada para X) */}
+      {compat && compat.incluido && compat.apresentacao_agendada_em && (
+        <CompatApresentacaoAgendada
+          quando={compat.apresentacao_agendada_em}
+          canal={compat.apresentacao_canal}
+        />
+      )}
+
       {/* S3.7: bloco de próximos passos quando o fornecedor é o vencedor */}
       {fase === 'vencedor' && (
         <div style={{
@@ -1272,6 +1280,71 @@ function ArquivoCard({
           >
             ✕
           </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── D10: Apresentação da compatibilização agendada (fornecedor lê) ────────────
+function CompatApresentacaoAgendada({
+  quando, canal,
+}: {
+  quando: string;
+  canal: string | null;
+}) {
+  const dt = new Date(quando);
+  const agora = Date.now();
+  const diffHoras = (dt.getTime() - agora) / 3_600_000;
+  const futuro = diffHoras > 0;
+  const proximo = futuro && diffHoras <= 48;
+
+  const canalLabel = canal === 'presencial' ? 'Presencial'
+                   : canal === 'online'      ? 'Online'
+                   : canal === 'whatsapp'    ? 'WhatsApp'
+                   : canal === 'email'       ? 'Email'
+                   : 'A definir';
+  const canalIcone = canal === 'online' ? '🎥'
+                   : canal === 'whatsapp' ? '💬'
+                   : canal === 'email'    ? '✉️'
+                   : '📅';
+
+  return (
+    <div style={{
+      marginBottom: 12,
+      borderRadius: 10,
+      border: `1.5px solid ${proximo ? I.am : I.azul}`,
+      background: proximo ? I.am2 : I.azul3,
+      padding: '12px 14px',
+    }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: proximo ? I.am : I.azul, opacity: .85, marginBottom: 6 }}>
+        Apresentação ao cliente
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 22, lineHeight: 1 }}>{canalIcone}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: I.nv, fontFamily: "'Syne',sans-serif" }}>
+            Compatibilização marcada para {fmtDt(quando)} às {fmtTm(quando)}
+          </div>
+          <div style={{ fontSize: 11, color: I.cz, marginTop: 2 }}>
+            Canal: <strong style={{ color: I.nv }}>{canalLabel}</strong>
+            {futuro && (
+              <span style={{ marginLeft: 8 }}>
+                · {diffHoras < 24 ? `em ${Math.round(diffHoras)}h` : `em ${Math.round(diffHoras / 24)} dia(s)`}
+              </span>
+            )}
+            {!futuro && <span style={{ marginLeft: 8 }}>· já realizada</span>}
+          </div>
+        </div>
+        {proximo && (
+          <span style={{
+            fontSize: 10, fontWeight: 700,
+            padding: '2px 9px', borderRadius: 20,
+            background: I.am, color: '#fff',
+            fontFamily: "'Syne',sans-serif",
+          }}>
+            ⚡ Em breve
+          </span>
         )}
       </div>
     </div>

@@ -186,7 +186,7 @@ function ModalWrapper({
   onClose:     () => void;
   onAtualizar: () => void;
 }) {
-  const { salvarAjusteRanking, salvarNotaConsultor, aprovarCompatibilizacao, marcarEnviado } =
+  const { salvarAjusteRanking, salvarNotaConsultor, salvarApresentacao, aprovarCompatibilizacao, marcarEnviado } =
     useCompatibilizacaoIA(item.compat.orcamento_id);
 
   const wrap = (fn: () => Promise<void>) => async () => {
@@ -207,6 +207,10 @@ function ModalWrapper({
       onSalvarNota={(nota, ajuste) => salvarNotaConsultor(nota, ajuste)}
       onAprovar={wrap(aprovarCompatibilizacao)}
       onMarcarEnviado={wrap(marcarEnviado)}
+      onSalvarApresentacao={async (input) => {
+        await salvarApresentacao(input);
+        onAtualizar();
+      }}
     />
   );
 }

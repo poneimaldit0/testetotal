@@ -448,6 +448,89 @@ function RelatorioMedicaoPlaceholder({ empresas }: { empresas: Rota100Empresa[] 
   );
 }
 
+// ── D10: Apresentação agendada (cliente) ─────────────────────────────────────
+function ApresentacaoAgendadaCardCliente({
+  apresentacao,
+}: {
+  apresentacao: { quando: string; canal: string | null; link: string | null; observacao: string | null };
+}) {
+  const dt = new Date(apresentacao.quando);
+  const agora = Date.now();
+  const diffH = (dt.getTime() - agora) / 3_600_000;
+  const futuro = diffH > 0;
+  const proximo = futuro && diffH <= 48;
+
+  const fmtData = `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`;
+  const fmtHora = `${String(dt.getHours()).padStart(2,'0')}h${String(dt.getMinutes()).padStart(2,'0')}`;
+
+  const canalLabel = apresentacao.canal === 'presencial' ? 'Presencial'
+                   : apresentacao.canal === 'online'      ? 'Reunião online'
+                   : apresentacao.canal === 'whatsapp'    ? 'WhatsApp'
+                   : apresentacao.canal === 'email'       ? 'Por email'
+                   : 'A confirmar';
+  const canalIcone = apresentacao.canal === 'online' ? '🎥'
+                   : apresentacao.canal === 'whatsapp' ? '💬'
+                   : apresentacao.canal === 'email'    ? '✉️'
+                   : '📍';
+  const acentColor = proximo ? C.am : C.lj;
+  const bgColor    = proximo ? C.am2 : '#FFF8F4';
+
+  return (
+    <div className="r100-card" style={{
+      borderLeft: `4px solid ${acentColor}`,
+      background: bgColor,
+      marginBottom: 16,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, flexShrink: 0,
+          border: `1px solid ${acentColor}33`,
+        }}>{canalIcone}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '.08em', color: acentColor, marginBottom: 4,
+            fontFamily: "'Syne',sans-serif",
+          }}>
+            {proximo ? 'Apresentação em breve' : futuro ? 'Apresentação agendada' : 'Apresentação realizada'}
+          </div>
+          <div style={{
+            fontSize: 16, fontWeight: 700, color: C.nv,
+            fontFamily: "'Syne',sans-serif", lineHeight: 1.3,
+          }}>
+            Compatibilização marcada para {fmtData} às {fmtHora}
+          </div>
+          <div style={{ fontSize: 12, color: C.cz, marginTop: 4 }}>
+            {canalLabel}
+            {apresentacao.link && (
+              <>
+                {' · '}
+                <a href={apresentacao.link} target="_blank" rel="noopener noreferrer"
+                   style={{ color: acentColor, fontWeight: 600, textDecoration: 'underline' }}>
+                  Acessar link
+                </a>
+              </>
+            )}
+          </div>
+          {apresentacao.observacao && (
+            <div style={{
+              marginTop: 10, padding: '8px 12px',
+              background: '#fff', borderRadius: 8,
+              fontSize: 12, color: C.nv, lineHeight: 1.5,
+              border: `1px solid ${C.bd}`,
+            }}>
+              {apresentacao.observacao}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── CHECKLIST ────────────────────────────────────────────────────────────────
 function ChecklistTab({ items, empresas }: { items: Rota100ChecklistItem[]; empresas: Rota100Empresa[] }) {
   return (
@@ -1534,6 +1617,7 @@ export default function Rota100() {
   const [activeTab, setActiveTab] = useState<Tab>('checklist');
   const [compatRequested, setCompatRequested] = useState(false);
   const [compatResult, setCompatResult] = useState<CompatibilizacaoCompleta | null>(null);
+  const [apresentacao, setApresentacao] = useState<{ quando: string; canal: string | null; link: string | null; observacao: string | null } | null>(null);
 
   const { data, loading, notFound } = useRota100Data(token);
 
@@ -1545,7 +1629,7 @@ export default function Rota100() {
     if (!data?.orcamentoId) return;
     (supabase as any)
       .from('compatibilizacoes_analises_ia')
-      .select('analise_completa, ranking_ajustado')
+      .select('analise_completa, ranking_ajustado, apresentacao_agendada_em, apresentacao_canal, apresentacao_link, apresentacao_observacao')
       .eq('orcamento_id', data.orcamentoId)
       .in('status', ['enviado', 'aprovado'])
       .order('created_at', { ascending: false })
@@ -1555,6 +1639,14 @@ export default function Rota100() {
         if (row?.analise_completa) {
           const ac = row.analise_completa as CompatibilizacaoCompleta;
           setCompatResult({ ...ac, ranking: row.ranking_ajustado ?? ac.ranking });
+        }
+        if (row?.apresentacao_agendada_em) {
+          setApresentacao({
+            quando:      row.apresentacao_agendada_em,
+            canal:       row.apresentacao_canal ?? null,
+            link:        row.apresentacao_link ?? null,
+            observacao:  row.apresentacao_observacao ?? null,
+          });
         }
       });
   }, [data?.orcamentoId]);
@@ -1790,6 +1882,9 @@ export default function Rota100() {
             })}
           </div>
         </div>
+
+        {/* D10: Apresentação da compatibilização agendada (cliente lê) */}
+        {apresentacao && <ApresentacaoAgendadaCardCliente apresentacao={apresentacao} />}
 
         {/* TABS */}
         <div className="r100-tabs">
