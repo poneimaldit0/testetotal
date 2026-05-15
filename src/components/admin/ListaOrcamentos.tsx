@@ -78,7 +78,7 @@ function r100Percentual(etapa: string | null | undefined): number {
   return R100_PCT_POR_ETAPA[etapa] ?? 14;
 }
 
-// ── KPI Card (P2) ────────────────────────────────────────────────────────────
+// ── KPI Card (P2/P5c — alinhado ao KpiCardCRM do Kanban) ─────────────────────
 function KpiCardAdmin({
   icon, label, value, color, active, onClick,
 }: {
@@ -103,7 +103,7 @@ function KpiCardAdmin({
       type="button"
       onClick={onClick}
       aria-pressed={!!active}
-      className="text-left rounded-xl p-3 border transition-all"
+      className="text-left rounded-xl px-3 py-2.5 border transition-all hover:-translate-y-0.5"
       style={{
         background: active ? palette.tint : '#fff',
         borderColor: active ? palette.bd : '#E5E7EB',
@@ -113,11 +113,13 @@ function KpiCardAdmin({
         cursor: onClick ? 'pointer' : 'default',
       }}
     >
-      <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: palette.bd, fontFamily: "'Syne', sans-serif" }}>
-        {icon}
-        <span>{label}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider min-w-0" style={{ color: palette.bd, fontFamily: "'Syne', sans-serif" }}>
+          {icon}
+          <span className="truncate">{label}</span>
+        </div>
+        <div className="text-xl font-bold leading-none text-foreground tabular-nums shrink-0">{value}</div>
       </div>
-      <div className="mt-1 text-2xl font-bold leading-none text-foreground">{value}</div>
     </button>
   );
 }
@@ -416,8 +418,8 @@ export const ListaOrcamentos: React.FC = () => {
         ) : undefined}
       />
 
-      {/* KPIs operacionais clicáveis (P2) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* KPIs operacionais clicáveis (P2/P5c) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <KpiCardAdmin
           icon={<Inbox className="h-4 w-4" />}
           label="Total"
@@ -463,7 +465,7 @@ export const ListaOrcamentos: React.FC = () => {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por necessidade, local, código ou cliente…"
-            className="w-full h-10 pl-3 pr-9 rounded-lg border border-border bg-white text-sm outline-none focus:border-primary"
+            className="w-full h-9 pl-3 pr-9 rounded-lg border border-border bg-white text-sm outline-none focus:border-primary"
           />
           {busca && (
             <button
@@ -480,7 +482,7 @@ export const ListaOrcamentos: React.FC = () => {
         <select
           value={statusFiltro}
           onChange={(e) => setStatusFiltro(e.target.value as StatusFiltro)}
-          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+          className="h-9 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
         >
           <option value="todos">Todos status ({orcamentos.length})</option>
           <option value="aberto">Aberto ({counts.status.aberto})</option>
@@ -491,7 +493,7 @@ export const ListaOrcamentos: React.FC = () => {
         <select
           value={periodoFiltro}
           onChange={(e) => setPeriodoFiltro(e.target.value as PeriodoFiltro)}
-          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+          className="h-9 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
         >
           <option value="todos">Todo o período</option>
           <option value="7">Últimos 7 dias ({counts.periodos['7']})</option>
@@ -502,7 +504,7 @@ export const ListaOrcamentos: React.FC = () => {
         <select
           value={compatFiltro}
           onChange={(e) => setCompatFiltro(e.target.value as CompatFiltro)}
-          className="h-10 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
+          className="h-9 px-3 rounded-lg border border-border bg-white text-sm cursor-pointer outline-none"
         >
           <option value="todos">Compatibilização</option>
           <option value="sem">Sem ({counts.compat.sem})</option>
@@ -516,7 +518,7 @@ export const ListaOrcamentos: React.FC = () => {
           <button
             type="button"
             onClick={limparTudo}
-            className="h-10 px-3 rounded-lg border border-border bg-white text-xs font-bold text-muted-foreground hover:text-foreground"
+            className="h-9 px-3 rounded-lg border border-border bg-white text-xs font-bold text-muted-foreground hover:text-foreground"
           >
             Limpar
           </button>
@@ -577,47 +579,106 @@ export const ListaOrcamentos: React.FC = () => {
                       {orcamento.local} · #{orcamento.id.slice(0, 8)} · {format(orcamento.dataPublicacao, "dd/MM/yyyy", { locale: ptBR })}
                     </p>
                   </div>
-                  <div className="flex gap-2 flex-wrap max-w-full overflow-hidden shrink-0">
-                    <Badge className={`${getStatusColor(orcamento.status)} max-w-[120px] truncate`}>
-                      {orcamento.status.toUpperCase()}
-                    </Badge>
-                    {/* Badge de embargo - mostrar se tem data de liberação futura */}
-                    {orcamento.data_liberacao_fornecedores && new Date(orcamento.data_liberacao_fornecedores) > new Date() && (
-                      <Badge variant="outline" className="border-amber-400 bg-amber-50 text-amber-700 flex items-center gap-1">
-                        <Timer className="h-3 w-3" />
-                        Em embargo até {format(new Date(orcamento.data_liberacao_fornecedores), "dd/MM HH:mm")}
-                      </Badge>
-                    )}
-                    <CompatStatusBadge status={compatStatusMap[orcamento.id]} />
-                    {/* Badge Pré-SDR: aparece enquanto lead não passou pela validação do SDR */}
-                    {(() => {
-                      const etapa = crmStageMap[orcamento.id];
-                      const isPreSDR = etapa === undefined
-                        ? false // ainda carregando
-                        : etapa === null || etapa === 'orcamento_postado' || etapa === 'contato_agendamento';
-                      return isPreSDR ? (
-                        <Badge variant="outline" className="border-blue-400 bg-blue-50 text-blue-700 flex items-center gap-1">
-                          ⏳ Pré-atendimento SDR
+                  {/* Badges com prioridade — max 4 visíveis + overflow +N (P5c) */}
+                  {(() => {
+                    type B = { key: string; el: React.ReactNode; tooltip: string; priority: number };
+                    const bs: B[] = [];
+                    const etapa = crmStageMap[orcamento.id];
+
+                    // P1 — status do orçamento (sempre)
+                    bs.push({
+                      key: 'status', priority: 1,
+                      tooltip: `Status: ${orcamento.status.toUpperCase()}`,
+                      el: (
+                        <Badge className={`${getStatusColor(orcamento.status)} max-w-[120px] truncate`}>
+                          {orcamento.status.toUpperCase()}
                         </Badge>
-                      ) : null;
-                    })()}
-                    {/* Badge R100 % — estimativa rápida por etapa */}
-                    {(() => {
-                      const etapa = crmStageMap[orcamento.id];
-                      if (etapa === undefined) return null;
+                      ),
+                    });
+
+                    // P2 — embargo ativo (alerta)
+                    if (orcamento.data_liberacao_fornecedores && new Date(orcamento.data_liberacao_fornecedores) > new Date()) {
+                      bs.push({
+                        key: 'embargo', priority: 2,
+                        tooltip: `Em embargo até ${format(new Date(orcamento.data_liberacao_fornecedores), 'dd/MM HH:mm')}`,
+                        el: (
+                          <Badge variant="outline" className="border-amber-400 bg-amber-50 text-amber-700 flex items-center gap-1">
+                            <Timer className="h-3 w-3" />
+                            Em embargo até {format(new Date(orcamento.data_liberacao_fornecedores), 'dd/MM HH:mm')}
+                          </Badge>
+                        ),
+                      });
+                    }
+
+                    // P3 — compat status (operacional)
+                    if (compatStatusMap[orcamento.id]) {
+                      bs.push({
+                        key: 'compat', priority: 3,
+                        tooltip: `Compatibilização: ${compatStatusMap[orcamento.id]}`,
+                        el: <CompatStatusBadge status={compatStatusMap[orcamento.id]} />,
+                      });
+                    }
+
+                    // P3 — Pré-SDR (operacional)
+                    if (etapa !== undefined && (etapa === null || etapa === 'orcamento_postado' || etapa === 'contato_agendamento')) {
+                      bs.push({
+                        key: 'pre-sdr', priority: 3,
+                        tooltip: 'Pré-atendimento SDR',
+                        el: (
+                          <Badge variant="outline" className="border-blue-400 bg-blue-50 text-blue-700 flex items-center gap-1">
+                            ⏳ Pré-atendimento SDR
+                          </Badge>
+                        ),
+                      });
+                    }
+
+                    // P4 — R100 % (referência rápida)
+                    if (etapa !== undefined) {
                       const pct = r100Percentual(etapa);
-                      return (
-                        <Badge variant="outline" className="border-purple-300 bg-purple-50 text-purple-700 font-mono text-[10px] px-2">
-                          R100 {pct}%
-                        </Badge>
-                      );
-                    })()}
-                    {orcamento.categorias.map((categoria, index) => (
-                      <Badge key={index} variant="secondary" className="max-w-[150px] truncate">
-                        {categoria}
-                      </Badge>
-                    ))}
-                  </div>
+                      bs.push({
+                        key: 'r100', priority: 4,
+                        tooltip: `Progresso Rota100: ${pct}%`,
+                        el: (
+                          <Badge variant="outline" className="border-purple-300 bg-purple-50 text-purple-700 font-mono text-[10px] px-2">
+                            R100 {pct}%
+                          </Badge>
+                        ),
+                      });
+                    }
+
+                    // P5 — categorias (informativo, prioridade baixa)
+                    orcamento.categorias.forEach((cat, idx) => {
+                      bs.push({
+                        key: `cat-${idx}`, priority: 5,
+                        tooltip: cat,
+                        el: (
+                          <Badge variant="secondary" className="max-w-[150px] truncate">
+                            {cat}
+                          </Badge>
+                        ),
+                      });
+                    });
+
+                    bs.sort((a, b) => a.priority - b.priority);
+                    const MAX = 4;
+                    const visiveis = bs.slice(0, MAX);
+                    const overflow = bs.slice(MAX);
+
+                    return (
+                      <div className="flex gap-2 flex-wrap max-w-full overflow-hidden shrink-0">
+                        {visiveis.map(b => <React.Fragment key={b.key}>{b.el}</React.Fragment>)}
+                        {overflow.length > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] cursor-help"
+                            title={overflow.map(b => b.tooltip).join('\n')}
+                          >
+                            +{overflow.length}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </CardHeader>
               <CardContent className="max-w-full overflow-hidden pt-2 pb-4">
