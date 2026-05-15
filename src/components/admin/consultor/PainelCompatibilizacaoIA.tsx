@@ -307,30 +307,37 @@ export function PainelCompatibilizacaoIA() {
           )}
 
           {!loading && items.length === 0 && (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              Nenhuma compatibilizacao gerada ainda.
-            </p>
+            <div className="r100-empty r100-fade">
+              <div className="r100-empty-icon" aria-hidden>🤖</div>
+              <div className="r100-empty-title">Nenhuma compatibilização gerada</div>
+              <div className="r100-empty-sub">As análises de IA aparecerão aqui assim que forem disparadas.</div>
+            </div>
           )}
 
           {!loading && items.length > 0 && itensFiltrados.length === 0 && (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              {filtro === 'em_andamento'     ? 'Nenhuma compatibilização em andamento agora.'
-              : filtro === 'pendente_revisao' ? 'Nenhuma compatibilização aguardando sua revisão.'
-              : filtro === 'aprovados'        ? 'Nenhuma compatibilização aprovada ainda.'
-              : filtro === 'enviados'         ? 'Nenhuma compatibilização enviada ao cliente.'
-              : filtro === 'erros'            ? 'Nenhuma compatibilização com erro.'
-              : 'Nenhuma compatibilização neste filtro.'}
-            </p>
+            <div className="r100-empty r100-fade">
+              <div className="r100-empty-icon" aria-hidden>🔎</div>
+              <div className="r100-empty-title">Nada neste filtro</div>
+              <div className="r100-empty-sub">
+                {filtro === 'em_andamento'     ? 'Nenhuma compatibilização em andamento agora.'
+                : filtro === 'pendente_revisao' ? 'Nenhuma compatibilização aguardando sua revisão.'
+                : filtro === 'aprovados'        ? 'Nenhuma compatibilização aprovada ainda.'
+                : filtro === 'enviados'         ? 'Nenhuma compatibilização enviada ao cliente.'
+                : filtro === 'erros'            ? 'Nenhuma compatibilização com erro.'
+                : 'Tente alterar o filtro acima.'}
+              </div>
+            </div>
           )}
 
           {!loading && itensFiltrados.length > 0 && (
             <div className="space-y-3">
-              {itensFiltrados.map(item => (
-                <CompatRow
-                  key={item.compat.id}
-                  item={item}
-                  onAbrir={setAberto}
-                />
+              {itensFiltrados.map((item, idx) => (
+                <div key={item.compat.id} className="r100-stagger" style={{ ['--i' as any]: Math.min(idx, 10) }}>
+                  <CompatRow
+                    item={item}
+                    onAbrir={setAberto}
+                  />
+                </div>
               ))}
             </div>
           )}

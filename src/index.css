@@ -231,6 +231,114 @@
     background: #FFFFFF;
   }
 
+  /* ── Microinterações premium (reutilizáveis) ─────────────────── */
+
+  /* Botão/elemento clicável com feedback de press discreto */
+  .r100-press {
+    transition: transform .14s ease, box-shadow .18s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .r100-press:active {
+    transform: scale(.985);
+  }
+
+  /* Linha de listagem com hover sutil */
+  .r100-row {
+    transition: background .15s ease, border-color .15s ease, box-shadow .18s ease;
+  }
+  .r100-row:hover {
+    background: #FAFBFD;
+  }
+
+  /* Chip com transição uniforme */
+  .r100-chip {
+    transition: background .15s ease, border-color .15s ease, transform .14s ease, opacity .15s ease;
+  }
+  .r100-chip:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Focus-visible consistente — só em teclado */
+  .r100-focus:focus-visible {
+    outline: 2px solid #2D3395;
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  /* Skeleton shimmer */
+  .r100-skel {
+    background: linear-gradient(90deg, #EEF0F4 0%, #F6F7FA 50%, #EEF0F4 100%);
+    background-size: 200% 100%;
+    animation: r100Shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+  }
+
+  /* Entrada suave em cascata — aplicar via inline style com --i */
+  .r100-stagger {
+    opacity: 0;
+    animation: r100FadeIn .35s cubic-bezier(.2,.7,.2,1) forwards;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+
+  /* Fade-in genérico */
+  .r100-fade {
+    animation: r100FadeIn .28s cubic-bezier(.2,.7,.2,1);
+  }
+
+  /* Empty state premium */
+  .r100-empty {
+    text-align: center;
+    padding: 36px 24px;
+    border: 1.5px dashed #E5E7EB;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #FCFCFD 0%, #F6F7FA 100%);
+    color: #6B7280;
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .r100-empty:hover {
+    border-color: #C5D0F0;
+  }
+  .r100-empty-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  }
+  .r100-empty-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #1A2030;
+    margin-bottom: 4px;
+  }
+  .r100-empty-sub {
+    font-size: 11px;
+    color: #6B7280;
+    line-height: 1.5;
+  }
+
+  /* Dot loader inline (3 pontos) */
+  .r100-dots {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+  }
+  .r100-dots span {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .6;
+    animation: r100DotPulse 1.1s ease-in-out infinite;
+  }
+  .r100-dots span:nth-child(2) { animation-delay: .15s; }
+  .r100-dots span:nth-child(3) { animation-delay: .3s; }
+
   /* Header premium animado — usado por PremiumPageHeader */
   .r100-header-premium {
     position: relative;
@@ -296,6 +404,33 @@
 @keyframes r100Shine {
   0% { left: -100%; }
   60%, 100% { left: 110%; }
+}
+@keyframes r100Shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes r100FadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes r100DotPulse {
+  0%, 80%, 100% { opacity: .25; transform: scale(.85); }
+  40%           { opacity: 1;   transform: scale(1);    }
+}
+
+/* Respeita preferência do usuário por reduzir motion */
+@media (prefers-reduced-motion: reduce) {
+  .r100-press,
+  .r100-row,
+  .r100-chip,
+  .r100-fade,
+  .r100-stagger,
+  .r100-empty,
+  .r100-skel,
+  .r100-dots span {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Utilitário para scroll horizontal global */

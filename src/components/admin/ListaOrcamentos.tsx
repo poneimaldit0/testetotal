@@ -545,31 +545,36 @@ export const ListaOrcamentos: React.FC = () => {
       )}
 
       {orcamentosFiltrados.length === 0 ? (
-        <Card className="r100-card">
-          <CardContent className="p-6 text-center text-muted-foreground text-sm">
+        <div className="r100-empty r100-fade">
+          <div className="r100-empty-icon" aria-hidden>{filtrosAtivos ? '🔎' : '📋'}</div>
+          <div className="r100-empty-title">
             {filtrosAtivos
-              ? (busca.trim()
-                  ? <>Nenhum orçamento encontrado para <strong className="text-foreground">"{busca.trim()}"</strong>.</>
-                  : compatFiltro === 'revisao'  ? 'Nenhuma compatibilização aguardando revisão.'
-                  : compatFiltro === 'cliente'  ? 'Nenhum lead aguardando cliente neste momento.'
-                  : compatFiltro === 'aprovada' ? 'Nenhuma compatibilização aprovada ainda.'
-                  : etapaFiltro === 'pre-sdr'   ? 'Nenhum lead em pré-atendimento SDR.'
-                  : statusFiltro === 'pausado'  ? 'Nenhum orçamento pausado.'
-                  : statusFiltro === 'fechado'  ? 'Nenhum orçamento fechado.'
-                  : 'Nenhum orçamento corresponde aos filtros aplicados.')
-              : 'Nenhum orçamento cadastrado ainda.'}
-          </CardContent>
-        </Card>
+              ? (busca.trim() ? `Nada encontrado para "${busca.trim()}"` : 'Nenhum resultado com esses filtros')
+              : 'Nenhum orçamento cadastrado'}
+          </div>
+          <div className="r100-empty-sub">
+            {filtrosAtivos
+              ? (compatFiltro === 'revisao'  ? 'Nenhuma compatibilização aguardando revisão.'
+                : compatFiltro === 'cliente'  ? 'Nenhum lead aguardando cliente neste momento.'
+                : compatFiltro === 'aprovada' ? 'Nenhuma compatibilização aprovada ainda.'
+                : etapaFiltro === 'pre-sdr'   ? 'Nenhum lead em pré-atendimento SDR.'
+                : statusFiltro === 'pausado'  ? 'Nenhum orçamento pausado.'
+                : statusFiltro === 'fechado'  ? 'Nenhum orçamento fechado.'
+                : 'Tente remover algum filtro acima.')
+              : 'Os novos orçamentos aparecerão automaticamente aqui.'}
+          </div>
+        </div>
       ) : (
         <div className="grid gap-4 max-w-full overflow-hidden">
-          {orcamentosFiltrados.map((orcamento) => (
+          {orcamentosFiltrados.map((orcamento, idx) => (
             <Card
               key={orcamento.id}
               role="button"
               tabIndex={0}
               onClick={() => setFichaAberta(orcamento)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFichaAberta(orcamento); } }}
-              className="r100-card w-full max-w-full box-border overflow-hidden cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
+              className="r100-card r100-press r100-focus r100-stagger w-full max-w-full box-border overflow-hidden cursor-pointer"
+              style={{ ['--i' as any]: Math.min(idx, 12) }}
             >
               <CardHeader className="max-w-full overflow-hidden pb-3 space-y-0">
                 <div className="flex flex-col gap-2 max-w-full overflow-hidden mb-0">
@@ -730,12 +735,12 @@ export const ListaOrcamentos: React.FC = () => {
                 onClick={carregarMais}
                 disabled={isLoadingMore}
                 variant="outline"
-                className="min-w-[200px]"
+                className="min-w-[200px] r100-press r100-focus"
               >
                 {isLoadingMore ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2" />
-                    Carregando...
+                    <span className="r100-dots mr-2"><span/><span/><span/></span>
+                    Carregando…
                   </>
                 ) : (
                   `Carregar mais orçamentos`

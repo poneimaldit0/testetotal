@@ -1226,8 +1226,9 @@ export function FichaOperacionalAdmin({
               {crm && <SecaoCRM key={crm.id} crm={crm} gestorNome={orcamento.gestor_conta?.nome} />}
 
               {loading && (
-                <div style={{ fontSize: 11, color: I.cz, textAlign: 'center', padding: '8px 0', fontStyle: 'italic' }}>
-                  Atualizando dados…
+                <div style={{ fontSize: 11, color: I.cz, textAlign: 'center', padding: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <span className="r100-dots"><span/><span/><span/></span>
+                  <span style={{ fontStyle: 'italic' }}>Atualizando dados…</span>
                 </div>
               )}
             </div>
@@ -1247,6 +1248,7 @@ export function FichaOperacionalAdmin({
                   type="button"
                   onClick={onEditar}
                   style={ctaSecondaryStyle}
+                  className="r100-press r100-focus"
                 >
                   <Edit className="h-3.5 w-3.5" /> Editar
                 </button>
@@ -1256,6 +1258,7 @@ export function FichaOperacionalAdmin({
                   type="button"
                   onClick={onApropriar}
                   style={ctaSecondaryStyle}
+                  className="r100-press r100-focus"
                 >
                   <UserCheck className="h-3.5 w-3.5" /> {orcamento.gestor_conta ? 'Alterar gestor' : 'Apropriar gestor'}
                 </button>
@@ -1265,6 +1268,7 @@ export function FichaOperacionalAdmin({
                   type="button"
                   onClick={onAbrirCompat}
                   style={ctaPrimaryStyle}
+                  className="r100-press r100-focus"
                 >
                   <BarChart2 className="h-3.5 w-3.5" /> Compatibilização IA
                 </button>

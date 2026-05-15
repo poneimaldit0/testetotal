@@ -808,10 +808,23 @@ export const CRMKanbanOrcamentos = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Carregando CRM...</p>
+      <div className="flex flex-col h-full p-4 gap-3 r100-fade">
+        {/* skeleton KPIs */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[0,1,2,3].map(i => <div key={i} className="r100-skel" style={{ height: 72 }} />)}
+        </div>
+        {/* skeleton toolbar */}
+        <div className="r100-skel" style={{ height: 44 }} />
+        {/* skeleton colunas */}
+        <div className="flex gap-3 overflow-hidden flex-1 min-h-0">
+          {[0,1,2,3,4].map(col => (
+            <div key={col} className="flex flex-col gap-2" style={{ flex: '0 0 320px' }}>
+              <div className="r100-skel" style={{ height: 56, borderRadius: 12 }} />
+              <div className="r100-skel" style={{ height: 110 }} />
+              <div className="r100-skel" style={{ height: 110 }} />
+              <div className="r100-skel" style={{ height: 110 }} />
+            </div>
+          ))}
         </div>
       </div>
     );

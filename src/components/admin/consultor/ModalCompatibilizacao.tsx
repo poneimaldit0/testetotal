@@ -66,7 +66,7 @@ function EmpresaCard({
   const foiMovida = posIaOriginal !== null && posIaOriginal !== emp.posicao;
 
   return (
-    <div className={`rounded-lg border p-4 space-y-3 transition-all
+    <div className={`rounded-lg border p-4 space-y-3 transition-all hover:shadow-md hover:-translate-y-0.5
       ${recomendada && !editMode ? 'border-green-400 bg-green-50/50' : 'border-border bg-card'}
       ${editMode ? 'border-blue-200 bg-blue-50/30' : ''}`}>
 

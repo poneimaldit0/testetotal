@@ -46,8 +46,10 @@ export const ColunaKanban = ({
 
   return (
     <div
-      className={`crm-kanban-column bg-white rounded-xl flex flex-col h-full ${arquivada ? 'opacity-90 border-2 border-dashed border-border' : 'border border-border'}`}
+      className={`crm-kanban-column bg-white rounded-xl flex flex-col h-full r100-press ${arquivada ? 'opacity-90 border-2 border-dashed border-border' : 'border border-border'}`}
       style={{ borderTop: `3px solid ${corEtapa}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 14px rgba(0,0,0,0.07)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }}
     >
       {/* Header da coluna — hierarquia premium */}
       <div className="px-4 pt-4 pb-3 flex-shrink-0 border-b border-border/50">
@@ -87,25 +89,28 @@ export const ColunaKanban = ({
       <div className="flex-1 overflow-y-auto px-3 py-3 min-h-0">
         <div className="space-y-3">
           {orcamentosAtivos.length === 0 && orcamentosCongelados.length === 0 ? (
-            <div className="text-center text-sm text-muted-foreground py-8">
-              Nenhum orçamento nesta etapa
+            <div className="r100-empty">
+              <div className="r100-empty-icon" aria-hidden>{etapa.icone || '—'}</div>
+              <div className="r100-empty-title">Nada nesta etapa</div>
+              <div className="r100-empty-sub">Cards aparecem aqui ao serem movidos para <strong>{etapa.titulo}</strong>.</div>
             </div>
           ) : (
             <>
-              {/* Orçamentos ativos */}
-              {orcamentosAtivos.map((orc) => (
-                <OrcamentoCRMCard
-                  key={orc.id}
-                  orcamento={orc}
-                  onAtualizarStatusContato={onAtualizarStatusContato}
-                  onAtualizarValorLead={onAtualizarValorLead}
-                  onClick={() => onAbrirDetalhes(orc)}
-                  isSelected={cardsSelecionados.has(orc.id)}
-                  onToggleSelect={() => onToggleSelect?.(orc.id)}
-                  modoSelecao={modoSelecao}
-                  configEtapa={configEtapa}
-                  onCompatibilizacao={onCompatibilizacao ? () => onCompatibilizacao(orc) : undefined}
-                />
+              {/* Orçamentos ativos — entrada em cascata */}
+              {orcamentosAtivos.map((orc, idx) => (
+                <div key={orc.id} className="r100-stagger" style={{ ['--i' as any]: Math.min(idx, 10) }}>
+                  <OrcamentoCRMCard
+                    orcamento={orc}
+                    onAtualizarStatusContato={onAtualizarStatusContato}
+                    onAtualizarValorLead={onAtualizarValorLead}
+                    onClick={() => onAbrirDetalhes(orc)}
+                    isSelected={cardsSelecionados.has(orc.id)}
+                    onToggleSelect={() => onToggleSelect?.(orc.id)}
+                    modoSelecao={modoSelecao}
+                    configEtapa={configEtapa}
+                    onCompatibilizacao={onCompatibilizacao ? () => onCompatibilizacao(orc) : undefined}
+                  />
+                </div>
               ))}
 
               {/* Seção de congelados */}
