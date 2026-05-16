@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface PenalidadeFornecedor {
   id: string;
@@ -52,7 +53,16 @@ export const TIPOS_PENALIDADE = [
 
 export const usePenalidadesFornecedor = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  // Estado reativo: preenchido automaticamente quando o hook é montado por
+  // um fornecedor autenticado. Consumers antigos (que usam apenas
+  // `verificarPenalidadesAtivas`) continuam funcionando sem mudanças.
+  const [penalidadesAtivas, setPenalidadesAtivas] = useState<PenalidadesAtivas>({
+    temPenalidades: false,
+    tipos: [],
+    detalhes: []
+  });
 
   const verificarPenalidadesAtivas = useCallback(async (fornecedorId: string): Promise<PenalidadesAtivas | null> => {
     try {
@@ -216,8 +226,30 @@ export const usePenalidadesFornecedor = () => {
     }
   }, [toast]);
 
+  // Efeito reativo: carrega penalidades automaticamente para o usuário logado.
+  // Mantém a função imperativa exportada (não quebra consumers existentes).
+  useEffect(() => {
+    let cancelado = false;
+    if (!user?.id) {
+      setPenalidadesAtivas({ temPenalidades: false, tipos: [], detalhes: [] });
+      return;
+    }
+
+    (async () => {
+      const result = await verificarPenalidadesAtivas(user.id);
+      if (!cancelado && result) {
+        setPenalidadesAtivas(result);
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.id, verificarPenalidadesAtivas]);
+
   return {
     loading,
+    penalidadesAtivas,
     verificarPenalidadesAtivas,
     aplicarPenalidade,
     buscarPenalidadesFornecedor,
