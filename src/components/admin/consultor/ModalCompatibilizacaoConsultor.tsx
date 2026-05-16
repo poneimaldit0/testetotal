@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -18,14 +18,14 @@ import {
   Loader2, BarChart2, AlertCircle, CheckCircle2, Send,
   ChevronUp, ChevronDown, History, Star, TrendingUp, TrendingDown,
   Pencil, X, Info, ShieldCheck, ShieldAlert, ThumbsUp, ThumbsDown,
-  ExternalLink, RefreshCw, Plus, Upload, FileText, Zap,
+  ExternalLink, RefreshCw, Plus, Upload, FileText, Zap, Calendar, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
-import { useCompatibilizacaoIA, type EmpresaRanking, type CompatibilizacaoCompleta, type DecisaoEstrategica } from '@/hooks/useCompatibilizacaoIA';
-import { StatusBadge } from './ModalCompatibilizacao';
+import { useCompatibilizacaoIA, type EmpresaRanking, type CompatibilizacaoCompleta, type DecisaoEstrategica, type CompatApresentacaoCanal } from '@/hooks/useCompatibilizacaoIA';
+import { StatusPdfPill, StatusIaPill } from './CompatStatusPills';
 import { gerarHtmlCompatibilizacao } from '@/utils/gerarHtmlCompatibilizacao';
 import { EstimativaTecnicaCard } from './EstimativaTecnicaCard';
 
@@ -326,16 +326,32 @@ function RecommendationCard({ ac, rankingAtivo }: { ac: CompatibilizacaoCompleta
 
 function RankingCard({
   emp, recomendada, posIaOriginal, onRemover,
+  temArquivo = false, statusAnalise = null, qualidadeLeitura = null,
+  onDownload, onSubstituir,
 }: {
   emp: EmpresaRanking; recomendada: boolean; posIaOriginal?: number | null;
   onRemover?: () => void;
+  temArquivo?:        boolean;
+  statusAnalise?:     string | null;
+  qualidadeLeitura?:  string | null;
+  onDownload?:        () => void;
+  onSubstituir?:      (file: File) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [substituindo, setSubstituindo] = useState(false);
+  const inputSubstituirRef = useRef<HTMLInputElement>(null);
   const foiMovida = posIaOriginal != null && posIaOriginal !== emp.posicao;
   const temRiscoAlto    = emp.score_risco != null && emp.score_risco < 50;
   const melhorCustoBeneficio = (
     emp.diferenca_mercado != null && emp.diferenca_mercado < -5 && emp.score_composto >= 70
   );
+
+  const dispararSubstituicao = async (file: File) => {
+    if (!onSubstituir) return;
+    setSubstituindo(true);
+    try { await onSubstituir(file); }
+    finally { setSubstituindo(false); }
+  };
 
   const cardColor = CHART_CORES[emp.posicao - 1] ?? '#2D3395';
 
@@ -466,6 +482,54 @@ function RankingCard({
                 ))}
               </ul>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Rodapé operacional do consultor — pills de status + ações sobre o arquivo */}
+      {(temArquivo || statusAnalise !== null || onDownload || onSubstituir) && (
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t">
+          <StatusPdfPill qualidade={qualidadeLeitura} temArquivo={temArquivo} />
+          <StatusIaPill  statusAnalise={statusAnalise} />
+          <span className="flex-1" />
+          {temArquivo && onDownload && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onDownload}
+              className="gap-1.5 h-7 text-xs"
+              title="Baixar proposta original"
+            >
+              <Download className="h-3 w-3" />
+              Baixar
+            </Button>
+          )}
+          {temArquivo && onSubstituir && (
+            <>
+              <input
+                ref={inputSubstituirRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  await dispararSubstituicao(file);
+                  if (inputSubstituirRef.current) inputSubstituirRef.current.value = '';
+                }}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => inputSubstituirRef.current?.click()}
+                disabled={substituindo}
+                className="gap-1.5 h-7 text-xs"
+                title="Substituir arquivo da proposta"
+              >
+                {substituindo ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                Substituir
+              </Button>
+            </>
           )}
         </div>
       )}
@@ -681,6 +745,15 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
   const [formContato,    setFormContato]    = useState('');
   const [formArquivo,    setFormArquivo]    = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Arquivos das propostas (por candidatura) — usado para download direto pelo consultor
+  const [arquivosPorCand, setArquivosPorCand] = useState<Map<string, { caminho_storage: string; nome_arquivo: string }>>(new Map());
+
+  // D10: agendamento da apresentação da compatibilização ao cliente
+  const [apresDataLocal, setApresDataLocal] = useState('');
+  const [apresCanal,     setApresCanal]     = useState<CompatApresentacaoCanal | ''>('');
+  const [apresLink,      setApresLink]      = useState('');
+  const [apresObs,       setApresObs]       = useState('');
+  const [salvandoApres,  setSalvandoApres]  = useState(false);
 
   // ── Hook (lógica intacta) ────────────────────────────────────────────────────
   const {
@@ -689,6 +762,7 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
     salvarAjusteRanking,
     salvarNotaConsultor,
     marcarEnviado,
+    salvarApresentacao,
     recarregar,
   } = useCompatibilizacaoIA(orcId);
 
@@ -719,9 +793,16 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
     // Deriva quais candidaturas têm arquivo de proposta — sem depender de coluna proposta_enviada
     const { data: arquivosData } = await (supabase as any)
       .from('propostas_arquivos')
-      .select('candidatura_id')
+      .select('candidatura_id, caminho_storage, nome_arquivo')
       .in('candidatura_id', ids);
     const comArquivoSet = new Set<string>((arquivosData ?? []).map((a: any) => a.candidatura_id as string));
+    const arquivosMap = new Map<string, { caminho_storage: string; nome_arquivo: string }>();
+    for (const a of (arquivosData ?? [])) {
+      if (!arquivosMap.has(a.candidatura_id)) {
+        arquivosMap.set(a.candidatura_id, { caminho_storage: a.caminho_storage, nome_arquivo: a.nome_arquivo });
+      }
+    }
+    setArquivosPorCand(arquivosMap);
 
     // Tenta restaurar exclusões persistidas — falha silenciosamente se a coluna não existir
     const { data: exclusoesData, error: exclusoesError } = await (supabase as any)
@@ -775,10 +856,21 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
     carregarCandidaturas();
   }, [isOpen, carregarCandidaturas]);
 
-  // Sincroniza correções quando compat carrega
+  // Sincroniza correções e D10 quando compat carrega
   useEffect(() => {
     if (compat) {
       setAjusteLeitura(compat.ajuste_leitura ?? '');
+      const iso = compat.apresentacao_agendada_em;
+      if (iso) {
+        const d = new Date(iso);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        setApresDataLocal(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+      } else {
+        setApresDataLocal('');
+      }
+      setApresCanal(compat.apresentacao_canal ?? '');
+      setApresLink(compat.apresentacao_link ?? '');
+      setApresObs(compat.apresentacao_observacao ?? '');
     }
   }, [compat?.id]);
 
@@ -897,6 +989,97 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
     try { await marcarEnviado(); toast.success('Marcado como enviado.'); }
     catch { toast.error('Erro ao marcar.'); }
     finally { setEnviando(false); }
+  };
+
+  const handleDownloadProposta = async (candidaturaId: string) => {
+    const arq = arquivosPorCand.get(candidaturaId);
+    if (!arq) { toast.error('Arquivo não encontrado.'); return; }
+    try {
+      const { data, error } = await supabase.storage
+        .from('propostas-fornecedores')
+        .download(arq.caminho_storage);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = arq.nome_arquivo;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[downloadProposta]', err);
+      toast.error('Erro ao baixar arquivo.');
+    }
+  };
+
+  // Substitui o arquivo de proposta de uma candidatura.
+  // Não dispara reanálise IA — consultor usa "Reprocessar compatibilização" depois.
+  const handleSubstituirArquivo = async (candidaturaId: string, file: File) => {
+    const arq = arquivosPorCand.get(candidaturaId);
+    if (!arq) { toast.error('Arquivo original não encontrado para substituição.'); return; }
+    try {
+      const { error: upErr } = await supabase.storage
+        .from('propostas-fornecedores')
+        .upload(arq.caminho_storage, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+
+      await (supabase as any)
+        .from('propostas_arquivos')
+        .update({ nome_arquivo: file.name })
+        .eq('candidatura_id', candidaturaId)
+        .eq('caminho_storage', arq.caminho_storage);
+
+      toast.success('Arquivo substituído. Use "Reprocessar compatibilização" para reanalisar com IA.');
+      await carregarCandidaturas();
+    } catch (err) {
+      console.error('[substituirArquivo]', err);
+      toast.error('Erro ao substituir arquivo.');
+    }
+  };
+
+  // Lookup O(1) das candidaturas por id (para passar ao RankingCard sem re-itear o array)
+  const candidaturasPorId = useMemo(
+    () => new Map(candidaturas.map(c => [c.id, c])),
+    [candidaturas],
+  );
+
+  const handleSalvarApresentacao = async () => {
+    setSalvandoApres(true);
+    try {
+      await salvarApresentacao({
+        apresentacao_agendada_em: apresDataLocal ? new Date(apresDataLocal).toISOString() : null,
+        apresentacao_canal:       apresCanal || null,
+        apresentacao_link:        apresLink.trim() || null,
+        apresentacao_observacao:  apresObs.trim() || null,
+      });
+      toast.success('Apresentação salva.');
+    } catch {
+      toast.error('Erro ao salvar apresentação.');
+    } finally {
+      setSalvandoApres(false);
+    }
+  };
+
+  const handleLimparApresentacao = async () => {
+    setSalvandoApres(true);
+    try {
+      await salvarApresentacao({
+        apresentacao_agendada_em: null,
+        apresentacao_canal:       null,
+        apresentacao_link:        null,
+        apresentacao_observacao:  null,
+      });
+      setApresDataLocal('');
+      setApresCanal('');
+      setApresLink('');
+      setApresObs('');
+      toast.success('Apresentação removida.');
+    } catch {
+      toast.error('Erro ao remover apresentação.');
+    } finally {
+      setSalvandoApres(false);
+    }
   };
 
   const handleGerarHtmlCliente = () => {
@@ -1098,11 +1281,28 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
                             ? <X className="h-3 w-3 text-red-500 shrink-0" />
                             : <AlertCircle className="h-3 w-3 text-orange-500 shrink-0" />
                         }
-                        <span className="font-medium flex-1 min-w-0 truncate">{cand.empresa}</span>
+                        <span className="font-medium min-w-0 truncate">{cand.empresa}</span>
+                        {cand.valorProposta != null && (
+                          <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">
+                            {cand.valorProposta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                          </span>
+                        )}
+                        <StatusPdfPill qualidade={cand.qualidadeLeitura} temArquivo={arquivosPorCand.has(cand.id)} />
+                        <StatusIaPill  statusAnalise={cand.statusAnalise} />
+                        <span className="flex-1" />
                         {!valida && motivo && (
-                          <span className={`ml-auto shrink-0 ${isIncompat ? 'text-red-600' : 'text-orange-600'}`}>
+                          <span className={`shrink-0 ${isIncompat ? 'text-red-600' : 'text-orange-600'}`}>
                             {MOTIVO_LABEL[motivo]}
                           </span>
+                        )}
+                        {arquivosPorCand.has(cand.id) && (
+                          <button
+                            onClick={() => handleDownloadProposta(cand.id)}
+                            className="shrink-0 p-0.5 rounded hover:bg-blue-100 text-muted-foreground hover:text-blue-700 transition-colors"
+                            title="Baixar proposta original"
+                          >
+                            <Download className="h-3 w-3" />
+                          </button>
                         )}
                         {!isRemovidaManual && (
                           <button
@@ -1113,7 +1313,7 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
                                 .eq('id', cand.id);
                               setExcluidos(prev => new Set([...prev, cand.id]));
                             }}
-                            className="ml-auto shrink-0 p-0.5 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors"
+                            className="shrink-0 p-0.5 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors"
                             title="Remover desta compatibilização"
                           >
                             <X className="h-3 w-3" />
@@ -1301,19 +1501,28 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
                         </p>
                       </div>
                     )}
-                    {rankingVisivel.map(emp => (
-                      <RankingCard
-                        key={emp.candidatura_id}
-                        emp={emp}
-                        recomendada={emp.candidatura_id === ac.empresa_recomendada_id}
-                        posIaOriginal={
-                          compat?.ranking_ajustado
-                            ? (rankingIA.find(e => e.candidatura_id === emp.candidatura_id)?.posicao ?? null)
-                            : null
-                        }
-                        onRemover={() => setExcluidos(prev => new Set([...prev, emp.candidatura_id]))}
-                      />
-                    ))}
+                    {rankingVisivel.map(emp => {
+                      const cand = candidaturasPorId.get(emp.candidatura_id);
+                      const temArquivo = arquivosPorCand.has(emp.candidatura_id);
+                      return (
+                        <RankingCard
+                          key={emp.candidatura_id}
+                          emp={emp}
+                          recomendada={emp.candidatura_id === ac.empresa_recomendada_id}
+                          posIaOriginal={
+                            compat?.ranking_ajustado
+                              ? (rankingIA.find(e => e.candidatura_id === emp.candidatura_id)?.posicao ?? null)
+                              : null
+                          }
+                          onRemover={() => setExcluidos(prev => new Set([...prev, emp.candidatura_id]))}
+                          temArquivo={temArquivo}
+                          statusAnalise={cand?.statusAnalise ?? null}
+                          qualidadeLeitura={cand?.qualidadeLeitura ?? null}
+                          onDownload={temArquivo ? () => handleDownloadProposta(emp.candidatura_id) : undefined}
+                          onSubstituir={temArquivo ? (file) => handleSubstituirArquivo(emp.candidatura_id, file) : undefined}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1389,6 +1598,103 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
                       </Button>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* 7. D10 — Apresentação ao cliente */}
+              {!editRanking && compat && (
+                <div className="space-y-3 pt-3 border-t">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <p className="text-sm font-semibold">Apresentação ao cliente</p>
+                    {compat.apresentacao_agendada_em && (
+                      <Badge variant="outline" className="text-[10px] border-green-300 bg-green-50 text-green-700">
+                        Agendada
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Data e hora</label>
+                      <Input
+                        type="datetime-local"
+                        value={apresDataLocal}
+                        onChange={(e) => setApresDataLocal(e.target.value)}
+                        className="text-sm h-9"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Canal</label>
+                      <select
+                        value={apresCanal}
+                        onChange={(e) => setApresCanal(e.target.value as CompatApresentacaoCanal | '')}
+                        className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm outline-none"
+                      >
+                        <option value="">Selecione…</option>
+                        <option value="presencial">Presencial</option>
+                        <option value="online">Online</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="email">Email</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {(apresCanal === 'online' || apresCanal === 'whatsapp') && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {apresCanal === 'online' ? 'Link da reunião' : 'Link WhatsApp (opcional)'}
+                      </label>
+                      <Input
+                        type="url"
+                        placeholder={apresCanal === 'online' ? 'https://meet.google.com/...' : 'https://wa.me/...'}
+                        value={apresLink}
+                        onChange={(e) => setApresLink(e.target.value)}
+                        className="text-sm h-9"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Observação (opcional)</label>
+                    <Textarea
+                      rows={2}
+                      placeholder="Anotações para o time…"
+                      value={apresObs}
+                      onChange={(e) => setApresObs(e.target.value)}
+                      className="text-sm resize-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      className="gap-1"
+                      onClick={handleSalvarApresentacao}
+                      disabled={salvandoApres || !apresDataLocal}
+                    >
+                      {salvandoApres ? <Loader2 className="h-3 w-3 animate-spin" /> : <Calendar className="h-3 w-3" />}
+                      {compat.apresentacao_agendada_em ? 'Atualizar apresentação' : 'Agendar apresentação'}
+                    </Button>
+                    {compat.apresentacao_agendada_em && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLimparApresentacao}
+                        disabled={salvandoApres}
+                      >
+                        Remover
+                      </Button>
+                    )}
+                  </div>
+
+                  {compat.apresentacao_agendada_em && (
+                    <p className="text-xs text-muted-foreground">
+                      Marcada para {format(new Date(compat.apresentacao_agendada_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {compat.apresentacao_canal ? ` · ${compat.apresentacao_canal}` : ''}
+                    </p>
+                  )}
                 </div>
               )}
             </>
@@ -1475,4 +1781,28 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
     </Dialog>
     </>
   );
+}
+
+// ── Badge de status (compartilhado pelo Painel) ──────────────────────────────
+
+export function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    // Legado
+    pending:          { label: 'Processando',     cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    completed:        { label: 'Pronta',           cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    failed:           { label: 'Falha',            cls: 'bg-red-100 text-red-800 border-red-300' },
+    // Canônicos
+    processando:      { label: 'Processando',     cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    compatibilizando: { label: 'Compatibilizando', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    concluida:        { label: 'Pronta',           cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    erro:             { label: 'Erro',             cls: 'bg-red-100 text-red-800 border-red-300' },
+    cancelada:        { label: 'Cancelada',        cls: 'bg-slate-100 text-slate-700 border-slate-300' },
+    // Workflow consultor
+    pendente_revisao: { label: 'Pend. revisão',   cls: 'bg-orange-100 text-orange-800 border-orange-300' },
+    revisado:         { label: 'Revisado',         cls: 'bg-purple-100 text-purple-800 border-purple-300' },
+    aprovado:         { label: 'Aprovado',         cls: 'bg-green-100 text-green-800 border-green-300' },
+    enviado:          { label: 'Enviado',          cls: 'bg-slate-100 text-slate-700 border-slate-300' },
+  };
+  const s = map[status] ?? { label: status, cls: 'bg-muted text-muted-foreground' };
+  return <Badge variant="outline" className={`text-xs ${s.cls}`}>{s.label}</Badge>;
 }

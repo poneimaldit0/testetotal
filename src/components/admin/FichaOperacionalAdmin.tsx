@@ -3,7 +3,7 @@
 // header gradient, banner Próxima ação, timeline operacional e seções
 // compactas. Apenas leitura + dispatcher de modais filhos via callbacks.
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Sheet, SheetContent, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -19,8 +19,9 @@ import { AvaliacaoInternaLead } from './crm/AvaliacaoInternaLead';
 import { ETAPAS_CRM, ETAPAS_ARQUIVADAS, isEtapaArquivada } from '@/constants/crmEtapas';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { EtapaCRM } from '@/types/crm';
-import { Copy, ExternalLink, Edit, UserCheck, BarChart2, MessageCircle, Trophy, X, Snowflake, Maximize2, Minimize2 } from 'lucide-react';
+import { Copy, ExternalLink, Edit, UserCheck, BarChart2, MessageCircle, Trophy, X, Snowflake, Maximize2, Minimize2, Download, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { StatusPdfPill, StatusIaPill } from './consultor/CompatStatusPills';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtDt = (iso: string) =>
@@ -54,6 +55,12 @@ interface CandidaturaResumo {
   proposta_enviada: boolean;
   status_acompanhamento: string | null;
   data_candidatura: string;
+  // Dados operacionais da proposta (carregados em paralelo)
+  arquivo_caminho:   string | null;
+  arquivo_nome:      string | null;
+  status_analise:    string | null;
+  qualidade_leitura: string | null;
+  valor_proposta:    number | null;
 }
 
 // Abre WhatsApp com mensagem padrão (DDI 55 quando o número não tiver).
@@ -437,23 +444,16 @@ function TimelineAdmin({ eventos }: { eventos: EventoAdmin[] }) {
       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: I.cz, marginBottom: 12 }}>
         Histórico do processo
       </div>
-      <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      <ol className="r100-events">
         {sorted.map((ev, i) => {
-          const ehUltimo = i === sorted.length - 1;
+          let mod = 'r100-event--done';
+          if (ev.cor === I.vm)    mod = 'r100-event--block';
+          else if (!ev.data)      mod = 'r100-event--wait';
+          else if (i === 0)       mod = 'r100-event--now';
           return (
-            <li key={`${ev.tipo}-${i}`} style={{ position: 'relative', paddingLeft: 32, paddingBottom: ehUltimo ? 0 : 14 }}>
-              {!ehUltimo && (
-                <span style={{ position: 'absolute', left: 11, top: 22, bottom: 0, width: 2, background: I.bd }} />
-              )}
-              <span style={{
-                position: 'absolute', left: 0, top: 2,
-                width: 22, height: 22, borderRadius: '50%',
-                background: '#fff', border: `2px solid ${ev.cor}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, lineHeight: 1,
-              }}>
-                {ev.icone}
-              </span>
+            <li key={`${ev.tipo}-${i}`} className={`r100-event ${mod}`}>
+              <span className="r100-event-line" aria-hidden />
+              <span className="r100-event-dot">{ev.icone}</span>
               <div style={{ fontSize: 13, fontWeight: 700, color: I.nv, lineHeight: 1.35, fontFamily: "'Syne',sans-serif" }}>
                 {ev.label}
               </div>
@@ -516,7 +516,15 @@ function SecaoResumo({ orcamento }: { orcamento: Orcamento }) {
 }
 
 // ── Sub-componente: Fornecedores inscritos (com contato + ações rápidas) ─────
-function SecaoFornecedores({ candidaturas }: { candidaturas: CandidaturaResumo[] }) {
+function SecaoFornecedores({
+  candidaturas,
+  onDownload,
+  onSubstituir,
+}: {
+  candidaturas: CandidaturaResumo[];
+  onDownload:   (candidaturaId: string) => void;
+  onSubstituir: (candidaturaId: string, file: File) => Promise<void>;
+}) {
   const enviadas = candidaturas.filter(c => c.proposta_enviada).length;
 
   return (
@@ -539,7 +547,12 @@ function SecaoFornecedores({ candidaturas }: { candidaturas: CandidaturaResumo[]
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {candidaturas.map(c => (
-              <FornecedorRow key={c.id} candidatura={c} />
+              <FornecedorRow
+                key={c.id}
+                candidatura={c}
+                onDownload={() => onDownload(c.id)}
+                onSubstituir={(file) => onSubstituir(c.id, file)}
+              />
             ))}
           </ul>
         </>
@@ -548,11 +561,29 @@ function SecaoFornecedores({ candidaturas }: { candidaturas: CandidaturaResumo[]
   );
 }
 
-function FornecedorRow({ candidatura }: { candidatura: CandidaturaResumo }) {
-  const empresa = candidatura.fornecedor_empresa ?? candidatura.fornecedor_nome ?? 'Fornecedor sem nome';
+function FornecedorRow({
+  candidatura,
+  onDownload,
+  onSubstituir,
+}: {
+  candidatura:  CandidaturaResumo;
+  onDownload:   () => void;
+  onSubstituir: (file: File) => Promise<void>;
+}) {
+  const empresa     = candidatura.fornecedor_empresa ?? candidatura.fornecedor_nome ?? 'Fornecedor sem nome';
   const contatoNome = candidatura.fornecedor_empresa ? candidatura.fornecedor_nome : null;
-  const tel = candidatura.fornecedor_telefone;
-  const enviou = candidatura.proposta_enviada;
+  const tel         = candidatura.fornecedor_telefone;
+  const enviou      = candidatura.proposta_enviada;
+  const temArquivo  = !!candidatura.arquivo_caminho;
+
+  const [substituindo, setSubstituindo] = useState(false);
+  const inputSubstituirRef = useRef<HTMLInputElement>(null);
+
+  const dispararSubstituicao = async (file: File) => {
+    setSubstituindo(true);
+    try { await onSubstituir(file); }
+    finally { setSubstituindo(false); }
+  };
 
   return (
     <li style={{
@@ -561,74 +592,175 @@ function FornecedorRow({ candidatura }: { candidatura: CandidaturaResumo }) {
       borderRadius: 10,
       padding: '10px 12px',
       display: 'flex',
-      alignItems: 'center',
-      gap: 10,
+      flexDirection: 'column',
+      gap: 8,
     }}>
-      {/* Indicador de status */}
-      <span style={{
-        width: 8, height: 8, borderRadius: '50%',
-        background: enviou ? I.vd : I.cz,
-        flexShrink: 0,
-      }} aria-hidden />
+      {/* Linha 1: identidade + status badge + ações de contato */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: enviou ? I.vd : I.cz,
+          flexShrink: 0,
+        }} aria-hidden />
 
-      {/* Identidade + contato */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 700, color: I.nv,
-          fontFamily: "'Syne',sans-serif",
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {empresa}
-          {contatoNome && (
-            <span style={{ fontWeight: 500, color: I.cz, marginLeft: 6, fontFamily: "'DM Sans',sans-serif" }}>
-              · {contatoNome}
-            </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 12, fontWeight: 700, color: I.nv,
+            fontFamily: "'Syne',sans-serif",
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {empresa}
+            {contatoNome && (
+              <span style={{ fontWeight: 500, color: I.cz, marginLeft: 6, fontFamily: "'DM Sans',sans-serif" }}>
+                · {contatoNome}
+              </span>
+            )}
+          </div>
+          {tel && (
+            <div style={{
+              fontSize: 10, color: I.cz, marginTop: 2,
+              fontFamily: "'DM Sans',sans-serif",
+              whiteSpace: 'nowrap',
+            }}>
+              📞 {tel}
+            </div>
           )}
         </div>
-        {tel && (
-          <div style={{
-            fontSize: 10, color: I.cz, marginTop: 2,
-            fontFamily: "'DM Sans',sans-serif",
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700,
+            padding: '2px 7px', borderRadius: 10,
+            background: enviou ? I.vd2 : I.cz2,
+            color: enviou ? I.vd : I.cz,
             whiteSpace: 'nowrap',
+            letterSpacing: '.03em',
+            textTransform: 'uppercase',
+            fontFamily: "'Syne',sans-serif",
           }}>
-            📞 {tel}
-          </div>
-        )}
+            {enviou ? 'Proposta' : 'Pendente'}
+          </span>
+
+          {tel && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); abrirWhatsApp(tel, candidatura.fornecedor_nome ?? null); }}
+              aria-label={`Abrir WhatsApp com ${empresa}`}
+              title="WhatsApp"
+              style={{
+                background: 'transparent', border: 'none',
+                color: '#25D366', cursor: 'pointer',
+                padding: 6, borderRadius: 6,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                minWidth: 28, minHeight: 28,
+              }}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Status + ações discretas */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-        <span style={{
-          fontSize: 9, fontWeight: 700,
-          padding: '2px 7px', borderRadius: 10,
-          background: enviou ? I.vd2 : I.cz2,
-          color: enviou ? I.vd : I.cz,
-          whiteSpace: 'nowrap',
-          letterSpacing: '.03em',
-          textTransform: 'uppercase',
-          fontFamily: "'Syne',sans-serif",
+      {/* Linha 2 (apenas quando há proposta anexada): valor + pills + ações de arquivo */}
+      {enviou && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          flexWrap: 'wrap',
+          paddingTop: 8,
+          borderTop: `1px dashed ${I.bd}`,
         }}>
-          {enviou ? 'Proposta' : 'Pendente'}
-        </span>
+          {candidatura.valor_proposta != null && (
+            <span style={{
+              fontSize: 11, fontWeight: 800,
+              color: '#1D4ED8',
+              background: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              padding: '2px 7px',
+              borderRadius: 6,
+              fontFamily: "'DM Sans',sans-serif",
+              whiteSpace: 'nowrap',
+            }}>
+              {candidatura.valor_proposta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+            </span>
+          )}
+          <StatusPdfPill qualidade={candidatura.qualidade_leitura} temArquivo={temArquivo} />
+          <StatusIaPill  statusAnalise={candidatura.status_analise} />
 
-        {tel && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); abrirWhatsApp(tel, candidatura.fornecedor_nome ?? null); }}
-            aria-label={`Abrir WhatsApp com ${empresa}`}
-            title="WhatsApp"
-            style={{
-              background: 'transparent', border: 'none',
-              color: '#25D366', cursor: 'pointer',
-              padding: 6, borderRadius: 6,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              minWidth: 28, minHeight: 28,
-            }}
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
+          <span style={{ flex: 1 }} />
+
+          {temArquivo && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDownload(); }}
+              aria-label={`Baixar proposta de ${empresa}`}
+              title="Baixar proposta original"
+              className="r100-press"
+              style={{
+                background: '#fff',
+                border: `1px solid ${I.bd}`,
+                color: I.azul,
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: 6,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                fontFamily: "'DM Sans',sans-serif",
+              }}
+            >
+              <Download className="h-3 w-3" />
+              Baixar
+            </button>
+          )}
+
+          {temArquivo && (
+            <>
+              <input
+                ref={inputSubstituirRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  await dispararSubstituicao(file);
+                  if (inputSubstituirRef.current) inputSubstituirRef.current.value = '';
+                }}
+              />
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); inputSubstituirRef.current?.click(); }}
+                disabled={substituindo}
+                aria-label={`Substituir proposta de ${empresa}`}
+                title="Substituir arquivo da proposta"
+                className="r100-press"
+                style={{
+                  background: '#fff',
+                  border: `1px solid ${I.bd}`,
+                  color: I.azul,
+                  cursor: substituindo ? 'wait' : 'pointer',
+                  padding: '4px 8px',
+                  borderRadius: 6,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  fontFamily: "'DM Sans',sans-serif",
+                  opacity: substituindo ? .7 : 1,
+                }}
+              >
+                {substituindo ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                Substituir
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </li>
   );
 }
@@ -1090,81 +1222,183 @@ export function FichaOperacionalAdmin({
   const isOpen = orcamento !== null;
   const orcId = orcamento?.id;
 
-  useEffect(() => {
+  // Carga das candidaturas + dados operacionais. Extraído em callback para
+  // permitir recarga manual após download/substituição de arquivo.
+  const carregar = useCallback(async (signal?: { cancelado: boolean }): Promise<void> => {
     if (!orcId) {
       setCandidaturas([]);
       setCompat(null);
       setEtapaCrm(null);
       return;
     }
-    let cancelado = false;
     setLoading(true);
-    (async () => {
-      try {
-        const [candRes, compatRes, crmRes] = await Promise.all([
+    try {
+      const [candRes, compatRes, crmRes] = await Promise.all([
+        (supabase as any)
+          .from('candidaturas_fornecedores')
+          .select('id, fornecedor_id, proposta_enviada, status_acompanhamento, data_candidatura, profiles!fornecedor_id(nome, empresa, telefone)')
+          .eq('orcamento_id', orcId)
+          .order('data_candidatura', { ascending: false }),
+        (supabase as any)
+          .from('compatibilizacoes_analises_ia')
+          .select('id, status, created_at, aprovado_em, candidaturas_ids, analise_completa, apresentacao_agendada_em, apresentacao_canal')
+          .eq('orcamento_id', orcId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('orcamentos_crm_tracking')
+          .select('etapa_crm')
+          .eq('orcamento_id', orcId)
+          .maybeSingle(),
+      ]);
+
+      if (signal?.cancelado) return;
+
+      // Candidaturas — base inicial sem dados operacionais
+      let baseCands: CandidaturaResumo[] = [];
+      if (!candRes.error && candRes.data) {
+        baseCands = candRes.data.map((row: any) => ({
+          id: row.id,
+          fornecedor_id: row.fornecedor_id ?? null,
+          fornecedor_nome: row.profiles?.nome ?? null,
+          fornecedor_empresa: row.profiles?.empresa ?? null,
+          fornecedor_telefone: row.profiles?.telefone ?? null,
+          proposta_enviada: !!row.proposta_enviada,
+          status_acompanhamento: row.status_acompanhamento ?? null,
+          data_candidatura: row.data_candidatura,
+          arquivo_caminho: null,
+          arquivo_nome: null,
+          status_analise: null,
+          qualidade_leitura: null,
+          valor_proposta: null,
+        }));
+      }
+
+      // Enriquece com arquivos + análises IA (sem bloquear render se uma falhar)
+      const ids = baseCands.map(c => c.id);
+      if (ids.length > 0) {
+        const [arquivosRes, analisesRes] = await Promise.all([
           (supabase as any)
-            .from('candidaturas_fornecedores')
-            .select('id, fornecedor_id, proposta_enviada, status_acompanhamento, data_candidatura, profiles!fornecedor_id(nome, empresa, telefone)')
-            .eq('orcamento_id', orcId)
-            .order('data_candidatura', { ascending: false }),
+            .from('propostas_arquivos')
+            .select('candidatura_id, caminho_storage, nome_arquivo')
+            .in('candidatura_id', ids),
           (supabase as any)
-            .from('compatibilizacoes_analises_ia')
-            .select('id, status, created_at, aprovado_em, candidaturas_ids, analise_completa, apresentacao_agendada_em, apresentacao_canal')
-            .eq('orcamento_id', orcId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-          supabase
-            .from('orcamentos_crm_tracking')
-            .select('etapa_crm')
-            .eq('orcamento_id', orcId)
-            .maybeSingle(),
+            .from('propostas_analises_ia')
+            .select('candidatura_id, status, valor_proposta, qualidade_leitura, created_at')
+            .in('candidatura_id', ids)
+            .neq('status', 'cancelada')
+            .neq('status', 'failed')
+            .order('created_at', { ascending: false }),
         ]);
 
-        if (cancelado) return;
+        if (signal?.cancelado) return;
 
-        // Candidaturas
-        if (!candRes.error && candRes.data) {
-          setCandidaturas(candRes.data.map((row: any) => ({
-            id: row.id,
-            fornecedor_id: row.fornecedor_id ?? null,
-            fornecedor_nome: row.profiles?.nome ?? null,
-            fornecedor_empresa: row.profiles?.empresa ?? null,
-            fornecedor_telefone: row.profiles?.telefone ?? null,
-            proposta_enviada: !!row.proposta_enviada,
-            status_acompanhamento: row.status_acompanhamento ?? null,
-            data_candidatura: row.data_candidatura,
-          })));
+        const arquivosMap = new Map<string, { caminho: string; nome: string }>();
+        for (const a of (arquivosRes.data ?? [])) {
+          if (!arquivosMap.has(a.candidatura_id)) {
+            arquivosMap.set(a.candidatura_id, { caminho: a.caminho_storage, nome: a.nome_arquivo });
+          }
         }
-
-        // Compat
-        if (!compatRes.error && compatRes.data) {
-          const row: any = compatRes.data;
-          setCompat({
-            id: row.id,
-            status: row.status,
-            created_at: row.created_at,
-            aprovado_em: row.aprovado_em ?? null,
-            empresa_recomendada_id: row.analise_completa?.empresa_recomendada_id ?? null,
-            total: Array.isArray(row.candidaturas_ids) ? row.candidaturas_ids.length : 0,
-            apresentacao_agendada_em: row.apresentacao_agendada_em ?? null,
-            apresentacao_canal:       row.apresentacao_canal ?? null,
-          });
-        } else {
-          setCompat(null);
+        const analiseMap = new Map<string, any>();
+        for (const a of (analisesRes.data ?? [])) {
+          if (!analiseMap.has(a.candidatura_id)) analiseMap.set(a.candidatura_id, a);
         }
-
-        // CRM
-        if (!crmRes.error && crmRes.data) {
-          setEtapaCrm((crmRes.data as any).etapa_crm ?? null);
-        }
-      } finally {
-        if (!cancelado) setLoading(false);
+        baseCands = baseCands.map(c => {
+          const arq = arquivosMap.get(c.id);
+          const an  = analiseMap.get(c.id);
+          return {
+            ...c,
+            arquivo_caminho:   arq?.caminho ?? null,
+            arquivo_nome:      arq?.nome    ?? null,
+            status_analise:    an?.status              ?? null,
+            qualidade_leitura: an?.qualidade_leitura   ?? null,
+            valor_proposta:    an?.valor_proposta      ?? null,
+          };
+        });
       }
-    })();
 
-    return () => { cancelado = true; };
+      setCandidaturas(baseCands);
+
+      // Compat
+      if (!compatRes.error && compatRes.data) {
+        const row: any = compatRes.data;
+        setCompat({
+          id: row.id,
+          status: row.status,
+          created_at: row.created_at,
+          aprovado_em: row.aprovado_em ?? null,
+          empresa_recomendada_id: row.analise_completa?.empresa_recomendada_id ?? null,
+          total: Array.isArray(row.candidaturas_ids) ? row.candidaturas_ids.length : 0,
+          apresentacao_agendada_em: row.apresentacao_agendada_em ?? null,
+          apresentacao_canal:       row.apresentacao_canal ?? null,
+        });
+      } else {
+        setCompat(null);
+      }
+
+      // CRM
+      if (!crmRes.error && crmRes.data) {
+        setEtapaCrm((crmRes.data as any).etapa_crm ?? null);
+      }
+    } finally {
+      if (!signal?.cancelado) setLoading(false);
+    }
   }, [orcId]);
+
+  useEffect(() => {
+    const signal = { cancelado: false };
+    carregar(signal);
+    return () => { signal.cancelado = true; };
+  }, [carregar]);
+
+  // Handlers operacionais — baixar e substituir arquivo de proposta de uma candidatura.
+  // Substituir faz upsert no Storage e atualiza propostas_arquivos.nome_arquivo;
+  // NÃO dispara reanálise IA (consultor usa "Reprocessar" no modal de compat).
+  const handleDownloadProposta = async (candidaturaId: string) => {
+    const c = candidaturas.find(x => x.id === candidaturaId);
+    if (!c?.arquivo_caminho || !c?.arquivo_nome) { toast.error('Arquivo não encontrado.'); return; }
+    try {
+      const { data, error } = await supabase.storage
+        .from('propostas-fornecedores')
+        .download(c.arquivo_caminho);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = c.arquivo_nome;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[FichaAdmin.download]', err);
+      toast.error('Erro ao baixar arquivo.');
+    }
+  };
+
+  const handleSubstituirArquivo = async (candidaturaId: string, file: File) => {
+    const c = candidaturas.find(x => x.id === candidaturaId);
+    if (!c?.arquivo_caminho) { toast.error('Arquivo original não encontrado.'); return; }
+    try {
+      const { error: upErr } = await supabase.storage
+        .from('propostas-fornecedores')
+        .upload(c.arquivo_caminho, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+
+      await (supabase as any)
+        .from('propostas_arquivos')
+        .update({ nome_arquivo: file.name })
+        .eq('candidatura_id', candidaturaId)
+        .eq('caminho_storage', c.arquivo_caminho);
+
+      toast.success('Arquivo substituído. Use "Reprocessar compatibilização" no modal IA para reanalisar.');
+      await carregar();
+    } catch (err) {
+      console.error('[FichaAdmin.substituir]', err);
+      toast.error('Erro ao substituir arquivo.');
+    }
+  };
 
   const acao = useMemo(() => {
     if (!orcamento) return null;
@@ -1200,7 +1434,11 @@ export function FichaOperacionalAdmin({
 
               <SecaoResumo orcamento={orcamento} />
 
-              <SecaoFornecedores candidaturas={candidaturas} />
+              <SecaoFornecedores
+                candidaturas={candidaturas}
+                onDownload={handleDownloadProposta}
+                onSubstituir={handleSubstituirArquivo}
+              />
 
               <SecaoCompat compat={compat} onAbrir={onAbrirCompat} />
 

@@ -6,8 +6,8 @@ import { BarChart2, Clock, RefreshCw, AlertTriangle, Trophy } from 'lucide-react
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
-import { useCompatibilizacaoIA, type CompatibilizacaoIA } from '@/hooks/useCompatibilizacaoIA';
-import { ModalCompatibilizacao, StatusBadge } from './ModalCompatibilizacao';
+import { type CompatibilizacaoIA } from '@/hooks/useCompatibilizacaoIA';
+import { ModalCompatibilizacaoConsultor, StatusBadge } from './ModalCompatibilizacaoConsultor';
 
 // Buckets de filtro derivados dos status canônicos da máquina de estados
 type FiltroStatus = 'todos' | 'em_andamento' | 'pendente_revisao' | 'aprovados' | 'enviados' | 'erros';
@@ -175,42 +175,25 @@ function CompatRow({
   );
 }
 
-// ── Wrapper com hook por orcamento (para ações dentro do modal) ───────────────
+// ── Wrapper que delega ao modal completo do consultor ────────────────────────
+// O modal completo gerencia compat/handlers internamente via useCompatibilizacaoIA;
+// aqui só passamos identificação do orçamento e callbacks de ciclo de vida.
 
 function ModalWrapper({
   item,
   onClose,
-  onAtualizar,
 }: {
-  item:        CompatItem;
-  onClose:     () => void;
-  onAtualizar: () => void;
+  item:    CompatItem;
+  onClose: () => void;
 }) {
-  const { salvarAjusteRanking, salvarNotaConsultor, salvarApresentacao, aprovarCompatibilizacao, marcarEnviado } =
-    useCompatibilizacaoIA(item.compat.orcamento_id);
-
-  const wrap = (fn: () => Promise<void>) => async () => {
-    await fn();
-    onAtualizar();
-  };
-
   return (
-    <ModalCompatibilizacao
-      compat={item.compat}
-      orcamentoNome={item.orcamentoNome}
-      open={true}
+    <ModalCompatibilizacaoConsultor
+      orcamento={{
+        id:            item.compat.orcamento_id,
+        nome_contato:  item.orcamentoNome,
+      }}
+      isOpen={true}
       onClose={onClose}
-      onSalvarAjuste={async (ranking, justificativa) => {
-        await salvarAjusteRanking(ranking, justificativa);
-        onAtualizar();
-      }}
-      onSalvarNota={(nota, ajuste) => salvarNotaConsultor(nota, ajuste)}
-      onAprovar={wrap(aprovarCompatibilizacao)}
-      onMarcarEnviado={wrap(marcarEnviado)}
-      onSalvarApresentacao={async (input) => {
-        await salvarApresentacao(input);
-        onAtualizar();
-      }}
     />
   );
 }
@@ -347,10 +330,9 @@ export function PainelCompatibilizacaoIA() {
       {aberto && (
         <ModalWrapper
           item={aberto}
-          onClose={() => setAberto(null)}
-          onAtualizar={() => {
-            recarregar();
+          onClose={() => {
             setAberto(null);
+            recarregar();
           }}
         />
       )}
