@@ -45,7 +45,8 @@ export const buscarTodosOrcamentos = async (userId: string, apenasAbertos: boole
         fornecedor_id
       )
     `)
-    .order('data_publicacao', { ascending: false });
+    .order('data_publicacao', { ascending: false })
+    .limit(500);
 
   // Filtrar apenas abertos no servidor para performance
   if (apenasAbertos) {
@@ -112,7 +113,8 @@ export const buscarOrcamentosOtimizado = async (userId: string, diasFechados: nu
       )
     `)
     .or(`status.eq.aberto,and(status.eq.fechado,data_publicacao.gte.${dataLimiteISO})`)
-    .order('data_publicacao', { ascending: false });
+    .order('data_publicacao', { ascending: false })
+    .limit(500);
 
   if (orcamentosError) {
     console.error('❌ [useOrcamentoDB] Erro na consulta otimizada:', orcamentosError);

@@ -49,7 +49,8 @@ export const useRevisoesWorkflow = (enabled: boolean = true) => {
         `)
         .eq('status', 'pendente')
         .eq('checklist_propostas.candidaturas_fornecedores.fornecedor_id', fornecedorId)
-        .gt('checklist_propostas.valor_total_estimado', 0);
+        .gt('checklist_propostas.valor_total_estimado', 0)
+        .limit(500);
 
       if (error) {
         console.warn('⚠️ Erro ao buscar revisões abandonadas:', error);
@@ -114,7 +115,8 @@ export const useRevisoesWorkflow = (enabled: boolean = true) => {
           )
         `)
         .in('status', ['pendente', 'em_andamento'])
-        .eq('checklist_propostas.candidaturas_fornecedores.fornecedor_id', user.user.id);
+        .eq('checklist_propostas.candidaturas_fornecedores.fornecedor_id', user.user.id)
+        .limit(500);
 
       if (error) {
         throw error;

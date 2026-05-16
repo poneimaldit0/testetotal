@@ -58,7 +58,8 @@ export const useMeusOrcamentos = (userId?: string) => {
         .from('inscricoes_fornecedores')
         .select('*')
         .eq('fornecedor_id', userId)
-        .order('data_inscricao', { ascending: false });
+        .order('data_inscricao', { ascending: false })
+        .limit(500);
 
       if (inscricoesError) {
         console.error('❌ useMeusOrcamentos: Erro ao buscar inscrições:', inscricoesError);

@@ -29,7 +29,7 @@ export const useCRMOrcamentos = (profile: Profile | null) => {
         query = query.eq('concierge_responsavel_id', profile.id);
       }
 
-      query = query.order('created_at', { ascending: false });
+      query = query.order('created_at', { ascending: false }).limit(500);
 
       const { data, error } = await query;
 
@@ -50,7 +50,8 @@ export const useCRMOrcamentos = (profile: Profile | null) => {
       .from('orcamentos_crm_historico')
       .select('*')
       .eq('orcamento_id', orcamentoId)
-      .order('data_movimentacao', { ascending: false });
+      .order('data_movimentacao', { ascending: false })
+      .limit(500);
 
     if (error) throw error;
     return data as HistoricoMovimentacao[];

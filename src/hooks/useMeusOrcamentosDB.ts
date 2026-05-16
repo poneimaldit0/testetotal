@@ -7,7 +7,8 @@ export const buscarInscricoesFornecedor = async (userId: string) => {
     .from('inscricoes_fornecedores')
     .select('*')
     .eq('fornecedor_id', userId)
-    .order('data_inscricao', { ascending: false });
+    .order('data_inscricao', { ascending: false })
+    .limit(500);
 
   if (errorInscricoes) {
     throw new Error('Erro ao carregar inscrições');

@@ -129,7 +129,8 @@ export const useMeusCandidaturas = (userId?: string) => {
           )
         `)
         .eq('fornecedor_id', userId)
-        .order('data_candidatura', { ascending: false });
+        .order('data_candidatura', { ascending: false })
+        .limit(500);
 
       console.log('📊 useMeusCandidaturas: Resultado da consulta:', {
         data: candidaturasData,
@@ -435,7 +436,8 @@ export const useMeusCandidaturas = (userId?: string) => {
           )
         `)
         .eq('fornecedor_id', userId)
-        .order('data_candidatura', { ascending: false });
+        .order('data_candidatura', { ascending: false })
+        .limit(500);
 
       if (candidaturasData) {
         // Atualiza apenas os status sem reprocessar tudo

@@ -39,7 +39,8 @@ export const useDataRecovery = () => {
           )
         `)
         .in('status', ['enviado', 'em_revisao'])
-        .gt('valor_total_estimado', 0);
+        .gt('valor_total_estimado', 0)
+        .limit(500);
 
       if (error) throw error;
 

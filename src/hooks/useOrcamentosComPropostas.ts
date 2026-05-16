@@ -66,7 +66,8 @@ export const useOrcamentosComPropostas = () => {
             )
           )
         `)
-        .order('data_publicacao', { ascending: false });
+        .order('data_publicacao', { ascending: false })
+        .limit(500);
 
       if (orcamentosError) {
         console.error('❌ Erro ao carregar orçamentos:', orcamentosError);

@@ -113,7 +113,8 @@ export const usePropostas = () => {
             )
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       // Aplicar filtros se fornecidos
       if (filtros) {
@@ -275,7 +276,8 @@ export const usePropostas = () => {
           )
         `)
         .eq('candidatura.fornecedor_id', fornecedorId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (error) throw error;
 
