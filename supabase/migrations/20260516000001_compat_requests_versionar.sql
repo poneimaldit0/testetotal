@@ -26,6 +26,9 @@
 --   DROP TABLE IF EXISTS public.compat_requests;
 -- ============================================================
 
+-- ============================================================
+-- PARTE 1: Criar a tabela se ainda não existir (no-op em prod)
+-- ============================================================
 CREATE TABLE IF NOT EXISTS public.compat_requests (
   id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   token         TEXT         NOT NULL UNIQUE,
@@ -43,7 +46,18 @@ CREATE TABLE IF NOT EXISTS public.compat_requests (
 COMMENT ON TABLE public.compat_requests IS
   'Solicitações de geração de compatibilização (legado pré-versionamento). Versionada em 2026-05-16 para regularizar o schema.';
 
--- CHECK constraints (DROP+ADD para garantir estado idempotente)
+
+-- ============================================================
+-- PARTE 2: Garantir coluna created_at (tabela em prod não tinha)
+-- ATENÇÃO: precisa rodar ANTES dos índices que referenciam created_at.
+-- ============================================================
+ALTER TABLE public.compat_requests
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+
+-- ============================================================
+-- PARTE 3: CHECK constraints (DROP+ADD para garantir estado idempotente)
+-- ============================================================
 ALTER TABLE public.compat_requests
   DROP CONSTRAINT IF EXISTS ck_compat_requests_status;
 ALTER TABLE public.compat_requests
@@ -58,7 +72,26 @@ ALTER TABLE public.compat_requests
     tipo IN ('completa', 'individual')
   );
 
--- Índices usados pelas queries do código (rota100Storage + edge function)
+
+-- ============================================================
+-- PARTE 4: Habilitar RLS (idempotente — no-op se já habilitada)
+-- Policy permissiva que preserva o comportamento atual do código
+-- (rota100Storage + edge function). Pode ser endurecida em sprint
+-- de hardening posterior.
+-- ============================================================
+ALTER TABLE public.compat_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "compat_requests_access_temporario" ON public.compat_requests;
+CREATE POLICY "compat_requests_access_temporario"
+  ON public.compat_requests
+  FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+
+-- ============================================================
+-- PARTE 5: Índices usados pelas queries do código
+-- ============================================================
 CREATE INDEX IF NOT EXISTS idx_compat_requests_token
   ON public.compat_requests (token);
 
