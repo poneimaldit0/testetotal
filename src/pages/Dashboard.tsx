@@ -18,6 +18,9 @@ import { UserStatsCards } from '@/components/admin/UserStatsCards';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { QuadroAvisos, type Aviso } from '@/components/admin/QuadroAvisos';
+import { useSolicitacoesAjuda } from '@/hooks/useSolicitacoesAjuda';
+import { useUserStats } from '@/hooks/useUserStats';
+import { useMeusCandidaturas } from '@/hooks/useMeusCandiaturas';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIsMaster } from '@/hooks/useIsMaster';
@@ -194,6 +197,101 @@ const DashboardStats = ({ enabled = true }: { enabled?: boolean }) => {
   );
 };
 
+// Sub-componente local — só monta quando o usuário é fornecedor, evitando
+// chamadas extras em sessões admin. Combina 3 hooks de dados já existentes
+// (revisões, solicitações ajuda, candidaturas) + stats do mês.
+const QuadroAvisosFornecedor = ({ userId, totalRevisoesPendentes }: { userId: string | undefined; totalRevisoesPendentes: number }) => {
+  const { solicitacoes }         = useSolicitacoesAjuda();
+  const { stats }                = useUserStats();
+  const { candidaturas }         = useMeusCandidaturas(userId);
+
+  const solicitacoesPendentes = solicitacoes.filter(s => !s.respondida).length;
+  const inscricoesMes         = stats?.inscricoesMesAtual ?? 0;
+
+  // Derivações operacionais a partir das candidaturas do fornecedor
+  const agora     = Date.now();
+  const semDia    = 86_400_000;
+  const abertas   = candidaturas.filter(c => c.status === 'aberto');
+  const semProposta = abertas.filter(c => !c.propostaEnviada);
+  const paradas7d   = semProposta.filter(c => (agora - new Date(c.dataCandidatura).getTime()) / semDia >= 7);
+  const visitasAg   = abertas.filter(c => {
+    if (!c.horarioVisitaAgendado) return false;
+    const t = new Date(c.horarioVisitaAgendado).getTime();
+    return t >= agora && t <= agora + 7 * semDia;
+  });
+  const visitasHoje = visitasAg.filter(c => {
+    const d = new Date(c.horarioVisitaAgendado as string);
+    const hoje = new Date();
+    return d.getFullYear() === hoje.getFullYear()
+        && d.getMonth() === hoje.getMonth()
+        && d.getDate() === hoje.getDate();
+  });
+
+  const avisos: Aviso[] = useMemo(() => {
+    const list: Aviso[] = [];
+    // Críticos primeiro
+    if (totalRevisoesPendentes > 0) list.push({
+      id: 'fornecedor-revisoes',
+      tom: 'red',
+      icone: '🔁',
+      contagem: totalRevisoesPendentes,
+      titulo: `${totalRevisoesPendentes === 1 ? 'revisão pendente' : 'revisões pendentes'}`,
+      descricao: 'O cliente pediu ajustes na sua proposta — responda o quanto antes.',
+    });
+    if (paradas7d.length > 0) list.push({
+      id: 'fornecedor-paradas',
+      tom: 'red',
+      icone: '⏰',
+      contagem: paradas7d.length,
+      titulo: `${paradas7d.length === 1 ? 'candidatura parada' : 'candidaturas paradas'} há 7+ dias`,
+      descricao: 'Você se inscreveu e ainda não enviou proposta — pode estar perdendo a oportunidade.',
+    });
+    if (visitasHoje.length > 0) list.push({
+      id: 'fornecedor-visitas-hoje',
+      tom: 'amber',
+      icone: '📅',
+      contagem: visitasHoje.length,
+      titulo: `${visitasHoje.length === 1 ? 'visita marcada' : 'visitas marcadas'} para hoje`,
+      descricao: 'Confirme presença e prepare-se para o atendimento.',
+    });
+    if (semProposta.length > 0) list.push({
+      id: 'fornecedor-sem-proposta',
+      tom: 'amber',
+      icone: '📋',
+      contagem: semProposta.length,
+      titulo: `${semProposta.length === 1 ? 'candidatura aguardando' : 'candidaturas aguardando'} envio de proposta`,
+      descricao: 'Envie sua proposta para concorrer ao orçamento.',
+    });
+    if (solicitacoesPendentes > 0) list.push({
+      id: 'fornecedor-solicitacoes',
+      tom: 'blue',
+      icone: '🆘',
+      contagem: solicitacoesPendentes,
+      titulo: `${solicitacoesPendentes === 1 ? 'solicitação de ajuda' : 'solicitações de ajuda'} aguardando resposta`,
+      descricao: 'Time Reforma100 vai retornar — fique atento.',
+    });
+    if (visitasAg.length > visitasHoje.length) list.push({
+      id: 'fornecedor-visitas-semana',
+      tom: 'blue',
+      icone: '🗓️',
+      contagem: visitasAg.length - visitasHoje.length,
+      titulo: `${visitasAg.length - visitasHoje.length === 1 ? 'visita agendada' : 'visitas agendadas'} nesta semana`,
+      descricao: 'Acompanhe sua agenda em "Meus orçamentos".',
+    });
+    if (inscricoesMes > 0) list.push({
+      id: 'fornecedor-inscricoes-mes',
+      tom: 'green',
+      icone: '✋',
+      contagem: inscricoesMes,
+      titulo: `${inscricoesMes === 1 ? 'inscrição feita' : 'inscrições feitas'} este mês`,
+      descricao: 'Acompanhe suas candidaturas em "Meus orçamentos".',
+    });
+    return list;
+  }, [totalRevisoesPendentes, paradas7d.length, visitasHoje.length, semProposta.length, solicitacoesPendentes, visitasAg.length, inscricoesMes]);
+
+  return <QuadroAvisos avisos={avisos} className="mb-4 md:mb-6" />;
+};
+
 const DashboardContent = () => {
   const { profile, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -206,20 +304,6 @@ const DashboardContent = () => {
   
   // Hooks condicionais - só executam quando necessário
   const { totalRevisoesPendentes } = useRevisoesWorkflow(!!profile && isFornecedor);
-
-  // Avisos operacionais do fornecedor — cobertura básica usando dados já carregados.
-  const avisosFornecedor: Aviso[] = useMemo(() => {
-    const list: Aviso[] = [];
-    if (totalRevisoesPendentes > 0) list.push({
-      id: 'fornecedor-revisoes',
-      tom: 'red',
-      icone: '🔁',
-      contagem: totalRevisoesPendentes,
-      titulo: `${totalRevisoesPendentes === 1 ? 'revisão pendente' : 'revisões pendentes'}`,
-      descricao: 'O cliente pediu ajustes na sua proposta — responda o quanto antes.',
-    });
-    return list;
-  }, [totalRevisoesPendentes]);
   
   const [contratoSelecionado, setContratoSelecionado] = useState<string | null>(null);
   const [acaoMedicao, setAcaoMedicao] = useState<'selecionar' | 'historico' | 'criar'>('selecionar');
@@ -522,8 +606,8 @@ const DashboardContent = () => {
                   <DashboardStats enabled={true} />
                 ) : (
                   <>
-                    {/* Quadro de avisos operacionais do fornecedor */}
-                    <QuadroAvisos avisos={avisosFornecedor} className="mb-4 md:mb-6" />
+                    {/* Quadro de avisos operacionais do fornecedor — monta condicionalmente */}
+                    <QuadroAvisosFornecedor userId={profile?.id} totalRevisoesPendentes={totalRevisoesPendentes} />
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
                       <div className="md:col-span-3">
                         <UserStatsCards />
