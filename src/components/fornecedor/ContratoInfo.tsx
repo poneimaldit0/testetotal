@@ -1,39 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDiasRestantesContrato } from '@/hooks/useDiasRestantesContrato';
 
 export const ContratoInfo: React.FC = () => {
   const { profile } = useAuth();
-  const [diasRestantes, setDiasRestantes] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDiasRestantes = async () => {
-      if (!profile?.id) return;
-      
-      try {
-        const { data, error } = await supabase.rpc('calcular_dias_restantes_contrato', {
-          user_id: profile.id
-        });
-
-        if (error) {
-          console.error('Erro ao calcular dias restantes:', error);
-          return;
-        }
-
-        setDiasRestantes(data);
-      } catch (error) {
-        console.error('Erro ao buscar dias restantes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDiasRestantes();
-  }, [profile?.id]);
+  const { diasRestantes, loading } = useDiasRestantesContrato(profile?.id);
 
   if (loading || !profile) {
     return null;

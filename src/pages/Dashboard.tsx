@@ -21,6 +21,8 @@ import { QuadroAvisos, type Aviso } from '@/components/admin/QuadroAvisos';
 import { useSolicitacoesAjuda } from '@/hooks/useSolicitacoesAjuda';
 import { useUserStats } from '@/hooks/useUserStats';
 import { useMeusCandidaturas } from '@/hooks/useMeusCandiaturas';
+import { usePenalidadesFornecedor } from '@/hooks/usePenalidadesFornecedor';
+import { useDiasRestantesContrato } from '@/hooks/useDiasRestantesContrato';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIsMaster } from '@/hooks/useIsMaster';
@@ -204,6 +206,8 @@ const QuadroAvisosFornecedor = ({ userId, totalRevisoesPendentes }: { userId: st
   const { solicitacoes }         = useSolicitacoesAjuda();
   const { stats }                = useUserStats();
   const { candidaturas }         = useMeusCandidaturas(userId);
+  const { penalidadesAtivas }    = usePenalidadesFornecedor();
+  const { diasRestantes }        = useDiasRestantesContrato(userId);
 
   const solicitacoesPendentes = solicitacoes.filter(s => !s.respondida).length;
   const inscricoesMes         = stats?.inscricoesMesAtual ?? 0;
@@ -227,9 +231,51 @@ const QuadroAvisosFornecedor = ({ userId, totalRevisoesPendentes }: { userId: st
         && d.getDate() === hoje.getDate();
   });
 
+  const PENALIDADE_LABELS: Record<string, string> = {
+    bloqueio_temporario: 'Bloqueio temporário',
+    reducao_propostas: 'Redução de propostas',
+    impacto_avaliacao: 'Impacto na avaliação',
+    suspensao_completa: 'Suspensão completa',
+  };
+
   const avisos: Aviso[] = useMemo(() => {
     const list: Aviso[] = [];
-    // Críticos primeiro
+
+    // PRIORIDADE MÁXIMA: penalidade ativa — sempre no topo do carrossel.
+    if (penalidadesAtivas.temPenalidades) {
+      const primeiro = penalidadesAtivas.detalhes[0];
+      const tipoLabel = primeiro ? (PENALIDADE_LABELS[primeiro.tipo] ?? primeiro.tipo) : null;
+      const expiraEmTxt = primeiro?.expiraEm
+        ? new Date(primeiro.expiraEm).toLocaleDateString('pt-BR')
+        : null;
+      const descricaoPartes: string[] = [];
+      if (tipoLabel) descricaoPartes.push(tipoLabel);
+      if (expiraEmTxt) descricaoPartes.push(`expira em ${expiraEmTxt}`);
+      const descricao = descricaoPartes.length > 0
+        ? `${descricaoPartes.join(' — ')}. Acesse seu perfil para detalhes.`
+        : 'Acesse seu perfil para entender os detalhes.';
+
+      list.push({
+        id: 'fornecedor-penalidade',
+        tom: 'red',
+        icone: '⛔',
+        titulo: 'Penalidade ativa na sua conta',
+        descricao,
+      });
+    }
+
+    // Críticos: contrato a vencer em 7 dias.
+    if (diasRestantes !== null && diasRestantes <= 7) {
+      list.push({
+        id: 'fornecedor-contrato-vencendo',
+        tom: 'amber',
+        icone: '📅',
+        contagem: diasRestantes,
+        titulo: 'dias restantes no seu contrato',
+        descricao: 'Renove para manter acesso à plataforma.',
+      });
+    }
+
     if (totalRevisoesPendentes > 0) list.push({
       id: 'fornecedor-revisoes',
       tom: 'red',
@@ -287,7 +333,18 @@ const QuadroAvisosFornecedor = ({ userId, totalRevisoesPendentes }: { userId: st
       descricao: 'Acompanhe suas candidaturas em "Meus orçamentos".',
     });
     return list;
-  }, [totalRevisoesPendentes, paradas7d.length, visitasHoje.length, semProposta.length, solicitacoesPendentes, visitasAg.length, inscricoesMes]);
+  }, [
+    totalRevisoesPendentes,
+    paradas7d.length,
+    visitasHoje.length,
+    semProposta.length,
+    solicitacoesPendentes,
+    visitasAg.length,
+    inscricoesMes,
+    penalidadesAtivas.temPenalidades,
+    penalidadesAtivas.detalhes,
+    diasRestantes,
+  ]);
 
   return <QuadroAvisos avisos={avisos} className="mb-4 md:mb-6" />;
 };
