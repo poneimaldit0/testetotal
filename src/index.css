@@ -418,6 +418,301 @@
   40%           { opacity: 1;   transform: scale(1);    }
 }
 
+/* ── Timeline operacional Reforma100 ──────────────────────────────
+   Primitivos compartilhados pelas 3 timelines (cliente / fornecedor /
+   consultor). 6 estados visuais unificados — vocabulário consistente
+   entre Rota100, Central Operacional e Ficha Admin.
+
+   Famílias:
+     • .r100-step*   — horizontal (funil de etapas)
+     • .r100-event*  — vertical   (histórico de eventos)
+
+   Modificadores de estado (em ambas as famílias):
+     • --done   concluído         (verde sólido)
+     • --now    em andamento      (Isabella + halo pulse)
+     • --next   próximo passo     (accent + ring)
+     • --wait   aguardando        (amber, contorno)
+     • --todo   pendente/futuro   (cinza, contorno)
+     • --block  bloqueado/dispens.(vermelho, contorno)
+*/
+
+:root {
+  --r100-step-done-bg:    #22C55E;
+  --r100-step-done-bd:    #22C55E;
+  --r100-step-done-fg:    #1B7A4A;
+
+  --r100-step-now-bg:     #2D3395;
+  --r100-step-now-bd:     #2D3395;
+  --r100-step-now-fg:     #2D3395;
+  --r100-step-now-halo:   rgba(45,51,149,.22);
+
+  --r100-step-next-bd:    #F7A226;
+  --r100-step-next-fg:    #C4780A;
+  --r100-step-next-halo:  rgba(247,162,38,.22);
+
+  --r100-step-wait-bd:    #F59E0B;
+  --r100-step-wait-fg:    #9A6200;
+
+  --r100-step-todo-bd:    #D1D5DB;
+  --r100-step-todo-fg:    #9CA3AF;
+
+  --r100-step-block-bd:   #EF4444;
+  --r100-step-block-fg:   #C0392B;
+
+  --r100-conn-pending:    #E5E7EB;
+}
+
+@layer components {
+  /* Container horizontal — funil */
+  .r100-steps {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,.15) transparent;
+  }
+  .r100-steps::-webkit-scrollbar      { height: 6px; }
+  .r100-steps::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.15); border-radius: 3px; }
+
+  /* Cada etapa */
+  .r100-step {
+    flex: 1 1 0;
+    min-width: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding-top: 2px;
+  }
+  .r100-step-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    position: relative;
+    z-index: 1;
+    background: #fff;
+    border: 2px solid var(--r100-conn-pending);
+    color: #9CA3AF;
+    transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+  .r100-step-label {
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.25;
+    letter-spacing: .01em;
+    color: #6B7280;
+    white-space: nowrap;
+    transition: color .2s ease, font-weight .2s ease;
+  }
+  .r100-step-badge {
+    margin-top: 4px;
+    background: var(--r100-step-now-bg);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-family: 'Syne', sans-serif;
+  }
+
+  /* Conectores via pseudo-elementos no próprio step */
+  .r100-step::before,
+  .r100-step::after {
+    content: '';
+    position: absolute;
+    top: 13px;
+    height: 2px;
+    background: var(--r100-conn-pending);
+    z-index: 0;
+    transition: background .25s ease;
+  }
+  .r100-step::before { left: 0;   right: 50%; }
+  .r100-step::after  { left: 50%; right: 0;   }
+  .r100-step:first-child::before { display: none; }
+  .r100-step:last-child::after   { display: none; }
+
+  /* ── Estado: done ─────────────────────────── */
+  .r100-step--done .r100-step-dot {
+    background: var(--r100-step-done-bg);
+    border-color: var(--r100-step-done-bd);
+    color: #fff;
+  }
+  .r100-step--done .r100-step-label {
+    color: var(--r100-step-done-fg);
+    font-weight: 600;
+  }
+  .r100-step--done::before,
+  .r100-step--done::after {
+    background: var(--r100-step-done-bg);
+  }
+
+  /* ── Estado: now (em andamento) ──────────── */
+  .r100-step--now .r100-step-dot {
+    background: var(--r100-step-now-bg);
+    border-color: var(--r100-step-now-bd);
+    color: #fff;
+    box-shadow: 0 0 0 4px var(--r100-step-now-halo);
+  }
+  .r100-step--now .r100-step-label {
+    color: var(--r100-step-now-fg);
+    font-weight: 700;
+  }
+  /* Conector antes do "now" preenchido (já passou) */
+  .r100-step--now::before { background: var(--r100-step-done-bg); }
+
+  /* Halo pulse animado */
+  .r100-step--now .r100-step-dot::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: var(--r100-step-now-halo);
+    z-index: -1;
+    animation: r100StepHalo 1.8s ease-in-out infinite;
+  }
+
+  /* ── Estado: next (próximo passo) ────────── */
+  .r100-step--next .r100-step-dot {
+    background: #fff;
+    border-color: var(--r100-step-next-bd);
+    color: var(--r100-step-next-fg);
+    box-shadow: 0 0 0 3px var(--r100-step-next-halo);
+  }
+  .r100-step--next .r100-step-label {
+    color: var(--r100-step-next-fg);
+    font-weight: 600;
+  }
+
+  /* ── Estado: wait (aguardando externa) ───── */
+  .r100-step--wait .r100-step-dot {
+    background: #fff;
+    border-color: var(--r100-step-wait-bd);
+    color: var(--r100-step-wait-fg);
+  }
+  .r100-step--wait .r100-step-label {
+    color: var(--r100-step-wait-fg);
+    font-weight: 600;
+  }
+
+  /* ── Estado: todo (pendente futuro) ──────── */
+  .r100-step--todo .r100-step-dot {
+    background: #fff;
+    border-color: var(--r100-step-todo-bd);
+    color: var(--r100-step-todo-fg);
+  }
+  .r100-step--todo .r100-step-label {
+    color: var(--r100-step-todo-fg);
+  }
+
+  /* ── Estado: block (bloqueado/dispensado) ── */
+  .r100-step--block .r100-step-dot {
+    background: #fff;
+    border-color: var(--r100-step-block-bd);
+    color: var(--r100-step-block-fg);
+  }
+  .r100-step--block .r100-step-label {
+    color: var(--r100-step-block-fg);
+    font-weight: 600;
+  }
+
+  /* Mobile: timeline horizontal vira coluna abaixo de 640px */
+  @media (max-width: 640px) {
+    .r100-steps {
+      flex-direction: column;
+      overflow-x: visible;
+      align-items: stretch;
+      gap: 2px;
+    }
+    .r100-step {
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 0;
+      min-width: 0;
+    }
+    .r100-step::before,
+    .r100-step::after {
+      left: 11px;
+      right: auto;
+      top: auto;
+      width: 2px;
+      height: 50%;
+    }
+    .r100-step::before { top: 0;   bottom: 50%; }
+    .r100-step::after  { top: 50%; bottom: 0;   }
+    .r100-step-label {
+      margin-top: 0;
+      text-align: left;
+      flex: 1;
+      white-space: normal;
+    }
+    .r100-step-badge { margin-left: auto; margin-top: 0; }
+  }
+
+  /* ── Família vertical: histórico de eventos ────────────────── */
+  .r100-events {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .r100-event {
+    position: relative;
+    padding-left: 32px;
+    padding-bottom: 14px;
+  }
+  .r100-event:last-child { padding-bottom: 0; }
+  .r100-event-line {
+    position: absolute;
+    left: 11px;
+    top: 22px;
+    bottom: 0;
+    width: 2px;
+    background: var(--r100-conn-pending);
+  }
+  .r100-event:last-child .r100-event-line { display: none; }
+  .r100-event-dot {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--r100-conn-pending);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    line-height: 1;
+    color: #9CA3AF;
+    transition: border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease;
+  }
+  .r100-event--done .r100-event-dot  { border-color: var(--r100-step-done-bd);  color: var(--r100-step-done-fg);  }
+  .r100-event--done .r100-event-line { background: var(--r100-step-done-bg); }
+  .r100-event--now .r100-event-dot   { background: var(--r100-step-now-bg);    border-color: var(--r100-step-now-bd);    color: #fff; box-shadow: 0 0 0 3px var(--r100-step-now-halo); }
+  .r100-event--next .r100-event-dot  { border-color: var(--r100-step-next-bd);  color: var(--r100-step-next-fg);  box-shadow: 0 0 0 2px var(--r100-step-next-halo); }
+  .r100-event--wait .r100-event-dot  { border-color: var(--r100-step-wait-bd);  color: var(--r100-step-wait-fg);  }
+  .r100-event--block .r100-event-dot { border-color: var(--r100-step-block-bd); color: var(--r100-step-block-fg); }
+}
+
+@keyframes r100StepHalo {
+  0%, 100% { transform: scale(1);    opacity: .55; }
+  50%      { transform: scale(1.35); opacity: 0;   }
+}
+
 /* Respeita preferência do usuário por reduzir motion */
 @media (prefers-reduced-motion: reduce) {
   .r100-press,
@@ -427,9 +722,19 @@
   .r100-stagger,
   .r100-empty,
   .r100-skel,
-  .r100-dots span {
+  .r100-dots span,
+  .r100-step-dot,
+  .r100-step-label,
+  .r100-event-dot,
+  .r100-event-line,
+  .r100-step::before,
+  .r100-step::after {
     animation: none !important;
     transition: none !important;
+  }
+  .r100-step--now .r100-step-dot::after {
+    animation: none !important;
+    opacity: .35;
   }
 }
 

@@ -173,23 +173,6 @@ function useCentralStyles() {
       }
       .cop-kpi-clickable { cursor: pointer; transition: transform .12s, box-shadow .12s; }
       .cop-kpi-clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.10); }
-      @keyframes cop-current-halo {
-        0%   { transform: scale(1);   opacity: .45; }
-        70%  { transform: scale(2.2); opacity: 0;   }
-        100% { transform: scale(2.2); opacity: 0;   }
-      }
-      .cop-current-halo {
-        position: absolute;
-        inset: 0;
-        border-radius: 50%;
-        animation: cop-current-halo 1.8s ease-out infinite;
-        pointer-events: none;
-        z-index: 0;
-      }
-      .cop-timeline-scroll { scrollbar-width: thin; }
-      .cop-timeline-scroll::-webkit-scrollbar { height: 4px; }
-      .cop-timeline-scroll::-webkit-scrollbar-track { background: transparent; }
-      .cop-timeline-scroll::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
       @media(max-width:640px) {
         .cop-kpi-row { grid-template-columns:1fr 1fr !important; gap:10px !important; margin-bottom:20px; }
         .cop-kpi { flex:unset !important; }
@@ -197,7 +180,6 @@ function useCentralStyles() {
         .cop-meta-row { flex-direction:column !important; gap:6px !important; }
         .cop-action-row { flex-direction:column !important; }
         .cop-btn { width:100%; justify-content:center; }
-        .cop-timeline-label { font-size: 8px !important; line-height: 1.15 !important; }
       }
     `;
     document.head.appendChild(s);
@@ -294,8 +276,6 @@ const STAGES_DEF = [
   { label: 'Obra'              },
 ];
 
-const STAGE_COLORS_TL = [I.azul, I.lj, I.am, I.rx, I.rx, I.vd, I.vd];
-
 const STAGE_DESCRIPTIONS: Record<Stage, string> = {
   0: 'Aguardando contato inicial com o cliente',
   1: 'Visita ou reunião marcada',
@@ -335,81 +315,35 @@ function tempoNaEtapa(dataAtualizacao: Date): string {
 function Timeline({ activeStage, isReu, dataAtualizacao }: { activeStage: Stage; isReu: boolean; dataAtualizacao?: Date }) {
   return (
     <TooltipProvider delayDuration={120} skipDelayDuration={300}>
-      <div
-        className="cop-timeline-scroll"
-        style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: 16, paddingBottom: 4 }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 440 }}>
+      <div className="r100-steps" style={{ marginBottom: 16 }}>
         {STAGES_DEF.map((st, i) => {
-          const done    = i < activeStage;
-          const current = i === activeStage;
-          // Etapas que ainda não têm sinal no backend (Compatibilização e Obra)
+          const done         = i < activeStage;
+          const current      = i === activeStage;
+          const isNext       = i === activeStage + 1;
+          // Etapas sem sinal no backend ainda (Compatibilização e Obra)
           const aspirational = i === 4 || i === 6;
-          const dotClr  = done || current ? STAGE_COLORS_TL[i] : I.bd;
-          const stageIdx = i as Stage;
+          const stageIdx     = i as Stage;
+
+          let mod = 'r100-step--todo';
+          if (done)             mod = 'r100-step--done';
+          else if (current)     mod = 'r100-step--now';
+          else if (isNext)      mod = 'r100-step--next';
+          else if (aspirational) mod = 'r100-step--wait';
+
           let label = st.label;
           let descricao = STAGE_DESCRIPTIONS[stageIdx];
           if (isReu && i === 1) { label = 'Reunião agendada';  descricao = 'Reunião online marcada'; }
           if (isReu && i === 2) { label = 'Reunião realizada'; descricao = 'Reunião online concluída'; }
+
+          const dotContent = done ? '✓' : aspirational && !current ? '·' : current ? '●' : i + 1;
+
           return (
             <Tooltip key={i}>
               <TooltipTrigger asChild>
-                <div
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', cursor: 'help' }}
-                >
-                  {i > 0 && (
-                    <div style={{
-                      position: 'absolute', top: 10, left: 0, right: '50%', height: 2,
-                      background: i <= activeStage ? STAGE_COLORS_TL[i - 1] : I.bd,
-                    }} />
-                  )}
-                  {i < STAGES_DEF.length - 1 && (
-                    <div style={{
-                      position: 'absolute', top: 10, left: '50%', right: 0, height: 2,
-                      background: i < activeStage ? STAGE_COLORS_TL[i] : I.bd,
-                    }} />
-                  )}
-                  <div style={{ position: 'relative', width: 22, height: 22, zIndex: 1 }}>
-                    {current && (
-                      <span className="cop-current-halo" style={{ background: dotClr }} aria-hidden />
-                    )}
-                    <div style={{
-                      position: 'relative', zIndex: 1,
-                      width: '100%', height: '100%', borderRadius: '50%',
-                      background: done || current ? dotClr : I.br,
-                      border: `2px solid ${dotClr}`,
-                      boxShadow: current ? `0 0 0 3px ${dotClr}55` : 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 8, fontWeight: 700,
-                      color: done || current ? '#fff' : I.cz,
-                      transition: 'all .2s',
-                    }}>
-                      {done ? '✓' : aspirational && !current ? '·' : current ? '●' : i + 1}
-                    </div>
-                  </div>
-                  <div className="cop-timeline-label" style={{
-                    fontSize: 9, fontWeight: current ? 700 : 500, marginTop: current ? 5 : 3, textAlign: 'center',
-                    color: current ? dotClr : done ? I.cz : '#9CA3AF',
-                    whiteSpace: 'nowrap', lineHeight: 1.2,
-                  }}>
-                    {label}
-                  </div>
-                  {current && (
-                    <div style={{
-                      marginTop: 3,
-                      background: dotClr,
-                      color: '#fff',
-                      fontSize: 8,
-                      fontWeight: 700,
-                      padding: '1px 6px',
-                      borderRadius: 4,
-                      letterSpacing: '.05em',
-                      textTransform: 'uppercase',
-                      fontFamily: "'Syne',sans-serif",
-                    }}>
-                      Atual
-                    </div>
-                  )}
+                <div className={`r100-step ${mod}`} style={{ cursor: 'help' }}>
+                  <span className="r100-step-dot">{dotContent}</span>
+                  <span className="r100-step-label">{label}</span>
+                  {current && <span className="r100-step-badge">Atual</span>}
                 </div>
               </TooltipTrigger>
               <TooltipContent side="top" sideOffset={6} className="max-w-[230px]">
@@ -435,7 +369,6 @@ function Timeline({ activeStage, isReu, dataAtualizacao }: { activeStage: Stage;
             </Tooltip>
           );
         })}
-        </div>
       </div>
     </TooltipProvider>
   );

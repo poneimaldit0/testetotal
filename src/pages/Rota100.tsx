@@ -366,46 +366,29 @@ function getTimelineStage(emp: Rota100Empresa): number {
 }
 
 function OperacionalTimeline({ emp }: { emp: Rota100Empresa }) {
-  const stage     = getTimelineStage(emp);
+  const stage      = getTimelineStage(emp);
   const dispensada = stage === -1;
-  const total     = TIMELINE_LABELS.length;
 
   return (
-    <div style={{ marginBottom: 14, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 280 }}>
-        {TIMELINE_LABELS.map((label, i) => {
-          const n      = i + 1;
-          const isDone = !dispensada && stage > n;
-          const isCur  = !dispensada && stage === n;
-          const isLast = i === total - 1;
-          const dotClr = dispensada ? C.cz : isDone ? C.vd : isCur ? C.lj : C.bd;
-          const txtClr = dispensada ? C.cz : isDone ? C.vd : isCur ? C.lj : C.cz;
-          return (
-            <Fragment key={i}>
-              <div style={{ textAlign: 'center', flexShrink: 0, minWidth: 38 }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%', margin: '0 auto 5px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 9, fontWeight: 700,
-                  border: `2px solid ${dotClr}`,
-                  background: (isDone || isCur) && !dispensada ? dotClr : '#fff',
-                  color: (isDone || isCur) && !dispensada ? '#fff' : dotClr,
-                  transition: 'all .2s',
-                  boxShadow: isCur ? `0 0 0 3px rgba(232,81,10,.14)` : 'none',
-                }}>
-                  {dispensada ? '✕' : isDone ? '✓' : n}
-                </div>
-                <div style={{ fontSize: 8, color: txtClr, fontWeight: isCur ? 700 : isDone ? 600 : 400, lineHeight: 1.3, letterSpacing: '.01em', whiteSpace: 'nowrap' }}>
-                  {label}
-                </div>
-              </div>
-              {!isLast && (
-                <div style={{ flex: 1, height: 2, background: isDone && !dispensada ? C.vd : C.bd, marginTop: 10, minWidth: 6, transition: 'background .3s', borderRadius: 2 }} />
-              )}
-            </Fragment>
-          );
-        })}
-      </div>
+    <div className="r100-steps" style={{ marginBottom: 14 }}>
+      {TIMELINE_LABELS.map((label, i) => {
+        const n      = i + 1;
+        const isDone = !dispensada && stage > n;
+        const isCur  = !dispensada && stage === n;
+        const isNext = !dispensada && stage + 1 === n;
+        let mod = 'r100-step--todo';
+        if (dispensada)      mod = 'r100-step--block';
+        else if (isDone)     mod = 'r100-step--done';
+        else if (isCur)      mod = 'r100-step--now';
+        else if (isNext)     mod = 'r100-step--next';
+        const dotContent = dispensada ? '✕' : isDone ? '✓' : n;
+        return (
+          <div key={i} className={`r100-step ${mod}`}>
+            <span className="r100-step-dot">{dotContent}</span>
+            <span className="r100-step-label">{label}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
