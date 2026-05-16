@@ -10,10 +10,12 @@ export function StatusPdfPill({ qualidade, temArquivo }: { qualidade: string | n
 }
 
 export function StatusIaPill({ statusAnalise }: { statusAnalise: string | null }) {
-  if (!statusAnalise)                                                       return <span className="r100-pill r100-pill-gray">Sem análise IA</span>;
-  if (['pending', 'processando'].includes(statusAnalise))                  return <span className="r100-pill r100-pill-amber">IA processando</span>;
-  if (['completed', 'concluida'].includes(statusAnalise))                  return <span className="r100-pill r100-pill-blue">IA concluída</span>;
-  if (['failed', 'erro'].includes(statusAnalise))                          return <span className="r100-pill r100-pill-red">IA falhou</span>;
-  if (statusAnalise === 'cancelada')                                       return <span className="r100-pill r100-pill-gray">IA cancelada</span>;
+  // Labels da análise técnica da proposta. Não usar "IA" no rótulo — IA é
+  // ferramenta, não etapa de fluxo (vide memória feedback_compat_nao_e_sdr).
+  if (!statusAnalise)                                                       return <span className="r100-pill r100-pill-gray">Sem análise</span>;
+  if (['pending', 'processando'].includes(statusAnalise))                  return <span className="r100-pill r100-pill-amber">Analisando</span>;
+  if (['completed', 'concluida'].includes(statusAnalise))                  return <span className="r100-pill r100-pill-blue">Análise concluída</span>;
+  if (['failed', 'erro'].includes(statusAnalise))                          return <span className="r100-pill r100-pill-red">Análise falhou</span>;
+  if (statusAnalise === 'cancelada')                                       return <span className="r100-pill r100-pill-gray">Análise cancelada</span>;
   return <span className="r100-pill r100-pill-gray">{statusAnalise}</span>;
 }

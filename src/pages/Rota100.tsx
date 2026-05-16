@@ -1362,7 +1362,6 @@ function CompatibilizacaoTab({
   onMarcarClienteSolicitouCompat?: () => Promise<void>;
 }) {
   const comProposta = empresas.filter(e => e.propostaEnviada);
-  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [enviando,     setEnviando]     = useState(false);
   const [enviado,      setEnviado]      = useState(false);
   const [analise,      setAnalise]      = useState<CompatAnaliseResult | null>(null);
@@ -1398,52 +1397,31 @@ function CompatibilizacaoTab({
       });
   }, [orcamentoId]);
 
+  // Detecta se já houve solicitação anterior (qualquer tipo) — marca como enviado
   useEffect(() => {
     if (!token) return;
     getCompatRequests(token).then(reqs => {
-      const ids = reqs
-        .filter(r => r.tipo === 'individual' && r.empresaId)
-        .map(r => r.empresaId!);
-      if (ids.length > 0) {
-        setSelecionadas(new Set(ids));
-        setEnviado(true);
-      } else if (reqs.some(r => r.tipo === 'completa')) {
-        setSelecionadas(new Set(comProposta.map(e => e.id)));
-        setEnviado(true);
-      }
+      if (reqs.length > 0) setEnviado(true);
     });
   }, [token]);
 
-  const toggle = (id: string) => {
-    setSelecionadas(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-    setEnviado(false);
-  };
-
+  // Sprint F: cliente NÃO seleciona empresas. Ele só pede compatibilização —
+  // o consultor decide quais propostas entram na análise (memória
+  // feedback_compat_nao_e_sdr.md).
   const handleEnviar = async () => {
-    if (selecionadas.size === 0) return;
+    if (enviado || enviando) return;
     setEnviando(true);
     try {
-      if (selecionadas.size === comProposta.length) {
-        await saveCompatRequest(token, clienteNome, { orcamentoId, tipo: 'completa' });
-      } else {
-        for (const id of selecionadas) {
-          await saveCompatRequest(token, clienteNome, { orcamentoId, empresaId: id, tipo: 'individual' });
-        }
-      }
+      await saveCompatRequest(token, clienteNome, { orcamentoId, tipo: 'completa' });
       // Sinal canônico (idempotente): marca cliente_solicitou_em na linha mais
-      // recente de compatibilizacoes_analises_ia. Falha não bloqueia o fluxo
-      // — a auditoria em compat_requests já foi gravada acima.
+      // recente de compatibilizacoes_analises_ia. Falha não bloqueia o fluxo.
       if (onMarcarClienteSolicitouCompat) {
         try { await onMarcarClienteSolicitouCompat(); }
         catch (err) { console.error('[CompatibilizacaoTab] marcarClienteSolicitouCompat', err); }
       }
       setEnviado(true);
-    } catch {
-      // silent fail — escolha local persiste para próxima tentativa
+    } catch (err) {
+      console.error('[CompatibilizacaoTab] handleEnviar', err);
     } finally {
       setEnviando(false);
     }
@@ -1501,74 +1479,28 @@ function CompatibilizacaoTab({
           </button>
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: 10, padding: '20px', boxShadow: '0 1px 6px rgba(0,0,0,.07)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: '#888', marginBottom: 14 }}>
-            Empresas com proposta — selecione quais deseja analisar
+        <div style={{ background: '#fff', borderRadius: 10, padding: '24px 20px', boxShadow: '0 1px 6px rgba(0,0,0,.07)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: '#888', marginBottom: 8 }}>
+            Solicitar análise comparativa
           </div>
+          <p style={{ fontSize: 14, color: C.nv, lineHeight: 1.55, marginBottom: 18, fontFamily: "'Syne',sans-serif", fontWeight: 600 }}>
+            {comProposta.length} {comProposta.length === 1 ? 'proposta foi recebida' : 'propostas foram recebidas'}. Solicite que seu consultor Reforma100 prepare a apresentação comparativa para você.
+          </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {comProposta.map(emp => {
-              const sel = selecionadas.has(emp.id);
-              return (
-                <label key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: '11px 14px', borderRadius: 8, background: sel ? '#eef0ff' : '#f8f9fc', border: `1.5px solid ${sel ? '#2D3395' : '#e5e7eb'}`, transition: 'all .15s' }}>
-                  <input
-                    type="checkbox"
-                    checked={sel}
-                    onChange={() => toggle(emp.id)}
-                    style={{ width: 16, height: 16, accentColor: '#2D3395', flexShrink: 0, cursor: 'pointer' }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: sel ? '#2D3395' : C.nv, marginBottom: 2 }}>{emp.nome}</div>
-                    {emp.valor && emp.valor !== '—' && (
-                      <div style={{ fontSize: 11, color: C.cz }}>{emp.valor}</div>
-                    )}
-                  </div>
-                  {sel && (
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#e8eaff', color: '#2D3395', flexShrink: 0 }}>
-                      Selecionada
-                    </span>
-                  )}
-                </label>
-              );
-            })}
-          </div>
-
-          {/* Ações */}
-          <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #f0f0f0', paddingTop: 14 }}>
-            <button
-              className="r100-btn r100-btn-primary r100-btn-md"
-              disabled={selecionadas.size === 0 || enviando}
-              onClick={handleEnviar}
-              style={{ opacity: selecionadas.size === 0 ? .5 : 1 }}
-            >
-              {enviando
-                ? 'Enviando…'
-                : enviado
-                  ? '✓ Compatibilização solicitada'
-                  : `Solicitar compatibilização (${selecionadas.size} empresa${selecionadas.size !== 1 ? 's' : ''})`}
-            </button>
-            {selecionadas.size < comProposta.length && (
-              <button
-                className="r100-btn r100-btn-ghost r100-btn-sm"
-                onClick={() => { setSelecionadas(new Set(comProposta.map(e => e.id))); setEnviado(false); }}
-              >
-                Selecionar todas
-              </button>
-            )}
-            {selecionadas.size > 0 && (
-              <button
-                className="r100-btn r100-btn-ghost r100-btn-sm"
-                onClick={() => { setSelecionadas(new Set()); setEnviado(false); }}
-              >
-                Limpar
-              </button>
-            )}
-          </div>
+          {/* Ação principal — botão único, sem seleção */}
+          <button
+            className="r100-btn r100-btn-primary r100-btn-md"
+            disabled={enviando || enviado}
+            onClick={handleEnviar}
+            style={{ width: '100%', justifyContent: 'center', minHeight: 48, fontSize: 14 }}
+          >
+            {enviando ? 'Enviando…' : enviado ? '✓ Compatibilização solicitada' : 'Solicitar compatibilização'}
+          </button>
 
           {enviado && (
-            <div style={{ marginTop: 12, borderRadius: 8, background: '#e0f5ec', borderLeft: '4px solid #1B7A4A', padding: '10px 14px' }}>
+            <div style={{ marginTop: 14, borderRadius: 8, background: '#e0f5ec', borderLeft: '4px solid #1B7A4A', padding: '12px 16px' }}>
               <p style={{ fontSize: 12, color: '#0d3d23', lineHeight: 1.6, margin: 0 }}>
-                ✔ Compatibilização solicitada. Seu consultor Reforma100 já foi notificado e vai te orientar nos próximos passos.
+                ✔ Compatibilização solicitada. Seu consultor Reforma100 vai escolher quais propostas analisar e marcar uma apresentação com você.
               </p>
             </div>
           )}
@@ -1578,7 +1510,7 @@ function CompatibilizacaoTab({
       {/* Nota informativa */}
       <div style={{ borderRadius: 8, background: '#eef0ff', borderLeft: '4px solid #2D3395', padding: '14px 18px' }}>
         <p style={{ fontSize: 12, color: '#1a2070', lineHeight: 1.75, margin: 0 }}>
-          A análise completa das propostas é preparada pelo seu consultor Reforma100 com base nas empresas selecionadas. Fale com ele para esclarecer dúvidas antes de decidir.
+          O consultor Reforma100 escolhe quais propostas entram na análise comparativa e te apresenta o resultado numa reunião marcada com você. Você não precisa decidir nada sozinho.
         </p>
       </div>
     </div>
@@ -1749,11 +1681,14 @@ export default function Rota100() {
   // Busca compat enviada/aprovada para exibir ao cliente (somente leitura, sem alterar lógica de IA)
   useEffect(() => {
     if (!data?.orcamentoId) return;
+    // Sprint F: aceita também 'agendamento_pendente' — quando o consultor
+    // já agendou a apresentação MAS a IA ainda não rodou. O cliente precisa
+    // ver a data marcada mesmo sem ranking pronto.
     (supabase as any)
       .from('compatibilizacoes_analises_ia')
       .select('analise_completa, ranking_ajustado, apresentacao_agendada_em, apresentacao_canal, apresentacao_link, apresentacao_observacao, apresentacao_confirmada_em, apresentacao_reagendamento_solicitado_em')
       .eq('orcamento_id', data.orcamentoId)
-      .in('status', ['enviado', 'aprovado'])
+      .in('status', ['enviado', 'aprovado', 'agendamento_pendente', 'pendente_revisao', 'revisado', 'concluida', 'completed'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()

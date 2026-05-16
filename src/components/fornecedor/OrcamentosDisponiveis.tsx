@@ -4,6 +4,7 @@ import { Loader2, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOrcamentosGlobal, OrcamentoGlobal } from '@/hooks/useOrcamentosGlobal';
+import { supabase } from '@/integrations/supabase/client';
 import { OrcamentoFilters } from './OrcamentoFilters';
 import { InscricaoModal } from './InscricaoModal';
 import { AtualizacaoObrigatoriaModal } from './AtualizacaoObrigatoriaModal';
@@ -166,9 +167,11 @@ function fmtInscrito(dt: Date): string {
 function CardDisponivel({
   orcamento,
   onOpenModal,
+  prazoCompatIso,
 }: {
   orcamento: OrcamentoGlobal;
   onOpenModal: (id: string, horarioId?: string, filaEspera?: boolean) => void;
+  prazoCompatIso?: string | null;
 }) {
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
@@ -205,6 +208,55 @@ function CardDisponivel({
 
   return (
     <div className="disp-card" style={{ borderTop: `4px solid ${borderColor}` }}>
+
+      {/* Sprint F — Bloco destacado de compat agendada (substitui chip pequeno).
+          Aparece acima dos chips de tipo/categoria pra dar prioridade visual. */}
+      {prazoCompatIso && (() => {
+        const dt = new Date(prazoCompatIso);
+        if (Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now()) return null;
+        const dataFmt = dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const horaFmt = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        return (
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #FFF4E6 0%, #FFEDD5 100%)',
+              border: '1px solid #F7A22655',
+              borderLeft: '4px solid #F7A226',
+              borderRadius: 10,
+              padding: '10px 14px',
+              marginBottom: 12,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+            }}
+            title={`Apresentação ao cliente em ${dt.toLocaleString('pt-BR')} — envie sua proposta até esta data`}
+          >
+            <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>📅</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 800,
+                fontSize: 12,
+                color: '#7C2D12',
+                letterSpacing: '.01em',
+                lineHeight: 1.3,
+              }}>
+                Compatibilização agendada
+              </div>
+              <div style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 700,
+                fontSize: 13,
+                color: '#9A6200',
+                marginTop: 2,
+                fontVariantNumeric: 'tabular-nums',
+              }}>
+                Prazo para proposta: {dataFmt} às {horaFmt}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Linha de chips superiores ── */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
@@ -444,6 +496,31 @@ export const OrcamentosDisponiveis: React.FC = () => {
   const orcamentosAbertos  = useMemo(() => orcamentosFiltrados.filter(o => o.status === 'aberto'),  [orcamentosFiltrados]);
   const orcamentosFechados = useMemo(() => orcamentosFiltrados.filter(o => o.status === 'fechado'), [orcamentosFiltrados]);
 
+  // Sprint F: prazos de compatibilização (data limite para o fornecedor enviar
+  // proposta — definida pelo consultor). Carrega em batch para os orçamentos
+  // abertos visíveis. Mapa orcamentoId → ISO da apresentação agendada.
+  const [prazosCompat, setPrazosCompat] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (orcamentosAbertos.length === 0) { setPrazosCompat({}); return; }
+    const ids = orcamentosAbertos.map(o => o.id);
+    (supabase as any)
+      .from('compatibilizacoes_analises_ia')
+      .select('orcamento_id, apresentacao_agendada_em')
+      .in('orcamento_id', ids)
+      .not('apresentacao_agendada_em', 'is', null)
+      .then(({ data }: { data: any }) => {
+        const next: Record<string, string> = {};
+        for (const r of ((data ?? []) as Array<{ orcamento_id: string; apresentacao_agendada_em: string }>)) {
+          // Em caso de múltiplas linhas, mantém a mais próxima no futuro
+          const atual = next[r.orcamento_id];
+          if (!atual || new Date(r.apresentacao_agendada_em).getTime() < new Date(atual).getTime()) {
+            next[r.orcamento_id] = r.apresentacao_agendada_em;
+          }
+        }
+        setPrazosCompat(next);
+      });
+  }, [orcamentosAbertos]);
+
   const handleFiltroChange  = (field: string, value: string) => setFiltros(prev => ({ ...prev, [field]: value }));
   const handleLimparFiltros = () => setFiltros({ local: '', categoria: '', prazoInicio: '', metragemMin: '', metragemMax: '', dataInicio: '', dataFim: '', ordenacao: 'recentes' });
   const contarFiltrosAtivos = () => Object.entries(filtros).filter(([k, v]) => v && k !== 'ordenacao' && v !== 'recentes').length;
@@ -578,7 +655,12 @@ export const OrcamentosDisponiveis: React.FC = () => {
 
                 {/* Abertos */}
                 {orcamentosAbertos.map(o => (
-                  <CardDisponivel key={o.id} orcamento={o} onOpenModal={openModal} />
+                  <CardDisponivel
+                    key={o.id}
+                    orcamento={o}
+                    onOpenModal={openModal}
+                    prazoCompatIso={prazosCompat[o.id]}
+                  />
                 ))}
 
                 {/* Separador fechados */}

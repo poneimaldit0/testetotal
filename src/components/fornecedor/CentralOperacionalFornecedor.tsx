@@ -903,6 +903,51 @@ export function CentralOperacionalFornecedor() {
       });
   }, [profile?.id]);
 
+  // Sprint F: prazos de compat agendados pelos consultores (deadline para
+  // o fornecedor enviar proposta). Foca em candidaturas abertas SEM proposta
+  // enviada — essas são as que precisam de ação real do fornecedor.
+  const [prazosCompat, setPrazosCompat] = useState<Array<{
+    orcamentoId: string;
+    nomeOrcamento: string;
+    apresentacaoAgendadaEm: string;
+    propostaEnviada: boolean;
+  }>>([]);
+  const [prazosExpandidos, setPrazosExpandidos] = useState(false);
+
+  useEffect(() => {
+    if (!candidaturas.length) { setPrazosCompat([]); return; }
+    // Apenas candidaturas abertas e SEM proposta enviada — são as que têm
+    // prazo operacional real para o fornecedor agir.
+    const candAlvo = candidaturas.filter(c => c.status === 'aberto' && !c.propostaEnviada);
+    const idsAbertos = candAlvo.map(c => c.id);
+    if (idsAbertos.length === 0) { setPrazosCompat([]); return; }
+
+    (supabase as any)
+      .from('compatibilizacoes_analises_ia')
+      .select('orcamento_id, apresentacao_agendada_em')
+      .in('orcamento_id', idsAbertos)
+      .not('apresentacao_agendada_em', 'is', null)
+      .order('apresentacao_agendada_em', { ascending: true })
+      .then(({ data }: { data: any }) => {
+        const agora = Date.now();
+        const futuros = ((data ?? []) as Array<{ orcamento_id: string; apresentacao_agendada_em: string }>)
+          .filter(r => new Date(r.apresentacao_agendada_em).getTime() > agora)
+          .map(r => {
+            const cand = candAlvo.find(c => c.id === r.orcamento_id);
+            const nome = cand?.necessidade?.slice(0, 60)
+              ?? cand?.dadosContato?.nome
+              ?? 'Orçamento';
+            return {
+              orcamentoId: r.orcamento_id,
+              nomeOrcamento: nome,
+              apresentacaoAgendadaEm: r.apresentacao_agendada_em,
+              propostaEnviada: !!cand?.propostaEnviada,
+            };
+          });
+        setPrazosCompat(futuros);
+      });
+  }, [candidaturas]);
+
   // Filtragem combinada (afeta apenas a lista, não os KPIs)
   const candidaturasFiltradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -1045,6 +1090,279 @@ export function CentralOperacionalFornecedor() {
       />
 
       <div style={{ padding: '0 16px' }}>
+
+        {/* Sprint F: Banner SLA agregador — compatibilizações agendadas
+            pelo consultor SEM proposta enviada.
+            - 1 só: banner clica direto na Ficha.
+            - N > 1: banner mostra contador + mais urgente, com toggle
+              "Ver outras (N-1)" que expande lista compacta clicável. */}
+        {!loading && prazosCompat.length > 0 && (() => {
+          const proximo = prazosCompat[0];
+          const dt = new Date(proximo.apresentacaoAgendadaEm);
+          const dataFmt = dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          const horaFmt = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          const total = prazosCompat.length;
+          const outros = total - 1;
+
+          const abrirOrcamento = (orcId: string) => {
+            const alvo = candidaturas.find(c => c.id === orcId);
+            if (alvo) {
+              setFichaAberta(alvo);
+            } else {
+              setGrupoFiltro('urgent');
+            }
+          };
+
+          const handleHeaderClick = () => {
+            // 1 só → abre direto. N > 1 → toggle da lista.
+            if (total === 1) abrirOrcamento(proximo.orcamentoId);
+            else setPrazosExpandidos(v => !v);
+          };
+
+          return (
+            <div style={{
+              background: 'linear-gradient(135deg, #FFFAF0 0%, #FFF1DB 100%)',
+              border: '1px solid #F7A22633',
+              borderLeft: '4px solid #F7A226',
+              borderRadius: 12,
+              marginBottom: 20,
+              marginTop: 16,
+              boxShadow: '0 1px 6px rgba(247,162,38,0.10)',
+              overflow: 'hidden',
+            }}>
+              {/* HEADER do banner */}
+              <button
+                type="button"
+                onClick={handleHeaderClick}
+                className="r100-press"
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '18px 22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  cursor: 'pointer',
+                  background: 'transparent',
+                  border: 'none',
+                }}
+                title={total === 1 ? 'Abrir orçamento' : 'Ver todos os orçamentos com prazo'}
+              >
+                {/* Ícone — mantém peso visual, sem badge agressivo */}
+                <span style={{
+                  width: 44,
+                  height: 44,
+                  background: '#F7A226',
+                  color: '#fff',
+                  borderRadius: 12,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 22,
+                  flexShrink: 0,
+                  position: 'relative',
+                  boxShadow: '0 1px 4px rgba(247,162,38,.25)',
+                }}>
+                  📅
+                  {total > 1 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: -5, right: -5,
+                      background: '#7C2D12',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      minWidth: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid #FFFAF0',
+                      padding: '0 4px',
+                      fontFamily: "'DM Sans',sans-serif",
+                      lineHeight: 1,
+                    }}>{total}</span>
+                  )}
+                </span>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Eyebrow label — pequeno, uppercase, premium */}
+                  <div style={{
+                    fontFamily: "'Syne',sans-serif",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '.1em',
+                    color: '#B45309',
+                    marginBottom: 4,
+                  }}>
+                    Compatibilização agendada
+                  </div>
+
+                  {/* Título principal — tamanho moderado, Syne 700 */}
+                  <div style={{
+                    fontFamily: "'Syne',sans-serif",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: '#7C2D12',
+                    lineHeight: 1.4,
+                    letterSpacing: '.005em',
+                    marginBottom: 6,
+                  }}>
+                    {total === 1
+                      ? '1 compatibilização aguardando sua proposta'
+                      : `${total} compatibilizações aguardando sua proposta`}
+                  </div>
+
+                  {/* Subtítulo descritivo — DM Sans, mais leve */}
+                  <div style={{
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 12.5,
+                    color: '#7C2D12',
+                    lineHeight: 1.5,
+                  }}>
+                    {total === 1 ? (
+                      <>
+                        <span style={{ fontWeight: 600 }}>{proximo.nomeOrcamento}</span>
+                        {' · prazo '}
+                        <span style={{ fontWeight: 700, color: '#451A03', fontVariantNumeric: 'tabular-nums' }}>
+                          {dataFmt} às {horaFmt}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ opacity: .8 }}>Mais urgente: </span>
+                        <span style={{ fontWeight: 600 }}>{proximo.nomeOrcamento}</span>
+                        {' · '}
+                        <span style={{ fontWeight: 700, color: '#451A03', fontVariantNumeric: 'tabular-nums' }}>
+                          {dataFmt} às {horaFmt}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* CTA secundário */}
+                  <div style={{
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    color: '#B45309',
+                    marginTop: 8,
+                    letterSpacing: '.01em',
+                  }}>
+                    {total === 1
+                      ? 'Clique para abrir e enviar sua proposta'
+                      : prazosExpandidos
+                        ? 'Selecione um orçamento abaixo'
+                        : `Ver ${outros} ${outros === 1 ? 'outra' : 'outras'} →`}
+                  </div>
+                </div>
+
+                <span style={{
+                  fontSize: 18,
+                  color: '#B45309',
+                  fontWeight: 600,
+                  alignSelf: 'center',
+                  flexShrink: 0,
+                  transition: 'transform .2s ease',
+                  transform: total > 1 && prazosExpandidos ? 'rotate(90deg)' : 'rotate(0deg)',
+                  opacity: .7,
+                }}>→</span>
+              </button>
+
+              {/* LISTA EXPANDIDA — só aparece quando N > 1 E expandido */}
+              {total > 1 && prazosExpandidos && (
+                <div style={{
+                  borderTop: '1px solid #F7A22633',
+                  background: 'rgba(255,255,255,.55)',
+                  maxHeight: 320,
+                  overflowY: 'auto',
+                }}>
+                  {prazosCompat.map((p, idx) => {
+                    const d  = new Date(p.apresentacaoAgendadaEm);
+                    const df = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                    const hf = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const isPrimeiro = idx === 0;
+                    return (
+                      <button
+                        key={p.orcamentoId}
+                        type="button"
+                        onClick={() => abrirOrcamento(p.orcamentoId)}
+                        className="r100-press"
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '12px 22px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 14,
+                          background: 'transparent',
+                          border: 'none',
+                          borderTop: idx === 0 ? 'none' : '1px solid #F7A22622',
+                          cursor: 'pointer',
+                        }}
+                        title="Abrir Ficha do orçamento"
+                      >
+                        <span style={{
+                          width: 26,
+                          height: 22,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: isPrimeiro ? '#451A03' : '#9A6200',
+                          background: isPrimeiro ? '#FCD34D' : 'transparent',
+                          border: isPrimeiro ? '1px solid #F59E0B' : '1px solid #F7A22655',
+                          borderRadius: 6,
+                          flexShrink: 0,
+                          fontFamily: "'DM Sans',sans-serif",
+                          fontVariantNumeric: 'tabular-nums',
+                        }}>
+                          {idx + 1}
+                        </span>
+                        <span style={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: '#451A03',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          fontFamily: "'DM Sans',sans-serif",
+                          letterSpacing: '.005em',
+                        }}>
+                          {p.nomeOrcamento}
+                        </span>
+                        <span style={{
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          color: '#7C2D12',
+                          fontVariantNumeric: 'tabular-nums',
+                          fontFamily: "'DM Sans',sans-serif",
+                          flexShrink: 0,
+                          opacity: .85,
+                        }}>
+                          {df} · {hf}
+                        </span>
+                        <span style={{
+                          fontSize: 14,
+                          color: '#B45309',
+                          fontWeight: 600,
+                          flexShrink: 0,
+                          opacity: .6,
+                        }}>→</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
 
         {/* Banner de urgência */}
         {!loading && urgentes.length > 0 && (

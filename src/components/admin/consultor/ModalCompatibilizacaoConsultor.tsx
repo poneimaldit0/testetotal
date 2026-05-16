@@ -1176,7 +1176,7 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
             <div>
               <SheetTitle className="text-base flex items-center gap-2">
                 <BarChart2 className="h-4 w-4 text-blue-500" />
-                Compatibilização IA
+                Compatibilização
               </SheetTitle>
               <SheetDescription className="text-xs mt-0.5">
                 {orcamento?.nome_contato || orcamento?.necessidade?.slice(0, 50) || orcamento?.id?.slice(0, 8)}
@@ -1787,14 +1787,16 @@ export function ModalCompatibilizacaoConsultor({ orcamento, isOpen, onClose }: P
 
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
+    // Sprint F: status do AGENDAMENTO de compat (consultor agendou antes da IA)
+    agendamento_pendente: { label: 'Compat. agendada', cls: 'bg-amber-100 text-amber-800 border-amber-300' },
     // Legado
-    pending:          { label: 'Processando',     cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-    completed:        { label: 'Pronta',           cls: 'bg-blue-100 text-blue-800 border-blue-300' },
-    failed:           { label: 'Falha',            cls: 'bg-red-100 text-red-800 border-red-300' },
+    pending:          { label: 'Processando',       cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    completed:        { label: 'Concluída',         cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    failed:           { label: 'Falha',             cls: 'bg-red-100 text-red-800 border-red-300' },
     // Canônicos
-    processando:      { label: 'Processando',     cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-    compatibilizando: { label: 'Compatibilizando', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
-    concluida:        { label: 'Pronta',           cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    processando:      { label: 'Processando',       cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    compatibilizando: { label: 'Compatibilizando',  cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    concluida:        { label: 'Concluída',         cls: 'bg-blue-100 text-blue-800 border-blue-300' },
     erro:             { label: 'Erro',             cls: 'bg-red-100 text-red-800 border-red-300' },
     cancelada:        { label: 'Cancelada',        cls: 'bg-slate-100 text-slate-700 border-slate-300' },
     // Workflow consultor

@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { R, shadows } from '@/styles/tokens';
@@ -21,6 +21,7 @@ import { QuadroAvisos, type Aviso } from '@/components/admin/QuadroAvisos';
 import { useSolicitacoesAjuda } from '@/hooks/useSolicitacoesAjuda';
 import { useUserStats } from '@/hooks/useUserStats';
 import { useMeusCandidaturas } from '@/hooks/useMeusCandiaturas';
+import { supabase } from '@/integrations/supabase/client';
 import { usePenalidadesFornecedor } from '@/hooks/usePenalidadesFornecedor';
 import { useDiasRestantesContrato } from '@/hooks/useDiasRestantesContrato';
 import { useAuth } from '@/hooks/useAuth';
@@ -217,6 +218,30 @@ const QuadroAvisosFornecedor = ({ userId, totalRevisoesPendentes }: { userId: st
   const semDia    = 86_400_000;
   const abertas   = candidaturas.filter(c => c.status === 'aberto');
   const semProposta = abertas.filter(c => !c.propostaEnviada);
+
+  // Sprint F: compatibilizações agendadas pelo consultor SEM proposta enviada.
+  // Cruzamento client-side: candidaturas abertas sem proposta × compat com
+  // apresentacao_agendada_em preenchido.
+  const [compatAgendadasSemProposta, setCompatAgendadasSemProposta] = useState(0);
+  useEffect(() => {
+    if (semProposta.length === 0) { setCompatAgendadasSemProposta(0); return; }
+    const ids = semProposta.map(c => c.id);
+    (supabase as any)
+      .from('compatibilizacoes_analises_ia')
+      .select('orcamento_id, apresentacao_agendada_em')
+      .in('orcamento_id', ids)
+      .not('apresentacao_agendada_em', 'is', null)
+      .then(({ data }: { data: any }) => {
+        const agoraMs = Date.now();
+        const unicos = new Set<string>();
+        for (const r of ((data ?? []) as Array<{ orcamento_id: string; apresentacao_agendada_em: string }>)) {
+          if (new Date(r.apresentacao_agendada_em).getTime() > agoraMs) {
+            unicos.add(r.orcamento_id);
+          }
+        }
+        setCompatAgendadasSemProposta(unicos.size);
+      });
+  }, [semProposta.length, semProposta.map(c => c.id).join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
   const paradas7d   = semProposta.filter(c => (agora - new Date(c.dataCandidatura).getTime()) / semDia >= 7);
   const visitasAg   = abertas.filter(c => {
     if (!c.horarioVisitaAgendado) return false;
@@ -292,6 +317,17 @@ const QuadroAvisosFornecedor = ({ userId, totalRevisoesPendentes }: { userId: st
       titulo: `${paradas7d.length === 1 ? 'candidatura parada' : 'candidaturas paradas'} há 7+ dias`,
       descricao: 'Você se inscreveu e ainda não enviou proposta — pode estar perdendo a oportunidade.',
     });
+    // Sprint F: compatibilizações agendadas pelo consultor aguardando proposta
+    if (compatAgendadasSemProposta > 0) list.push({
+      id: 'fornecedor-compat-agendada-sem-proposta',
+      tom: 'amber',
+      icone: '📅',
+      contagem: compatAgendadasSemProposta,
+      titulo: compatAgendadasSemProposta === 1
+        ? 'compatibilização agendada pelo consultor aguardando sua proposta'
+        : 'compatibilizações agendadas pelo consultor aguardando sua proposta',
+      descricao: 'Envie sua proposta antes do prazo definido pelo consultor.',
+    });
     if (visitasHoje.length > 0) list.push({
       id: 'fornecedor-visitas-hoje',
       tom: 'amber',
@@ -338,6 +374,7 @@ const QuadroAvisosFornecedor = ({ userId, totalRevisoesPendentes }: { userId: st
     paradas7d.length,
     visitasHoje.length,
     semProposta.length,
+    compatAgendadasSemProposta,
     solicitacoesPendentes,
     visitasAg.length,
     inscricoesMes,
