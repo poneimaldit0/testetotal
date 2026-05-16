@@ -115,6 +115,44 @@ export const OrcamentoCRMCard = ({
           <span className="r100-pill r100-pill-gray flex-shrink-0">{orcamento.fornecedores_inscritos_count ?? 0} inscr.</span>
         </div>
 
+        {/* Sprint C — mini-bloco compatibilização (alta visibilidade, 1 linha) */}
+        {(() => {
+          const p = orcamento.compatPendencia;
+          if (!p) return null;
+          const dataApres = orcamento.apresentacaoAgendadaEm
+            ? format(new Date(orcamento.apresentacaoAgendadaEm), "dd/MM HH:mm", { locale: ptBR })
+            : null;
+          let cls = 'r100-pill-gray';
+          let label = '';
+          let title = '';
+          if (p === 'solicitada') {
+            cls = 'r100-pill-red';
+            label = 'Cliente solicitou compat.';
+            title = 'Cliente pediu apresentação da compatibilização — agendar com urgência';
+          } else if (p === 'reagendamento') {
+            cls = 'r100-pill-amber';
+            label = 'Reagendamento pedido';
+            title = 'Cliente solicitou reagendar a apresentação';
+          } else if (p === 'agendada') {
+            cls = 'r100-pill-blue';
+            label = dataApres ? `Compat. agendada · ${dataApres}` : 'Compat. agendada';
+            title = 'Consultor agendou — aguardando confirmação do cliente';
+          } else if (p === 'confirmada') {
+            cls = 'r100-pill-green';
+            label = dataApres ? `Apresentação confirmada · ${dataApres}` : 'Apresentação confirmada';
+            title = 'Cliente confirmou a apresentação';
+          } else if (p === 'realizada') {
+            cls = 'r100-pill-gray';
+            label = 'Apresentação realizada';
+            title = 'Apresentação já foi realizada';
+          }
+          return (
+            <div className="mb-2">
+              <span className={`r100-pill ${cls}`} title={title}>{label}</span>
+            </div>
+          );
+        })()}
+
         {/* Status badges — max 4 visíveis por prioridade operacional (P5b) */}
         {(() => {
           type Pill = { key: string; el: React.ReactNode; tooltipLabel: string; priority: number };
