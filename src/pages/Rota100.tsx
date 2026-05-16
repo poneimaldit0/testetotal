@@ -1352,12 +1352,14 @@ function ResultadoCompatibilizacao({ resultado }: { resultado: CompatAnaliseResu
 
 function CompatibilizacaoTab({
   onGoToEmpresas, empresas, orcamentoId, token, clienteNome,
+  onMarcarClienteSolicitouCompat,
 }: {
   onGoToEmpresas: () => void;
   empresas:       Rota100Empresa[];
   orcamentoId:    string;
   token:          string;
   clienteNome:    string;
+  onMarcarClienteSolicitouCompat?: () => Promise<void>;
 }) {
   const comProposta = empresas.filter(e => e.propostaEnviada);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
@@ -1431,6 +1433,13 @@ function CompatibilizacaoTab({
         for (const id of selecionadas) {
           await saveCompatRequest(token, clienteNome, { orcamentoId, empresaId: id, tipo: 'individual' });
         }
+      }
+      // Sinal canônico (idempotente): marca cliente_solicitou_em na linha mais
+      // recente de compatibilizacoes_analises_ia. Falha não bloqueia o fluxo
+      // — a auditoria em compat_requests já foi gravada acima.
+      if (onMarcarClienteSolicitouCompat) {
+        try { await onMarcarClienteSolicitouCompat(); }
+        catch (err) { console.error('[CompatibilizacaoTab] marcarClienteSolicitouCompat', err); }
       }
       setEnviado(true);
     } catch {
@@ -1535,8 +1544,8 @@ function CompatibilizacaoTab({
               {enviando
                 ? 'Enviando…'
                 : enviado
-                  ? '✓ Escolha enviada'
-                  : `Enviar escolha (${selecionadas.size} empresa${selecionadas.size !== 1 ? 's' : ''})`}
+                  ? '✓ Compatibilização solicitada'
+                  : `Solicitar compatibilização (${selecionadas.size} empresa${selecionadas.size !== 1 ? 's' : ''})`}
             </button>
             {selecionadas.size < comProposta.length && (
               <button
@@ -1559,7 +1568,7 @@ function CompatibilizacaoTab({
           {enviado && (
             <div style={{ marginTop: 12, borderRadius: 8, background: '#e0f5ec', borderLeft: '4px solid #1B7A4A', padding: '10px 14px' }}>
               <p style={{ fontSize: 12, color: '#0d3d23', lineHeight: 1.6, margin: 0 }}>
-                ✔ Escolha registrada. Seu consultor Reforma100 já foi notificado e vai te orientar nos próximos passos.
+                ✔ Compatibilização solicitada. Seu consultor Reforma100 já foi notificado e vai te orientar nos próximos passos.
               </p>
             </div>
           )}
@@ -1794,9 +1803,21 @@ export default function Rota100() {
   const cliente = data?.cliente ?? MOCK_ROTA100.cliente;
   const trilha  = data?.trilha  ?? { ...MOCK_ROTA100.trilha, steps: MOCK_ROTA100.trilha.steps };
 
+  // Marca o sinal canônico em compatibilizacoes_analises_ia.cliente_solicitou_em.
+  // Idempotente — pode ser chamado várias vezes (latest-write-wins). Erros são
+  // apenas logados e NÃO bloqueiam o fluxo, já que a auditoria em
+  // compatibilizacoes_solicitacoes/compat_requests segue independente.
+  const marcarSolicitacaoCanonica = async () => {
+    const res = await marcarClienteSolicitouCompat();
+    if (!res.ok && res.erro) {
+      console.warn('[Rota100] marcarClienteSolicitouCompat:', res.erro);
+    }
+  };
+
   const handleCompatIndividual = async (empresaId: string, empresaNome: string) => {
     try {
       await saveCompatRequest(token, cliente.nome, { orcamentoId: data?.orcamentoId, empresaId, tipo: 'individual' });
+      await marcarSolicitacaoCanonica();
       // toast shown by EmpresasTab after reload, where it knows total count
     } catch (err) {
       const msg = (err as any)?.message ?? 'Erro desconhecido';
@@ -1808,6 +1829,7 @@ export default function Rota100() {
   const handleCompatCompleta = async () => {
     try {
       await saveCompatRequest(token, cliente.nome, { orcamentoId: data?.orcamentoId, tipo: 'completa' });
+      await marcarSolicitacaoCanonica();
       setCompatRequested(true);
       toast.success('Compatibilização completa solicitada. Seu consultor já foi acionado.');
       // Disparo IA — fire-and-forget, não bloqueia UX
@@ -1822,6 +1844,7 @@ export default function Rota100() {
   const handleCompatRequest = async () => {
     try {
       await saveCompatRequest(token, cliente.nome, { orcamentoId: data?.orcamentoId, tipo: 'completa' });
+      await marcarSolicitacaoCanonica();
       setCompatRequested(true);
       toast.success('Seu consultor já foi acionado. Em breve você receberá o contato com a compatibilização da sua reforma.');
       // Disparo IA — fire-and-forget, não bloqueia UX
@@ -2048,7 +2071,7 @@ export default function Rota100() {
           {activeTab === 'checklist'        && <ChecklistTab items={data?.checklist ?? MOCK_ROTA100.checklist} empresas={data?.empresas ?? []} />}
           {activeTab === 'escopo'           && <EscopoTab {...(data?.escopo ?? MOCK_ROTA100.escopo)} />}
           {activeTab === 'empresas'         && <EmpresasTab empresas={data?.empresas ?? MOCK_ROTA100.empresas as any} token={token} tipoAtendimento={data?.tipoAtendimento ?? null} onCompatIndividual={handleCompatIndividual} onCompatCompleta={handleCompatCompleta} onDispensa={handleDispensa} />}
-          {activeTab === 'compatibilizacao' && <CompatibilizacaoTab onGoToEmpresas={() => setActiveTab('empresas')} empresas={data?.empresas ?? []} orcamentoId={data?.orcamentoId ?? ''} token={token} clienteNome={cliente.nome} />}
+          {activeTab === 'compatibilizacao' && <CompatibilizacaoTab onGoToEmpresas={() => setActiveTab('empresas')} empresas={data?.empresas ?? []} orcamentoId={data?.orcamentoId ?? ''} token={token} clienteNome={cliente.nome} onMarcarClienteSolicitouCompat={marcarSolicitacaoCanonica} />}
           {activeTab === 'avaliacoes'       && <AvaliacoesTab empresas={data?.empresas ?? []} token={token} orcamentoId={data?.orcamentoId ?? ''} />}
         </div>
 
