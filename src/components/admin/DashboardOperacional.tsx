@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { isFullAccess } from '@/utils/accessControl';
@@ -7,6 +7,7 @@ import { sortLeads, SORT_LABELS } from '@/utils/sortLeads';
 import type { SortMode, SortDir } from '@/utils/sortLeads';
 import type { OrcamentoCRMComChecklist, EtapaCRM, StatusContato } from '@/types/crm';
 import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
+import { QuadroAvisos, type Aviso } from '@/components/admin/QuadroAvisos';
 
 // Tokens Isabella mapeados para variáveis locais
 const C = {
@@ -461,6 +462,52 @@ export function DashboardOperacional() {
   const activeLeads = leadsFiltrados.filter(l => l.etapa_crm !== 'ganho');
   const closedLeads = leadsFiltrados.filter(l => l.etapa_crm === 'ganho');
 
+  // Avisos operacionais — usa contadores já calculados.
+  const avisosOperacionais: Aviso[] = useMemo(() => {
+    const list: Aviso[] = [];
+    if (leadsStale > 0) list.push({
+      id: 'leads-parados',
+      tom: 'amber',
+      icone: '⏳',
+      contagem: leadsStale,
+      titulo: `${leadsStale === 1 ? 'lead parado' : 'leads parados'} há mais de 8 dias`,
+      descricao: 'Revise o Kanban e movimente os leads travados.',
+    });
+    if (semEstimativaIA > 0) list.push({
+      id: 'sem-estimativa-ia',
+      tom: 'blue',
+      icone: '🤖',
+      contagem: semEstimativaIA,
+      titulo: `${semEstimativaIA === 1 ? 'lead sem' : 'leads sem'} estimativa IA`,
+      descricao: 'Gere as estimativas para enriquecer o valor da carteira.',
+    });
+    if (compatStats.agendadas > 0) list.push({
+      id: 'compat-agendadas',
+      tom: 'amber',
+      icone: '📅',
+      contagem: compatStats.agendadas,
+      titulo: `${compatStats.agendadas === 1 ? 'compatibilização agendada' : 'compatibilizações agendadas'} esta semana`,
+      descricao: 'Apresentações marcadas com clientes.',
+    });
+    if (compatStats.realizadas > 0) list.push({
+      id: 'compat-realizadas',
+      tom: 'green',
+      icone: '✅',
+      contagem: compatStats.realizadas,
+      titulo: `${compatStats.realizadas === 1 ? 'compatibilização realizada' : 'compatibilizações realizadas'} esta semana`,
+      descricao: 'Análises enviadas ou aprovadas.',
+    });
+    if (fechamentosCount > 0) list.push({
+      id: 'fechamentos',
+      tom: 'green',
+      icone: '🏆',
+      contagem: fechamentosCount,
+      titulo: `${fechamentosCount === 1 ? 'fechamento realizado' : 'fechamentos realizados'} no total`,
+      descricao: 'Leads que viraram contrato.',
+    });
+    return list;
+  }, [leadsStale, semEstimativaIA, compatStats.agendadas, compatStats.realizadas, fechamentosCount]);
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ fontFamily: '"DM Sans", sans-serif', color: C.text }}>
@@ -492,6 +539,11 @@ export function DashboardOperacional() {
           </select>
         ) : undefined}
       />
+
+      {/* Quadro de avisos operacionais — carrossel premium */}
+      <div style={{ marginBottom: 18 }}>
+        <QuadroAvisos avisos={avisosOperacionais} />
+      </div>
 
       {/* Metric cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 22 }}>

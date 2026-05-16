@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { R, shadows } from '@/styles/tokens';
@@ -17,6 +17,7 @@ import { NovoGerenciamentoUsuarios } from '@/components/admin/NovoGerenciamentoU
 import { UserStatsCards } from '@/components/admin/UserStatsCards';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
+import { QuadroAvisos, type Aviso } from '@/components/admin/QuadroAvisos';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIsMaster } from '@/hooks/useIsMaster';
@@ -117,7 +118,48 @@ const DashboardStats = ({ enabled = true }: { enabled?: boolean }) => {
 
   const kpis = KPI_LIST(orcamentosAbertos, inscricoesHoje, orcamentosPostadosMes, acessosUnicosHoje);
 
+  // Avisos operacionais do Dashboard — cobertura básica (dados do `useDashboardStats`).
+  // Telas operacionais (Gerenciar/Kanban) têm avisos mais ricos.
+  const avisos: Aviso[] = useMemo(() => {
+    const list: Aviso[] = [];
+    if (inscricoesHoje > 0) list.push({
+      id: 'inscricoes-hoje',
+      tom: 'green',
+      icone: '✋',
+      contagem: inscricoesHoje,
+      titulo: `${inscricoesHoje === 1 ? 'nova inscrição' : 'novas inscrições'} hoje`,
+      descricao: 'Fornecedores se candidataram nas últimas 24h.',
+    });
+    if (orcamentosAbertos > 0) list.push({
+      id: 'orcamentos-abertos',
+      tom: 'blue',
+      icone: '📋',
+      contagem: orcamentosAbertos,
+      titulo: `${orcamentosAbertos === 1 ? 'orçamento em aberto' : 'orçamentos em aberto'}`,
+      descricao: 'Acompanhe o pipeline em Gerenciar ou Kanban.',
+    });
+    if (acessosUnicosHoje > 0) list.push({
+      id: 'acessos-hoje',
+      tom: 'gray',
+      icone: '👁️',
+      contagem: acessosUnicosHoje,
+      titulo: `${acessosUnicosHoje === 1 ? 'acesso único' : 'acessos únicos'} hoje`,
+      descricao: 'Clientes e fornecedores ativos no sistema.',
+    });
+    if (orcamentosPostadosMes > 0) list.push({
+      id: 'postados-mes',
+      tom: 'amber',
+      icone: '📅',
+      contagem: orcamentosPostadosMes,
+      titulo: `${orcamentosPostadosMes === 1 ? 'orçamento postado' : 'orçamentos postados'} este mês`,
+      descricao: 'Volume mensal de novas oportunidades.',
+    });
+    return list;
+  }, [inscricoesHoje, orcamentosAbertos, acessosUnicosHoje, orcamentosPostadosMes]);
+
   return (
+    <>
+    <QuadroAvisos avisos={avisos} className="mb-4 md:mb-6" />
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       {kpis.map(({ label, value, Icon, color }) => (
         <div key={label} style={{
@@ -148,6 +190,7 @@ const DashboardStats = ({ enabled = true }: { enabled?: boolean }) => {
         </div>
       ))}
     </div>
+    </>
   );
 };
 
@@ -163,6 +206,20 @@ const DashboardContent = () => {
   
   // Hooks condicionais - só executam quando necessário
   const { totalRevisoesPendentes } = useRevisoesWorkflow(!!profile && isFornecedor);
+
+  // Avisos operacionais do fornecedor — cobertura básica usando dados já carregados.
+  const avisosFornecedor: Aviso[] = useMemo(() => {
+    const list: Aviso[] = [];
+    if (totalRevisoesPendentes > 0) list.push({
+      id: 'fornecedor-revisoes',
+      tom: 'red',
+      icone: '🔁',
+      contagem: totalRevisoesPendentes,
+      titulo: `${totalRevisoesPendentes === 1 ? 'revisão pendente' : 'revisões pendentes'}`,
+      descricao: 'O cliente pediu ajustes na sua proposta — responda o quanto antes.',
+    });
+    return list;
+  }, [totalRevisoesPendentes]);
   
   const [contratoSelecionado, setContratoSelecionado] = useState<string | null>(null);
   const [acaoMedicao, setAcaoMedicao] = useState<'selecionar' | 'historico' | 'criar'>('selecionar');
@@ -464,14 +521,18 @@ const DashboardContent = () => {
                 {isAdminOrMaster ? (
                   <DashboardStats enabled={true} />
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
-                    <div className="md:col-span-3">
-                      <UserStatsCards />
+                  <>
+                    {/* Quadro de avisos operacionais do fornecedor */}
+                    <QuadroAvisos avisos={avisosFornecedor} className="mb-4 md:mb-6" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+                      <div className="md:col-span-3">
+                        <UserStatsCards />
+                      </div>
+                      <div className="md:col-span-1">
+                        <ContratoInfo />
+                      </div>
                     </div>
-                    <div className="md:col-span-1">
-                      <ContratoInfo />
-                    </div>
-                  </div>
+                  </>
                 )}
               </>
             )}

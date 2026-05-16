@@ -14,6 +14,7 @@ import { MarcarPerdidoModal } from './crm/MarcarPerdidoModal';
 import { ModalCongelarOrcamento } from './crm/ModalCongelarOrcamento';
 import { ApropriarOrcamentosGestor } from './crm/ApropriarOrcamentosGestor';
 import { ModalCompatibilizacaoConsultor } from './consultor/ModalCompatibilizacaoConsultor';
+import { QuadroAvisos, type Aviso } from './QuadroAvisos';
 import { CardProdutividadeConcierge } from './crm/CardProdutividadeConcierge';
 import { ETAPAS_CRM, ETAPAS_ARQUIVADAS, isEtapaArquivada } from '@/constants/crmEtapas';
 import { OrcamentoCRMComChecklist, HistoricoMovimentacao, FiltrosCRM, EtapaCRM, FornecedorInscrito } from '@/types/crm';
@@ -771,6 +772,57 @@ export const CRMKanbanOrcamentos = () => {
     return orcamentos.filter(orc => orc.tem_alertas).length;
   }, [orcamentos]);
 
+  // Avisos operacionais (QuadroAvisos) — montados a partir dos contadores já
+  // calculados. Lista vazia => fallback "Tudo em dia". Críticos primeiro.
+  const avisosOperacionais = useMemo<Aviso[]>(() => {
+    const list: Aviso[] = [];
+    if (countsP3.kpis.atrasadas > 0) list.push({
+      id: 'tarefas-atrasadas',
+      tom: 'red',
+      icone: '⏰',
+      contagem: countsP3.kpis.atrasadas,
+      titulo: `${countsP3.kpis.atrasadas === 1 ? 'orçamento' : 'orçamentos'} com tarefas atrasadas`,
+      descricao: 'Clique para filtrar e priorizar.',
+      onClick: () => setTarefasP3(tarefasP3 === 'atrasadas' ? 'todos' : 'atrasadas'),
+    });
+    if (countsP3.compat.revisao > 0) list.push({
+      id: 'compat-revisao',
+      tom: 'amber',
+      icone: '👁️',
+      contagem: countsP3.compat.revisao,
+      titulo: `${countsP3.compat.revisao === 1 ? 'compatibilização aguarda' : 'compatibilizações aguardam'} sua revisão`,
+      descricao: 'IA concluída — pronto para revisar e aprovar.',
+      onClick: () => setCompatP3(compatP3 === 'revisao' ? 'todos' : 'revisao'),
+    });
+    if (countsP3.compat.cliente > 0) list.push({
+      id: 'compat-cliente',
+      tom: 'blue',
+      icone: '📤',
+      contagem: countsP3.compat.cliente,
+      titulo: `${countsP3.compat.cliente === 1 ? 'enviada ao cliente' : 'enviadas ao cliente'} · aguardando resposta`,
+      descricao: 'Faça follow-up se passou de 3 dias.',
+      onClick: () => setCompatP3(compatP3 === 'cliente' ? 'todos' : 'cliente'),
+    });
+    if (orcamentosComAlerta > 0) list.push({
+      id: 'alertas-criticos',
+      tom: 'red',
+      icone: '⚠️',
+      contagem: orcamentosComAlerta,
+      titulo: `${orcamentosComAlerta === 1 ? 'orçamento com alerta' : 'orçamentos com alertas'} crítico${orcamentosComAlerta !== 1 ? 's' : ''}`,
+      descricao: 'Verifique cards destacados no kanban abaixo.',
+    });
+    if (countsP3.periodos['7'] > 0) list.push({
+      id: 'leads-recentes',
+      tom: 'green',
+      icone: '✋',
+      contagem: countsP3.periodos['7'],
+      titulo: `${countsP3.periodos['7'] === 1 ? 'lead novo' : 'leads novos'} esta semana`,
+      descricao: 'Últimos 7 dias.',
+      onClick: () => setPeriodoP3(periodoP3 === '7' ? 'todos' : '7'),
+    });
+    return list;
+  }, [countsP3, orcamentosComAlerta, tarefasP3, compatP3, periodoP3]);
+
   const handleApropriar = (orcamentoId: string, gestorId: string | null) => {
     apropriarOrcamento({ orcamentoId, gestorId });
   };
@@ -837,6 +889,11 @@ export const CRMKanbanOrcamentos = () => {
         subtitle="Acompanhe e mova os leads pelo pipeline"
         style={{ borderRadius: 0, marginBottom: 0 }}
       />
+
+      {/* Quadro de avisos operacionais — carrossel premium com fallback */}
+      <div className="px-4 pt-3">
+        <QuadroAvisos avisos={avisosOperacionais} />
+      </div>
 
       {/* KPIs operacionais + comerciais */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 px-4 pt-3">

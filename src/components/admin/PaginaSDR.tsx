@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { QuadroAvisos, type Aviso } from '@/components/admin/QuadroAvisos';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
@@ -2667,6 +2668,53 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
   const [cepBuscando, setCepBuscando] = useState(false);
   const [cepResultado, setCepResultado] = useState<CepResultado | null>(null);
 
+  // Avisos operacionais do SDR — montados a partir das funções de filtro existentes.
+  const avisosSDR: Aviso[] = useMemo(() => {
+    const list: Aviso[] = [];
+    const acoesUrgentes = leads.filter(leadTemProblema).length;
+    const novos         = filtrarLeadsPorTempo(leads, 'novos').length;
+    const hoje          = filtrarLeadsPorTempo(leads, 'hoje').length;
+    const vagasAbertas  = leads.filter(leadTemVagaAberta).length;
+
+    if (acoesUrgentes > 0) list.push({
+      id: 'sdr-acoes-urgentes',
+      tom: 'red',
+      icone: '🚨',
+      contagem: acoesUrgentes,
+      titulo: `${acoesUrgentes === 1 ? 'lead' : 'leads'} com ações urgentes`,
+      descricao: 'Pendências de confirmação ou horários vencidos.',
+      onClick: () => setFiltroTempo('acoes_urgentes'),
+    });
+    if (novos > 0) list.push({
+      id: 'sdr-novos',
+      tom: 'green',
+      icone: '✋',
+      contagem: novos,
+      titulo: `${novos === 1 ? 'lead novo' : 'leads novos'} sem contato`,
+      descricao: 'Inicie o primeiro contato.',
+      onClick: () => setFiltroTempo('novos'),
+    });
+    if (hoje > 0) list.push({
+      id: 'sdr-hoje',
+      tom: 'amber',
+      icone: '📅',
+      contagem: hoje,
+      titulo: `${hoje === 1 ? 'compromisso agendado' : 'compromissos agendados'} hoje`,
+      descricao: 'Confirme presença e prepare o atendimento.',
+      onClick: () => setFiltroTempo('hoje'),
+    });
+    if (vagasAbertas > 0) list.push({
+      id: 'sdr-vagas',
+      tom: 'blue',
+      icone: '👥',
+      contagem: vagasAbertas,
+      titulo: `${vagasAbertas === 1 ? 'lead com vaga' : 'leads com vagas'} aberta${vagasAbertas !== 1 ? 's' : ''}`,
+      descricao: 'Menos de 3 fornecedores candidatos — busque mais.',
+      onClick: () => setFiltroTempo('vagas_abertas'),
+    });
+    return list;
+  }, [leads]);
+
   const handleConsultarCep = useCallback(async () => {
     const clean = cepInput.replace(/\D/g, '');
     if (clean.length < 8) return;
@@ -3289,6 +3337,10 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
         ];
 
         return (
+          <>
+          <div style={{ marginBottom: 16 }}>
+            <QuadroAvisos avisos={avisosSDR} />
+          </div>
           <div className="sdr-filter-grid" style={{ marginBottom: 20, paddingTop: 4, overflow: 'visible' }}>
             {cards.map(f => {
               const ativo = filtroTempo === f.key;
@@ -3348,6 +3400,7 @@ export function PaginaSDR({ onViewChange: _onViewChange }: PaginaSDRProps) {
               );
             })}
           </div>
+          </>
         );
       })()}
 

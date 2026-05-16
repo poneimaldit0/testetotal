@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ModalCompatibilizacaoConsultor } from './consultor/ModalCompatibilizacaoConsultor';
 import { PremiumPageHeader } from '@/components/ui/PremiumPageHeader';
 import { FichaOperacionalAdmin } from './FichaOperacionalAdmin';
+import { QuadroAvisos, type Aviso } from './QuadroAvisos';
 
 // ── Badge de status de compatibilização ──────────────────────────────────────
 function CompatStatusBadge({ status }: { status: string | undefined }) {
@@ -256,6 +257,55 @@ export const ListaOrcamentos: React.FC = () => {
     return { kpis: k, status, periodos, compat, etapas };
   }, [orcamentos, crmStageMap, compatStatusMap]);
 
+  // Avisos operacionais (QuadroAvisos) — lista vazia = fallback "Tudo em dia".
+  const avisosOperacionais = useMemo<Aviso[]>(() => {
+    const list: Aviso[] = [];
+    if (counts.kpis.revisao > 0) list.push({
+      id: 'compat-revisao',
+      tom: 'amber',
+      icone: '👁️',
+      contagem: counts.kpis.revisao,
+      titulo: `${counts.kpis.revisao === 1 ? 'compatibilização aguarda' : 'compatibilizações aguardam'} sua revisão`,
+      descricao: 'IA concluída — pronto para revisar e aprovar.',
+      onClick: () => setCompatFiltro(compatFiltro === 'revisao' ? 'todos' : 'revisao'),
+    });
+    if (counts.kpis.cliente > 0) list.push({
+      id: 'compat-cliente',
+      tom: 'blue',
+      icone: '📤',
+      contagem: counts.kpis.cliente,
+      titulo: `${counts.kpis.cliente === 1 ? 'enviada ao cliente' : 'enviadas ao cliente'} · aguardando resposta`,
+      descricao: 'Faça follow-up se passou de 3 dias.',
+      onClick: () => setCompatFiltro(compatFiltro === 'cliente' ? 'todos' : 'cliente'),
+    });
+    if (counts.kpis.preSDR > 0) list.push({
+      id: 'pre-sdr',
+      tom: 'amber',
+      icone: '📞',
+      contagem: counts.kpis.preSDR,
+      titulo: `${counts.kpis.preSDR === 1 ? 'lead' : 'leads'} pré-SDR aguardando atribuição`,
+      descricao: 'Atribua a um SDR para iniciar o contato.',
+    });
+    if (counts.periodos['7'] > 0) list.push({
+      id: 'leads-recentes',
+      tom: 'green',
+      icone: '✋',
+      contagem: counts.periodos['7'],
+      titulo: `${counts.periodos['7'] === 1 ? 'orçamento novo' : 'orçamentos novos'} esta semana`,
+      descricao: 'Últimos 7 dias.',
+      onClick: () => setPeriodoFiltro(periodoFiltro === '7' ? 'todos' : '7'),
+    });
+    if (counts.kpis.total > 0) list.push({
+      id: 'total-pipeline',
+      tom: 'blue',
+      icone: '📊',
+      contagem: counts.kpis.total,
+      titulo: `${counts.kpis.total === 1 ? 'orçamento no pipeline' : 'orçamentos no pipeline'}`,
+      descricao: 'Volume total carregado nesta lista.',
+    });
+    return list;
+  }, [counts, compatFiltro, periodoFiltro]);
+
   const filtrosAtivos = busca.trim() !== ''
     || statusFiltro !== 'todos'
     || etapaFiltro !== 'todos'
@@ -417,6 +467,9 @@ export const ListaOrcamentos: React.FC = () => {
           </span>
         ) : undefined}
       />
+
+      {/* Quadro de avisos operacionais — carrossel premium com fallback */}
+      <QuadroAvisos avisos={avisosOperacionais} className="mb-3" />
 
       {/* KPIs operacionais clicáveis (P2/P5c) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
