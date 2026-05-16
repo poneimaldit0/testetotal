@@ -7,6 +7,7 @@ import { MOCK_ROTA100 } from '@/data/mockRota100';
 import { hasCompatRequest, saveCompatRequest, saveEmpresaDispensa, getDispensadas, getCompatRequests } from '@/lib/rota100Storage';
 import { useRota100Data, Rota100ChecklistItem, Rota100Empresa, Rota100Escopo } from '@/hooks/useRota100Data';
 import { useCompatibilizacaoIA, type CompatibilizacaoCompleta, type EmpresaRanking } from '@/hooks/useCompatibilizacaoIA';
+import { useConfirmacaoApresentacao } from '@/hooks/useConfirmacaoApresentacao';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -434,9 +435,19 @@ function RelatorioMedicaoPlaceholder({ empresas }: { empresas: Rota100Empresa[] 
 // ── D10: Apresentação agendada (cliente) ─────────────────────────────────────
 function ApresentacaoAgendadaCardCliente({
   apresentacao,
+  apresentacaoConfirmadaEm,
+  apresentacaoReagendamentoSolicitadoEm,
+  onConfirmar,
+  onSolicitarReagendamento,
 }: {
   apresentacao: { quando: string; canal: string | null; link: string | null; observacao: string | null };
+  apresentacaoConfirmadaEm?: string | null;
+  apresentacaoReagendamentoSolicitadoEm?: string | null;
+  onConfirmar?: () => Promise<void>;
+  onSolicitarReagendamento?: (motivo: string) => Promise<void>;
 }) {
+  const [enviando, setEnviando] = useState(false);
+
   const dt = new Date(apresentacao.quando);
   const agora = Date.now();
   const diffH = (dt.getTime() - agora) / 3_600_000;
@@ -457,6 +468,41 @@ function ApresentacaoAgendadaCardCliente({
                    : '📍';
   const acentColor = proximo ? C.am : C.lj;
   const bgColor    = proximo ? C.am2 : '#FFF8F4';
+
+  // Cor Isabella para o CTA Confirmar (mesma do header de compatibilização)
+  const ISABELLA = '#2D3395';
+
+  const fmtBadgeData = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} às ${String(d.getHours()).padStart(2,'0')}h${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+
+  const handleConfirmar = async () => {
+    if (!onConfirmar || enviando) return;
+    setEnviando(true);
+    try { await onConfirmar(); } finally { setEnviando(false); }
+  };
+
+  const handleReagendar = async () => {
+    if (!onSolicitarReagendamento || enviando) return;
+    const motivo = window.prompt(
+      'Por que você precisa reagendar?\n\nDescreva brevemente para que seu consultor possa propor um novo horário:',
+      '',
+    );
+    if (motivo === null) return; // cancelou
+    const limpo = motivo.trim();
+    if (!limpo) {
+      toast.error('É preciso informar o motivo para solicitar reagendamento.');
+      return;
+    }
+    setEnviando(true);
+    try { await onSolicitarReagendamento(limpo); } finally { setEnviando(false); }
+  };
+
+  // Só mostra ações enquanto a apresentação ainda for futura
+  const podeAgir = futuro && (onConfirmar || onSolicitarReagendamento);
+  const confirmada = !!apresentacaoConfirmadaEm;
+  const reagAberto = !!apresentacaoReagendamentoSolicitadoEm;
 
   return (
     <div className="r100-card" style={{
@@ -506,6 +552,80 @@ function ApresentacaoAgendadaCardCliente({
               border: `1px solid ${C.bd}`,
             }}>
               {apresentacao.observacao}
+            </div>
+          )}
+
+          {/* Estado: confirmada */}
+          {confirmada && (
+            <div style={{
+              marginTop: 12, padding: '10px 14px',
+              background: C.vd2, borderRadius: 8,
+              fontSize: 12, color: C.vd, lineHeight: 1.5,
+              border: `1px solid ${C.vd}33`,
+              fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+            }}>
+              ✓ Confirmada por você em {fmtBadgeData(apresentacaoConfirmadaEm!)}
+            </div>
+          )}
+
+          {/* Estado: reagendamento solicitado */}
+          {!confirmada && reagAberto && (
+            <div style={{
+              marginTop: 12, padding: '10px 14px',
+              background: '#FFF5DC', borderRadius: 8,
+              fontSize: 12, color: '#7A5810', lineHeight: 1.5,
+              border: `1px solid ${C.am}33`,
+              fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+            }}>
+              🕓 Reagendamento solicitado — aguardando consultor
+            </div>
+          )}
+
+          {/* Botões de ação: só se ainda futuro e sem decisão prévia */}
+          {podeAgir && !confirmada && !reagAberto && (
+            <div style={{
+              marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10,
+            }}>
+              {onConfirmar && (
+                <button
+                  type="button"
+                  onClick={handleConfirmar}
+                  disabled={enviando}
+                  style={{
+                    fontFamily: "'Syne', sans-serif",
+                    fontSize: 12, fontWeight: 700, letterSpacing: '.03em',
+                    border: 'none', cursor: enviando ? 'wait' : 'pointer',
+                    padding: '11px 22px', borderRadius: 12,
+                    background: ISABELLA, color: '#fff',
+                    boxShadow: '0 2px 8px rgba(45,51,149,.25)',
+                    opacity: enviando ? .7 : 1,
+                    transition: 'all .18s',
+                  }}
+                >
+                  {enviando ? 'Enviando…' : '✓ Confirmar apresentação'}
+                </button>
+              )}
+              {onSolicitarReagendamento && (
+                <button
+                  type="button"
+                  onClick={handleReagendar}
+                  disabled={enviando}
+                  style={{
+                    fontFamily: "'Syne', sans-serif",
+                    fontSize: 12, fontWeight: 700, letterSpacing: '.03em',
+                    cursor: enviando ? 'wait' : 'pointer',
+                    padding: '11px 22px', borderRadius: 12,
+                    background: '#fff', color: C.cz,
+                    border: `1.5px solid ${C.bd}`,
+                    opacity: enviando ? .7 : 1,
+                    transition: 'all .18s',
+                  }}
+                >
+                  🕓 Solicitar reagendamento
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -1232,12 +1352,14 @@ function ResultadoCompatibilizacao({ resultado }: { resultado: CompatAnaliseResu
 
 function CompatibilizacaoTab({
   onGoToEmpresas, empresas, orcamentoId, token, clienteNome,
+  onMarcarClienteSolicitouCompat,
 }: {
   onGoToEmpresas: () => void;
   empresas:       Rota100Empresa[];
   orcamentoId:    string;
   token:          string;
   clienteNome:    string;
+  onMarcarClienteSolicitouCompat?: () => Promise<void>;
 }) {
   const comProposta = empresas.filter(e => e.propostaEnviada);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
@@ -1311,6 +1433,13 @@ function CompatibilizacaoTab({
         for (const id of selecionadas) {
           await saveCompatRequest(token, clienteNome, { orcamentoId, empresaId: id, tipo: 'individual' });
         }
+      }
+      // Sinal canônico (idempotente): marca cliente_solicitou_em na linha mais
+      // recente de compatibilizacoes_analises_ia. Falha não bloqueia o fluxo
+      // — a auditoria em compat_requests já foi gravada acima.
+      if (onMarcarClienteSolicitouCompat) {
+        try { await onMarcarClienteSolicitouCompat(); }
+        catch (err) { console.error('[CompatibilizacaoTab] marcarClienteSolicitouCompat', err); }
       }
       setEnviado(true);
     } catch {
@@ -1415,8 +1544,8 @@ function CompatibilizacaoTab({
               {enviando
                 ? 'Enviando…'
                 : enviado
-                  ? '✓ Escolha enviada'
-                  : `Enviar escolha (${selecionadas.size} empresa${selecionadas.size !== 1 ? 's' : ''})`}
+                  ? '✓ Compatibilização solicitada'
+                  : `Solicitar compatibilização (${selecionadas.size} empresa${selecionadas.size !== 1 ? 's' : ''})`}
             </button>
             {selecionadas.size < comProposta.length && (
               <button
@@ -1439,7 +1568,7 @@ function CompatibilizacaoTab({
           {enviado && (
             <div style={{ marginTop: 12, borderRadius: 8, background: '#e0f5ec', borderLeft: '4px solid #1B7A4A', padding: '10px 14px' }}>
               <p style={{ fontSize: 12, color: '#0d3d23', lineHeight: 1.6, margin: 0 }}>
-                ✔ Escolha registrada. Seu consultor Reforma100 já foi notificado e vai te orientar nos próximos passos.
+                ✔ Compatibilização solicitada. Seu consultor Reforma100 já foi notificado e vai te orientar nos próximos passos.
               </p>
             </div>
           )}
@@ -1601,18 +1730,28 @@ export default function Rota100() {
   const [compatRequested, setCompatRequested] = useState(false);
   const [compatResult, setCompatResult] = useState<CompatibilizacaoCompleta | null>(null);
   const [apresentacao, setApresentacao] = useState<{ quando: string; canal: string | null; link: string | null; observacao: string | null } | null>(null);
+  const [apresentacaoConfirmadaEm, setApresentacaoConfirmadaEm] = useState<string | null>(null);
+  const [apresentacaoReagendamentoSolicitadoEm, setApresentacaoReagendamentoSolicitadoEm] = useState<string | null>(null);
+  const [apresentacaoRefreshTick, setApresentacaoRefreshTick] = useState(0);
 
   const { data, loading, notFound } = useRota100Data(token);
 
   // Hook de compatibilização IA — inicializado com orcamentoId quando disponível
   const { solicitarCompatibilizacao } = useCompatibilizacaoIA(data?.orcamentoId ?? '');
 
+  // Hook de sinais do cliente (confirmar / solicitar reagendamento / marcar solicitação canônica)
+  const {
+    marcarClienteSolicitouCompat,
+    confirmarApresentacao,
+    solicitarReagendamento,
+  } = useConfirmacaoApresentacao(data?.orcamentoId ?? null);
+
   // Busca compat enviada/aprovada para exibir ao cliente (somente leitura, sem alterar lógica de IA)
   useEffect(() => {
     if (!data?.orcamentoId) return;
     (supabase as any)
       .from('compatibilizacoes_analises_ia')
-      .select('analise_completa, ranking_ajustado, apresentacao_agendada_em, apresentacao_canal, apresentacao_link, apresentacao_observacao')
+      .select('analise_completa, ranking_ajustado, apresentacao_agendada_em, apresentacao_canal, apresentacao_link, apresentacao_observacao, apresentacao_confirmada_em, apresentacao_reagendamento_solicitado_em')
       .eq('orcamento_id', data.orcamentoId)
       .in('status', ['enviado', 'aprovado'])
       .order('created_at', { ascending: false })
@@ -1631,8 +1770,30 @@ export default function Rota100() {
             observacao:  row.apresentacao_observacao ?? null,
           });
         }
+        setApresentacaoConfirmadaEm(row?.apresentacao_confirmada_em ?? null);
+        setApresentacaoReagendamentoSolicitadoEm(row?.apresentacao_reagendamento_solicitado_em ?? null);
       });
-  }, [data?.orcamentoId]);
+  }, [data?.orcamentoId, apresentacaoRefreshTick]);
+
+  const handleConfirmarApresentacao = async () => {
+    const res = await confirmarApresentacao();
+    if (res.ok) {
+      toast.success('Apresentação confirmada!');
+      setApresentacaoRefreshTick(t => t + 1);
+    } else {
+      toast.error(res.erro ?? 'Não foi possível confirmar agora. Tente novamente.');
+    }
+  };
+
+  const handleSolicitarReagendamento = async (motivo: string) => {
+    const res = await solicitarReagendamento(motivo);
+    if (res.ok) {
+      toast.success('Reagendamento solicitado. Seu consultor vai propor um novo horário.');
+      setApresentacaoRefreshTick(t => t + 1);
+    } else {
+      toast.error(res.erro ?? 'Não foi possível solicitar reagendamento. Tente novamente.');
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -1642,9 +1803,21 @@ export default function Rota100() {
   const cliente = data?.cliente ?? MOCK_ROTA100.cliente;
   const trilha  = data?.trilha  ?? { ...MOCK_ROTA100.trilha, steps: MOCK_ROTA100.trilha.steps };
 
+  // Marca o sinal canônico em compatibilizacoes_analises_ia.cliente_solicitou_em.
+  // Idempotente — pode ser chamado várias vezes (latest-write-wins). Erros são
+  // apenas logados e NÃO bloqueiam o fluxo, já que a auditoria em
+  // compatibilizacoes_solicitacoes/compat_requests segue independente.
+  const marcarSolicitacaoCanonica = async () => {
+    const res = await marcarClienteSolicitouCompat();
+    if (!res.ok && res.erro) {
+      console.warn('[Rota100] marcarClienteSolicitouCompat:', res.erro);
+    }
+  };
+
   const handleCompatIndividual = async (empresaId: string, empresaNome: string) => {
     try {
       await saveCompatRequest(token, cliente.nome, { orcamentoId: data?.orcamentoId, empresaId, tipo: 'individual' });
+      await marcarSolicitacaoCanonica();
       // toast shown by EmpresasTab after reload, where it knows total count
     } catch (err) {
       const msg = (err as any)?.message ?? 'Erro desconhecido';
@@ -1656,6 +1829,7 @@ export default function Rota100() {
   const handleCompatCompleta = async () => {
     try {
       await saveCompatRequest(token, cliente.nome, { orcamentoId: data?.orcamentoId, tipo: 'completa' });
+      await marcarSolicitacaoCanonica();
       setCompatRequested(true);
       toast.success('Compatibilização completa solicitada. Seu consultor já foi acionado.');
       // Disparo IA — fire-and-forget, não bloqueia UX
@@ -1670,6 +1844,7 @@ export default function Rota100() {
   const handleCompatRequest = async () => {
     try {
       await saveCompatRequest(token, cliente.nome, { orcamentoId: data?.orcamentoId, tipo: 'completa' });
+      await marcarSolicitacaoCanonica();
       setCompatRequested(true);
       toast.success('Seu consultor já foi acionado. Em breve você receberá o contato com a compatibilização da sua reforma.');
       // Disparo IA — fire-and-forget, não bloqueia UX
@@ -1866,8 +2041,16 @@ export default function Rota100() {
           </div>
         </div>
 
-        {/* D10: Apresentação da compatibilização agendada (cliente lê) */}
-        {apresentacao && <ApresentacaoAgendadaCardCliente apresentacao={apresentacao} />}
+        {/* D10: Apresentação da compatibilização agendada (cliente lê + age) */}
+        {apresentacao && (
+          <ApresentacaoAgendadaCardCliente
+            apresentacao={apresentacao}
+            apresentacaoConfirmadaEm={apresentacaoConfirmadaEm}
+            apresentacaoReagendamentoSolicitadoEm={apresentacaoReagendamentoSolicitadoEm}
+            onConfirmar={handleConfirmarApresentacao}
+            onSolicitarReagendamento={handleSolicitarReagendamento}
+          />
+        )}
 
         {/* TABS */}
         <div className="r100-tabs">
@@ -1888,7 +2071,7 @@ export default function Rota100() {
           {activeTab === 'checklist'        && <ChecklistTab items={data?.checklist ?? MOCK_ROTA100.checklist} empresas={data?.empresas ?? []} />}
           {activeTab === 'escopo'           && <EscopoTab {...(data?.escopo ?? MOCK_ROTA100.escopo)} />}
           {activeTab === 'empresas'         && <EmpresasTab empresas={data?.empresas ?? MOCK_ROTA100.empresas as any} token={token} tipoAtendimento={data?.tipoAtendimento ?? null} onCompatIndividual={handleCompatIndividual} onCompatCompleta={handleCompatCompleta} onDispensa={handleDispensa} />}
-          {activeTab === 'compatibilizacao' && <CompatibilizacaoTab onGoToEmpresas={() => setActiveTab('empresas')} empresas={data?.empresas ?? []} orcamentoId={data?.orcamentoId ?? ''} token={token} clienteNome={cliente.nome} />}
+          {activeTab === 'compatibilizacao' && <CompatibilizacaoTab onGoToEmpresas={() => setActiveTab('empresas')} empresas={data?.empresas ?? []} orcamentoId={data?.orcamentoId ?? ''} token={token} clienteNome={cliente.nome} onMarcarClienteSolicitouCompat={marcarSolicitacaoCanonica} />}
           {activeTab === 'avaliacoes'       && <AvaliacoesTab empresas={data?.empresas ?? []} token={token} orcamentoId={data?.orcamentoId ?? ''} />}
         </div>
 
