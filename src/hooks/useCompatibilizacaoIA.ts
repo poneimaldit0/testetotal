@@ -99,16 +99,31 @@ export interface CompatibilizacaoIA {
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
+// Polling com exponential backoff:
+// 3s → 6s → 12s → 24s → 30s → 30s ...  (cap em 30s)
+// - SEMPRE dobra (até max 30s) entre ticks consecutivos sem mudança.
+// - RESETA para 3s quando o status canônico muda (sinal de progresso real do servidor).
+// - Em caso de falha de query, o backoff segue crescendo (mantém comportamento defensivo).
+// - Estados terminais param o polling via stopPolling() (lógica preexistente).
+const POLL_DELAY_INICIAL_MS = 3000;
+const POLL_DELAY_MAX_MS     = 30000;
+
 export const useCompatibilizacaoIA = (orcamentoId: string) => {
   const [compat, setCompat]             = useState<CompatibilizacaoIA | null>(null);
   const [statusCompat, setStatusCompat] = useState<StatusCompat>('idle');
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollDelayRef   = useRef<number>(POLL_DELAY_INICIAL_MS);
+  const pollActiveRef  = useRef<boolean>(false);
+  const lastStatusRef  = useRef<StatusCompat | 'idle' | null>(null);
 
   const stopPolling = useCallback(() => {
+    pollActiveRef.current = false;
     if (pollingRef.current) {
-      clearInterval(pollingRef.current);
+      clearTimeout(pollingRef.current);
       pollingRef.current = null;
     }
+    pollDelayRef.current = POLL_DELAY_INICIAL_MS;
+    lastStatusRef.current = null;
   }, []);
 
   const carregarCompat = useCallback(async (): Promise<StatusCompat | 'idle' | null> => {
@@ -128,6 +143,7 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
 
     if (error) {
       console.error('[useCompatibilizacaoIA] carregarCompat:', error);
+      // Sinaliza falha para o controlador de polling: o backoff continua crescendo.
       return null;
     }
 
@@ -193,7 +209,40 @@ export const useCompatibilizacaoIA = (orcamentoId: string) => {
 
   const startPolling = useCallback(() => {
     stopPolling();
-    pollingRef.current = setInterval(() => { carregarCompat(); }, 3000);
+    pollActiveRef.current = true;
+    pollDelayRef.current  = POLL_DELAY_INICIAL_MS;
+    lastStatusRef.current = null;
+
+    const scheduleNext = (delay: number) => {
+      if (!pollActiveRef.current) return;
+      pollingRef.current = setTimeout(async () => {
+        if (!pollActiveRef.current) return;
+        let result: StatusCompat | 'idle' | null = null;
+        try {
+          result = await carregarCompat();
+        } catch (err) {
+          console.error('[useCompatibilizacaoIA] polling tick exception:', err);
+        }
+        // Se carregarCompat() entrou em estado terminal, stopPolling() já zerou pollActiveRef.
+        if (!pollActiveRef.current) return;
+
+        // Decide o próximo delay:
+        // - Status canônico mudou (ex.: pending → processando): RESETA para 3s.
+        // - Mesmo status (ou query falhou → result === null): DOBRA, cap em 30s.
+        const statusMudou =
+          result !== null && lastStatusRef.current !== null && result !== lastStatusRef.current;
+
+        if (statusMudou) {
+          pollDelayRef.current = POLL_DELAY_INICIAL_MS;
+        } else {
+          pollDelayRef.current = Math.min(pollDelayRef.current * 2, POLL_DELAY_MAX_MS);
+        }
+        if (result !== null) lastStatusRef.current = result;
+        scheduleNext(pollDelayRef.current);
+      }, delay);
+    };
+
+    scheduleNext(pollDelayRef.current);
   }, [carregarCompat, stopPolling]);
 
   // ── Disparar análise ──────────────────────────────────────────────────────
