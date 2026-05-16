@@ -89,7 +89,7 @@ const FASE_VISUAL: Record<PropostaFase, FaseVisual> = {
   aprovada: {
     tom: 'done', icone: '✅',
     titulo: 'Compatibilização aprovada',
-    descricao: 'A análise foi concluída e enviada ao cliente. Aguarde a decisão final.',
+    descricao: 'A análise foi concluída e a apresentação ao cliente foi agendada. Aguarde a decisão final.',
   },
   recusada: {
     tom: 'neutral', icone: '⚫',

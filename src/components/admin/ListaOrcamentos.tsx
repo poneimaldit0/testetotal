@@ -28,13 +28,13 @@ import { QuadroAvisos, type Aviso } from './QuadroAvisos';
 function CompatStatusBadge({ status }: { status: string | undefined }) {
   if (!status || status === 'idle') return null;
   const map: Record<string, { label: string; cls: string }> = {
-    pending:          { label: 'Compat. gerando...', cls: 'border-gray-300 bg-gray-50 text-gray-600' },
-    failed:           { label: 'Compat. falhou',     cls: 'border-red-300 bg-red-50 text-red-700' },
-    completed:        { label: 'Revisar compat.',    cls: 'border-orange-300 bg-orange-50 text-orange-700' },
-    pendente_revisao: { label: 'Revisar compat.',    cls: 'border-orange-300 bg-orange-50 text-orange-700' },
-    revisado:         { label: 'Compat. revisada',   cls: 'border-blue-300 bg-blue-50 text-blue-700' },
-    aprovado:         { label: 'Compat. aprovada',   cls: 'border-green-300 bg-green-50 text-green-700' },
-    enviado:          { label: 'Compat. enviada',    cls: 'border-green-400 bg-green-100 text-green-800' },
+    pending:          { label: 'Compat. gerando...',   cls: 'border-gray-300 bg-gray-50 text-gray-600' },
+    failed:           { label: 'Compat. falhou',       cls: 'border-red-300 bg-red-50 text-red-700' },
+    completed:        { label: 'Aguardando revisão',   cls: 'border-orange-300 bg-orange-50 text-orange-700' },
+    pendente_revisao: { label: 'Aguardando revisão',   cls: 'border-orange-300 bg-orange-50 text-orange-700' },
+    revisado:         { label: 'Compat. revisada',     cls: 'border-blue-300 bg-blue-50 text-blue-700' },
+    aprovado:         { label: 'Compat. aprovada',     cls: 'border-green-300 bg-green-50 text-green-700' },
+    enviado:          { label: 'Compat. agendada',     cls: 'border-green-400 bg-green-100 text-green-800' },
   };
   const { label, cls } = map[status] ?? { label: status, cls: 'border-gray-300 bg-gray-50 text-gray-600' };
   return (
@@ -272,10 +272,10 @@ export const ListaOrcamentos: React.FC = () => {
     if (counts.kpis.cliente > 0) list.push({
       id: 'compat-cliente',
       tom: 'blue',
-      icone: '📤',
+      icone: '📅',
       contagem: counts.kpis.cliente,
-      titulo: `${counts.kpis.cliente === 1 ? 'enviada ao cliente' : 'enviadas ao cliente'} · aguardando resposta`,
-      descricao: 'Faça follow-up se passou de 3 dias.',
+      titulo: `${counts.kpis.cliente === 1 ? 'compat. agendada' : 'compats. agendadas'} · aguardando confirmação do cliente`,
+      descricao: 'Cliente confirma ou pede reagendamento da apresentação.',
       onClick: () => setCompatFiltro(compatFiltro === 'cliente' ? 'todos' : 'cliente'),
     });
     if (counts.kpis.preSDR > 0) list.push({
@@ -332,8 +332,8 @@ export const ListaOrcamentos: React.FC = () => {
     else if (etapaFiltro !== 'todos') arr.push({ key: 'etapa', label: `Etapa: ${etapaFiltro}`, clear: () => setEtapaFiltro('todos') });
     if (periodoFiltro !== 'todos') arr.push({ key: 'periodo', label: `Últimos ${periodoFiltro} dias`, clear: () => setPeriodoFiltro('todos') });
     if (compatFiltro === 'em_andamento') arr.push({ key: 'compat', label: 'Compat. em andamento', clear: () => setCompatFiltro('todos') });
-    if (compatFiltro === 'revisao')      arr.push({ key: 'compat', label: 'Compat. pronta',  clear: () => setCompatFiltro('todos') });
-    if (compatFiltro === 'cliente')      arr.push({ key: 'compat', label: 'Enviada ao cliente',  clear: () => setCompatFiltro('todos') });
+    if (compatFiltro === 'revisao')      arr.push({ key: 'compat', label: 'Aguardando revisão', clear: () => setCompatFiltro('todos') });
+    if (compatFiltro === 'cliente')      arr.push({ key: 'compat', label: 'Compat. agendada',   clear: () => setCompatFiltro('todos') });
     if (compatFiltro === 'aprovada')     arr.push({ key: 'compat', label: 'Compat. aprovada',    clear: () => setCompatFiltro('todos') });
     if (compatFiltro === 'sem')          arr.push({ key: 'compat', label: 'Sem compatibilização', clear: () => setCompatFiltro('todos') });
     return arr;
@@ -483,7 +483,7 @@ export const ListaOrcamentos: React.FC = () => {
         />
         <KpiCardAdmin
           icon={<Eye className="h-4 w-4" />}
-          label="Compat. pronta"
+          label="Aguardando revisão"
           value={counts.kpis.revisao}
           color="lj"
           active={compatFiltro === 'revisao'}
@@ -491,7 +491,7 @@ export const ListaOrcamentos: React.FC = () => {
         />
         <KpiCardAdmin
           icon={<Hourglass className="h-4 w-4" />}
-          label="Enviada ao cliente"
+          label="Compat. agendada"
           value={counts.kpis.cliente}
           color="rx"
           active={compatFiltro === 'cliente'}
@@ -562,8 +562,8 @@ export const ListaOrcamentos: React.FC = () => {
           <option value="todos">Compatibilização</option>
           <option value="sem">Sem ({counts.compat.sem})</option>
           <option value="em_andamento">Em andamento ({counts.compat.em_andamento})</option>
-          <option value="revisao">Compat. pronta ({counts.compat.revisao})</option>
-          <option value="cliente">Enviada ao cliente ({counts.compat.cliente})</option>
+          <option value="revisao">Aguardando revisão ({counts.compat.revisao})</option>
+          <option value="cliente">Compat. agendada ({counts.compat.cliente})</option>
           <option value="aprovada">Aprovada ({counts.compat.aprovada})</option>
         </select>
 

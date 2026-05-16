@@ -639,8 +639,8 @@ export const CRMKanbanOrcamentos = () => {
     if (q) arr.push({ key: 'q', label: `Busca: ${q}`, clear: () => setBuscaP3('') });
     if (periodoP3 !== 'todos') arr.push({ key: 'periodo', label: `Últimos ${periodoP3} dias`, clear: () => setPeriodoP3('todos') });
     if (compatP3 === 'em_andamento') arr.push({ key: 'compat', label: 'Compat. em andamento', clear: () => setCompatP3('todos') });
-    if (compatP3 === 'revisao')      arr.push({ key: 'compat', label: 'Compat. pronta',  clear: () => setCompatP3('todos') });
-    if (compatP3 === 'cliente')      arr.push({ key: 'compat', label: 'Enviada ao cliente',  clear: () => setCompatP3('todos') });
+    if (compatP3 === 'revisao')      arr.push({ key: 'compat', label: 'Aguardando revisão', clear: () => setCompatP3('todos') });
+    if (compatP3 === 'cliente')      arr.push({ key: 'compat', label: 'Compat. agendada',   clear: () => setCompatP3('todos') });
     if (compatP3 === 'aprovada')     arr.push({ key: 'compat', label: 'Compat. aprovada',    clear: () => setCompatP3('todos') });
     if (compatP3 === 'sem')          arr.push({ key: 'compat', label: 'Sem compatibilização', clear: () => setCompatP3('todos') });
     if (tarefasP3 === 'atrasadas')   arr.push({ key: 'tarefas', label: 'Tarefas atrasadas',  clear: () => setTarefasP3('todos') });
@@ -797,10 +797,10 @@ export const CRMKanbanOrcamentos = () => {
     if (countsP3.compat.cliente > 0) list.push({
       id: 'compat-cliente',
       tom: 'blue',
-      icone: '📤',
+      icone: '📅',
       contagem: countsP3.compat.cliente,
-      titulo: `${countsP3.compat.cliente === 1 ? 'enviada ao cliente' : 'enviadas ao cliente'} · aguardando resposta`,
-      descricao: 'Faça follow-up se passou de 3 dias.',
+      titulo: `${countsP3.compat.cliente === 1 ? 'compat. agendada' : 'compats. agendadas'} · aguardando confirmação do cliente`,
+      descricao: 'Cliente confirma ou pede reagendamento da apresentação.',
       onClick: () => setCompatP3(compatP3 === 'cliente' ? 'todos' : 'cliente'),
     });
     if (orcamentosComAlerta > 0) list.push({
@@ -971,8 +971,8 @@ export const CRMKanbanOrcamentos = () => {
           <option value="todos">Compatibilização</option>
           <option value="sem">Sem ({countsP3.compat.sem})</option>
           <option value="em_andamento">Em andamento ({countsP3.compat.em_andamento})</option>
-          <option value="revisao">Compat. pronta ({countsP3.compat.revisao})</option>
-          <option value="cliente">Enviada ao cliente ({countsP3.compat.cliente})</option>
+          <option value="revisao">Aguardando revisão ({countsP3.compat.revisao})</option>
+          <option value="cliente">Compat. agendada ({countsP3.compat.cliente})</option>
           <option value="aprovada">Aprovada ({countsP3.compat.aprovada})</option>
         </select>
 

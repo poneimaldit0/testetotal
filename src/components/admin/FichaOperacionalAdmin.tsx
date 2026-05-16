@@ -155,7 +155,7 @@ function deriveProximaAcaoAdmin(args: {
       return { tom: 'urgent', icone: '🔁', titulo: `Apresentação de ${dia}/${mes} pendente de feedback` };
     }
     if (['concluida', 'completed', 'pendente_revisao', 'revisado'].includes(compat.status)) {
-      return { tom: 'action', icone: '👁️', titulo: 'Compatibilização pronta para revisão' };
+      return { tom: 'action', icone: '👁️', titulo: 'Compatibilização aguardando revisão' };
     }
     if (compat.status === 'aprovado') {
       return { tom: 'action', icone: '📤', titulo: 'Aprovada — agendar apresentação ao cliente' };
@@ -163,7 +163,7 @@ function deriveProximaAcaoAdmin(args: {
     if (compat.status === 'enviado') {
       return dias > 5
         ? { tom: 'urgent', icone: '⚡', titulo: `Sem follow-up interno há ${Math.floor(dias)}d` }
-        : { tom: 'wait', icone: '📤', titulo: 'Compat. enviada ao cliente — em follow-up' };
+        : { tom: 'wait', icone: '📅', titulo: 'Compat. agendada — aguardando confirmação do cliente' };
     }
   }
 
@@ -269,9 +269,9 @@ function deriveEventosAdmin(args: {
     if (compat.status === 'enviado') {
       out.push({
         tipo: 'compat_enviada',
-        label: 'Enviada ao cliente',
+        label: 'Compat. agendada com o cliente',
         data: null,
-        icone: '📤',
+        icone: '📅',
         cor: I.rx,
       });
     }

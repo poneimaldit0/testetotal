@@ -305,7 +305,7 @@ export function PainelCompatibilizacaoIA() {
                 {filtro === 'em_andamento'     ? 'Nenhuma compatibilização em andamento agora.'
                 : filtro === 'pendente_revisao' ? 'Nenhuma compatibilização aguardando sua revisão.'
                 : filtro === 'aprovados'        ? 'Nenhuma compatibilização aprovada ainda.'
-                : filtro === 'enviados'         ? 'Nenhuma compatibilização enviada ao cliente.'
+                : filtro === 'enviados'         ? 'Nenhuma compat. agendada com cliente.'
                 : filtro === 'erros'            ? 'Nenhuma compatibilização com erro.'
                 : 'Tente alterar o filtro acima.'}
               </div>
