@@ -153,6 +153,17 @@ export interface ProgressoChecklistItem {
   item: ItemChecklistEtapa;
 }
 
+// Sprint C: status derivado da compatibilização exposto no card do Kanban.
+// Cobre a pendência operacional mais recente do orçamento (vai do pedido do cliente
+// até a apresentação realizada). null = sem nada a sinalizar no card.
+export type CompatPendencia =
+  | 'solicitada'      // cliente_solicitou_em != null && apresentacao_agendada_em == null
+  | 'reagendamento'   // apresentacao_reagendamento_solicitado_em != null
+  | 'agendada'        // apresentacao_status === 'agendada' (consultor agendou, cliente ainda não confirmou)
+  | 'confirmada'      // apresentacao_status === 'confirmada' || apresentacao_confirmada_em != null
+  | 'realizada'       // apresentacao_status === 'realizada'
+  | null;
+
 export interface OrcamentoCRMComChecklist extends OrcamentoCRM {
   tempo_na_etapa_dias: number;
   percentual_checklist_concluido: number;
@@ -166,6 +177,9 @@ export interface OrcamentoCRMComChecklist extends OrcamentoCRM {
   tarefas_hoje: number;
   tarefas_atrasadas: number;
   tarefas_concluidas: number;
+  // Sprint C — status da compatibilização (D10+)
+  compatPendencia?: CompatPendencia;
+  apresentacaoAgendadaEm?: string | null;
 }
 
 export interface MotivoPerda {

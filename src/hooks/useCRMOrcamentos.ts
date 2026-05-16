@@ -1,9 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { OrcamentoCRMComChecklist, HistoricoMovimentacao, EtapaCRM, StatusContato, MotivoPerda, MarcarPerdidoPayload, CongelarOrcamentoPayload } from '@/types/crm';
+import { OrcamentoCRMComChecklist, HistoricoMovimentacao, EtapaCRM, StatusContato, MotivoPerda, MarcarPerdidoPayload, CongelarOrcamentoPayload, CompatPendencia } from '@/types/crm';
 import { Profile } from '@/types/supabase';
 import { isFullAccess } from '@/utils/accessControl';
+
+// Sprint C: deriva o tipo de pendência operacional da compat para mostrar no card do Kanban.
+// Prioridade dos estados: solicitada > reagendamento > agendada > confirmada > realizada > null.
+type CompatStatusRow = {
+  orcamento_id: string;
+  status: string | null;
+  cliente_solicitou_em: string | null;
+  apresentacao_status: string | null;
+  apresentacao_agendada_em: string | null;
+  apresentacao_confirmada_em: string | null;
+  apresentacao_reagendamento_solicitado_em: string | null;
+  apresentacao_reagendamento_motivo: string | null;
+  apresentacao_canal: string | null;
+  apresentacao_link: string | null;
+  apresentacao_observacao: string | null;
+  created_at: string;
+};
+
+function derivarCompatPendencia(row: CompatStatusRow | undefined): CompatPendencia {
+  if (!row) return null;
+  if (row.cliente_solicitou_em && !row.apresentacao_agendada_em) return 'solicitada';
+  if (row.apresentacao_reagendamento_solicitado_em) return 'reagendamento';
+  if (row.apresentacao_status === 'realizada') return 'realizada';
+  if (row.apresentacao_status === 'confirmada' || row.apresentacao_confirmada_em) return 'confirmada';
+  if (row.apresentacao_status === 'agendada') return 'agendada';
+  return null;
+}
 
 export const useCRMOrcamentos = (profile: Profile | null) => {
   const { toast } = useToast();
@@ -38,7 +65,48 @@ export const useCRMOrcamentos = (profile: Profile | null) => {
         throw error;
       }
 
-      return (data || []) as unknown as OrcamentoCRMComChecklist[];
+      const orcamentos = (data || []) as unknown as OrcamentoCRMComChecklist[];
+
+      // Sprint C: batch fetch do status da compatibilização (D10+) para todos os orçamentos.
+      // Pega a análise mais recente por orçamento (ordenada DESC, primeira inserção no map vence).
+      const ids = orcamentos.map(o => o.id);
+      if (ids.length > 0) {
+        const { data: compatRows, error: compatError } = await (supabase as any)
+          .from('compatibilizacoes_analises_ia')
+          .select(`
+            orcamento_id,
+            status,
+            created_at,
+            cliente_solicitou_em,
+            apresentacao_status,
+            apresentacao_agendada_em,
+            apresentacao_confirmada_em,
+            apresentacao_reagendamento_solicitado_em,
+            apresentacao_reagendamento_motivo,
+            apresentacao_canal,
+            apresentacao_link,
+            apresentacao_observacao
+          `)
+          .in('orcamento_id', ids)
+          .order('created_at', { ascending: false });
+
+        if (compatError) {
+          console.warn('⚠️ Falha ao carregar status de compat (não bloqueante):', compatError);
+        } else if (compatRows) {
+          const compatMap: Record<string, CompatStatusRow> = {};
+          for (const row of compatRows as CompatStatusRow[]) {
+            // Primeira ocorrência por orçamento (já vem ordenada DESC por created_at)
+            if (!compatMap[row.orcamento_id]) compatMap[row.orcamento_id] = row;
+          }
+          for (const orc of orcamentos) {
+            const row = compatMap[orc.id];
+            orc.compatPendencia = derivarCompatPendencia(row);
+            orc.apresentacaoAgendadaEm = row?.apresentacao_agendada_em ?? null;
+          }
+        }
+      }
+
+      return orcamentos;
     },
     staleTime: 0, // Sempre considerar dados antigos para forçar atualização
     refetchOnMount: 'always', // Sempre recarregar ao montar
